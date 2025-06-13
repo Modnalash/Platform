@@ -3,131 +3,117 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Manage Stock</title>
-  <link rel="stylesheet" href="styles.css" />
+  <title>Manage Stock - MODNA Admin</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
-<body>
-  <div class="container">
-    <aside class="sidebar">
-      <h2>MODNA Admin</h2>
-      <nav>
-        <ul>
-          <li><a href="dashboard.html">Dashboard</a></li>
-          <li class="active"><a href="manage-stock.html">Manage Stock</a></li>
-          <li><a href="order-history.html">Order History</a></li>
-          <li><a href="report.html">Report</a></li>
-          <li><a href="login.html">Logout</a></li>
-        </ul>
-      </nav>
-    </aside>
+<body class="bg-gray-900 text-white font-sans">
+  <div class="flex min-h-screen">
+    <!-- Sidebar -->
+    <div class="w-64 bg-gray-800 p-6">
+      <h2 class="text-2xl font-bold mb-8">MODNA Admin</h2>
+      <ul class="space-y-4">
+        <li><a href="admin-dashboard.html" class="block py-2 px-4 rounded bg-gray-700">Dashboard</a></li>
+        <li><a href="manage-stock.html" class="block py-2 px-4 rounded bg-gray-700">Manage Stock</a></li>
+        <li><a href="order-history.html" class="block py-2 px-4 rounded hover:bg-gray-700">Order History</a></li>
+        <li><a href="report.html" class="block py-2 px-4 rounded hover:bg-gray-700">Report</a></li>
+        <li><a href="index.html" class="block py-2 px-4 rounded hover:bg-gray-700">Logout</a></li>
+      </ul>
+    </div>
 
-    <main class="main-content">
-      <h1>Manage Stock</h1>
+    <!-- Main content -->
+    <div class="flex-1 p-10">
+      <h1 class="text-4xl font-bold mb-6">Manage Stock</h1>
 
-      <button onclick="exportStock()">📄 Export Stock</button>
+      <button onclick="exportStock()" class="mb-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded">📤 Export Stock</button>
 
-      <table id="stockTable">
+      <table id="stockTable" class="w-full text-left border-collapse">
         <thead>
-          <tr>
-            <th>Product</th>
-            <th>Category</th>
-            <th>Quantity</th>
-            <th class="actions">Actions</th>
+          <tr class="bg-gray-800">
+            <th class="p-2">Product</th>
+            <th class="p-2">Category</th>
+            <th class="p-2">Quantity</th>
+            <th class="p-2">Actions</th>
           </tr>
         </thead>
         <tbody id="stockBody">
-          <!-- Stock rows will be loaded here -->
+          <!-- Stock rows injected here -->
         </tbody>
       </table>
 
-      <h2>Add New Product</h2>
-      <div class="add-product-form">
-        <input type="text" id="productName" placeholder="Product Name" />
-        <input type="text" id="productCategory" placeholder="Category" />
-        <input type="number" id="productQty" placeholder="Quantity" />
-        <button onclick="addProduct()">Add Product</button>
+      <div class="mt-10 p-6 bg-gray-800 rounded-lg">
+        <h2 class="text-xl font-bold mb-4 text-center">Add New Product</h2>
+        <div class="flex flex-wrap gap-4 justify-center">
+          <input type="text" id="productName" placeholder="Product Name" class="p-2 rounded text-black" />
+          <input type="text" id="productCategory" placeholder="Category" class="p-2 rounded text-black" />
+          <input type="number" id="productQty" placeholder="Quantity" class="p-2 rounded text-black" />
+          <button onclick="addProduct()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">Add Product</button>
+        </div>
       </div>
-    </main>
+    </div>
   </div>
 
   <script>
-    const SUPABASE_URL = 'https://rwmwsaxlqblvnhfyuuqg.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y';
+    const { createClient } = supabase;
+    const supabaseUrl = 'https://rwmwsaxlqblvnhfyuuqg.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y';
+    const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    async function fetchStock() {
+      const { data, error } = await supabaseClient.from('stock').select('*');
+      if (error) return console.error(error);
 
-    async function loadStock() {
-      const { data, error } = await supabase.from('stock').select('*');
-      const tbody = document.getElementById("stockBody");
+      const tbody = document.getElementById('stockBody');
       tbody.innerHTML = '';
 
-      if (error) {
-        console.error('Error loading stock:', error.message);
-        return;
-      }
-
       data.forEach(item => {
-        const row = document.createElement("tr");
+        const row = document.createElement('tr');
         row.innerHTML = `
-          <td>${item.name}</td>
-          <td>${item.category}</td>
-          <td>${item.qty}</td>
-          <td><button onclick="deleteProduct(${item.id})">Delete</button></td>
+          <td class="p-2">${item.name}</td>
+          <td class="p-2">${item.category}</td>
+          <td class="p-2">${item.qty}</td>
+          <td class="p-2">
+            <button onclick="deleteProduct(${item.id})" class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded">Delete</button>
+          </td>
         `;
         tbody.appendChild(row);
       });
     }
 
     async function addProduct() {
-      const name = document.getElementById("productName").value.trim();
-      const category = document.getElementById("productCategory").value.trim();
-      const qty = parseInt(document.getElementById("productQty").value.trim(), 10);
+      const name = document.getElementById('productName').value;
+      const category = document.getElementById('productCategory').value;
+      const qty = parseInt(document.getElementById('productQty').value);
+      if (!name || !category || !qty) return alert('All fields required');
 
-      if (!name || !category || isNaN(qty)) {
-        alert("Please fill out all fields correctly.");
-        return;
-      }
+      const { error } = await supabaseClient.from('stock').insert([{ name, category, qty }]);
+      if (error) return alert('Error: ' + error.message);
 
-      const { error } = await supabase.from("stock").insert([{ name, category, qty }]);
-
-      if (error) {
-        alert("Error adding product: " + error.message);
-      } else {
-        alert("Product added successfully.");
-        loadStock();
-      }
+      document.getElementById('productName').value = '';
+      document.getElementById('productCategory').value = '';
+      document.getElementById('productQty').value = '';
+      fetchStock();
     }
 
     async function deleteProduct(id) {
-      const { error } = await supabase.from("stock").delete().eq("id", id);
-
-      if (error) {
-        alert("Failed to delete product.");
-      } else {
-        loadStock();
-      }
+      const { error } = await supabaseClient.from('stock').delete().eq('id', id);
+      if (error) return alert('Delete failed: ' + error.message);
+      fetchStock();
     }
 
     function exportStock() {
-      const table = document.getElementById("stockTable");
-      let csv = [];
-      for (let row of table.rows) {
-        const rowData = Array.from(row.cells).map(cell => `"${cell.innerText}"`);
-        csv.push(rowData.join(","));
-      }
-      const blob = new Blob([csv.join("\n")], { type: "text/csv" });
+      const rows = document.querySelectorAll('#stockTable tr');
+      const csv = [...rows].map(row => [...row.children].map(cell => cell.innerText).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "modna_stock.csv";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'modna_stock.csv';
+      a.click();
+      URL.revokeObjectURL(url);
     }
 
-    // Load data initially
-    loadStock();
+    fetchStock();
   </script>
 </body>
 </html>
