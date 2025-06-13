@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Order History - Admin</title>
   <link rel="stylesheet" href="style.css" />
   <style>
@@ -44,15 +44,10 @@
       padding: 20px;
     }
 
-    h1 {
-      margin-bottom: 10px;
-    }
-
     table {
       width: 100%;
       border-collapse: collapse;
-      background: #1b263b;
-      color: #fff;
+      background-color: #1b263b;
       border-radius: 6px;
       overflow: hidden;
     }
@@ -60,15 +55,54 @@
     th, td {
       padding: 12px 16px;
       border-bottom: 1px solid #2b3a50;
+      text-align: left;
     }
 
     th {
       background-color: #112d4e;
-      text-align: left;
     }
 
-    tr:last-child td {
-      border-bottom: none;
+    .actions button {
+      margin-right: 6px;
+      padding: 5px 10px;
+      font-size: 13px;
+    }
+
+    .fulfilled {
+      background-color: #2a9d8f;
+      color: white;
+      border-radius: 4px;
+      padding: 4px 8px;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7);
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background: #1b263b;
+      padding: 20px;
+      border-radius: 8px;
+      width: 300px;
+      color: white;
+    }
+
+    .modal-content h3 {
+      margin-top: 0;
+    }
+
+    .modal-content ul {
+      padding-left: 20px;
+    }
+
+    .modal-content button {
+      margin-top: 10px;
     }
   </style>
 </head>
@@ -83,35 +117,98 @@
   </div>
 
   <div class="main-content">
-    <h1>Order History</h1>
-
-    <table>
+    <h1>📜 Order History</h1>
+    <table id="orderTable">
       <thead>
         <tr>
-          <th>Order ID</th>
-          <th>User</th>
+          <th>#</th>
+          <th>From</th>
           <th>Date</th>
-          <th>Items</th>
           <th>Status</th>
+          <th>Actions</th>
         </tr>
       </thead>
-      <tbody>
-        <tr>
-          <td>#2384</td>
-          <td>UK User</td>
-          <td>2024-06-12</td>
-          <td>Glue X, Lash Tray A</td>
-          <td>Fulfilled</td>
-        </tr>
-        <tr>
-          <td>#2385</td>
-          <td>PL User</td>
-          <td>2024-06-13</td>
-          <td>Tweezers, Primer</td>
-          <td>Pending</td>
-        </tr>
+      <tbody id="orderBody">
+        <!-- Orders will be inserted here -->
       </tbody>
     </table>
   </div>
+
+  <div class="modal" id="viewModal">
+    <div class="modal-content">
+      <h3>🛍️ Order Details</h3>
+      <ul id="orderItems"></ul>
+      <button onclick="document.getElementById('viewModal').style.display='none'">Close</button>
+    </div>
+  </div>
+
+  <script>
+    const orders = [
+      {
+        from: "PL",
+        date: "2025-06-13",
+        status: "Pending",
+        items: ["Molly D x 10", "Glue Pro x 5"]
+      },
+      {
+        from: "UK",
+        date: "2025-06-12",
+        status: "Fulfilled",
+        items: ["Lash Tray A x 15"]
+      }
+    ];
+
+    const tbody = document.getElementById("orderBody");
+
+    orders.forEach((order, i) => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${i + 1}</td>
+        <td>${order.from}</td>
+        <td>${order.date}</td>
+        <td>
+          <span class="${order.status === 'Fulfilled' ? 'fulfilled' : ''}">
+            ${order.status}
+          </span>
+        </td>
+        <td class="actions">
+          <button onclick="viewOrder(${i})">👁️ View</button>
+          <button onclick="printOrder(${i})">🖨️ Print</button>
+          ${order.status === "Pending" ? `<button onclick="markFulfilled(${i})">✅ Fulfill</button>` : ""}
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+
+    function viewOrder(index) {
+      const items = orders[index].items;
+      const list = document.getElementById("orderItems");
+      list.innerHTML = "";
+      items.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        list.appendChild(li);
+      });
+      document.getElementById("viewModal").style.display = "flex";
+    }
+
+    function printOrder(index) {
+      const order = orders[index];
+      const content = `
+        Order from: ${order.from}\n
+        Date: ${order.date}\n
+        Items:\n
+        ${order.items.map(item => "- " + item).join("\n")}
+      `;
+      const win = window.open('', '', 'height=400,width=600');
+      win.document.write('<pre>' + content + '</pre>');
+      win.print();
+    }
+
+    function markFulfilled(index) {
+      orders[index].status = "Fulfilled";
+      location.reload(); // quick way to re-render UI for now
+    }
+  </script>
 </body>
 </html>
