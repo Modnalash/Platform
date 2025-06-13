@@ -56,17 +56,28 @@
     }
 
     .btn {
-      padding: 10px 18px;
+      padding: 10px 20px;
       font-size: 14px;
       border: none;
       border-radius: 5px;
-      margin: 0 6px;
+      margin: 0 5px;
       cursor: pointer;
     }
 
-    .btn-blue { background-color: #007bff; color: #fff; }
-    .btn-yellow { background-color: #f1c40f; color: #000; }
-    .btn-green { background-color: #1abc9c; color: #fff; }
+    .btn-blue {
+      background-color: #007bff;
+      color: #fff;
+    }
+
+    .btn-yellow {
+      background-color: #f1c40f;
+      color: #000;
+    }
+
+    .btn-green {
+      background-color: #1abc9c;
+      color: #fff;
+    }
 
     table {
       width: 100%;
@@ -74,35 +85,33 @@
       background: #1b263b;
       border-radius: 6px;
       overflow: hidden;
-      font-size: 15px;
     }
 
     th, td {
-      padding: 14px 12px;
+      padding: 14px 16px;
       text-align: center;
       border-bottom: 1px solid #2b3a50;
-      vertical-align: middle;
     }
 
     th {
       background-color: #112d4e;
-      color: #fff;
     }
 
-    .actions {
+    .btn-actions {
       display: flex;
       justify-content: center;
-      gap: 8px;
+      gap: 10px;
+      flex-wrap: wrap;
     }
 
     .status-pending {
+      font-weight: bold;
       color: #f39c12;
-      font-weight: 600;
     }
 
     .status-fulfilled {
+      font-weight: bold;
       color: #2ecc71;
-      font-weight: 600;
     }
   </style>
 </head>
@@ -143,8 +152,8 @@
           <td>30</td>
           <td>2025-06-13</td>
           <td class="status-pending">Pending</td>
-          <td class="actions">
-            <button class="btn btn-blue" onclick="viewOrder('#1001')">View</button>
+          <td class="btn-actions">
+            <button class="btn btn-blue" onclick="alert('Order #1001\nProduct: Lash Pro D\nQty: 30\nRegion: PL')">View</button>
             <button class="btn btn-yellow" onclick="window.print()">Print</button>
             <button class="btn btn-green" onclick="fulfillOrder(this)">Fulfill</button>
           </td>
@@ -156,8 +165,8 @@
           <td>10</td>
           <td>2025-06-13</td>
           <td class="status-pending">Pending</td>
-          <td class="actions">
-            <button class="btn btn-blue" onclick="viewOrder('#1002')">View</button>
+          <td class="btn-actions">
+            <button class="btn btn-blue" onclick="alert('Order #1002\nProduct: Glue Max\nQty: 10\nRegion: UK')">View</button>
             <button class="btn btn-yellow" onclick="window.print()">Print</button>
             <button class="btn btn-green" onclick="fulfillOrder(this)">Fulfill</button>
           </td>
@@ -174,10 +183,6 @@
       statusCell.className = "status-fulfilled";
       button.disabled = true;
       button.textContent = "Done";
-    }
-
-    function viewOrder(id) {
-      alert("Viewing order " + id + "\nMore detailed modal popup can be added later.");
     }
 
     function exportToCSV() {
