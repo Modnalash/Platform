@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Manage Stock - Admin</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #0d1b2a;
+      color: #fff;
+      display: flex;
+      height: 100vh;
+    }
+    .sidebar {
+      width: 220px;
+      background-color: #112d4e;
+      padding: 20px;
+    }
+    .sidebar h2 {
+      text-align: center;
+    }
+    .sidebar a {
+      display: block;
+      color: #ddd;
+      padding: 10px;
+      text-decoration: none;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+    .sidebar a.active,
+    .sidebar a:hover {
+      background-color: #1b3a57;
+    }
+    .main-content {
+      flex-grow: 1;
+      padding: 20px;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #1b263b;
+      color: #fff;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #2b3a50;
+    }
+    th {
+      background-color: #112d4e;
+      text-align: left;
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    .actions button {
+      margin-right: 5px;
+      padding: 6px 12px;
+      font-size: 14px;
+    }
+    .add-form {
+      margin-top: 20px;
+      background-color: #1b263b;
+      padding: 15px;
+      border-radius: 6px;
+    }
+    .add-form input,
+    .add-form select {
+      padding: 6px 10px;
+      margin-right: 10px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .add-form button {
+      padding: 6px 14px;
+      font-size: 14px;
+      background-color: #2196f3;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>MODNA Admin</h2>
+    <a href="dashboard-admin.html">Dashboard</a>
+    <a href="manage-stock.html" class="active">Manage Stock</a>
+    <a href="order-history.html">Order History</a>
+    <a href="report.html">Report</a>
+    <a href="index.html">Logout</a>
+  </div>
+
+  <div class="main-content">
+    <h1>Manage Stock</h1>
+    <button onclick="exportStock()">📥 Export Stock</button>
+    <table id="stockTable">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Category</th>
+          <th>Quantity</th>
+          <th class="actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <div class="add-form">
+      <h3>Add New Product</h3>
+      <input type="text" id="productName" placeholder="Product Name" />
+      <select id="productCategory">
+        <option value="">-- Select Category --</option>
+        <option value="Lashes">Lashes</option>
+        <option value="Accessories">Accessories</option>
+        <option value="Make-up">Make-up</option>
+      </select>
+      <input type="number" id="productQty" placeholder="Quantity" />
+      <button onclick="addProduct()">Add Product</button>
+    </div>
+  </div>
+
+  <script>
+    const supabase = supabase.createClient(
+      'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
+    );
+
+    async function loadStock() {
+      const { data, error } = await supabase.from('stock').select('*');
+      if (error) return alert("Error loading stock");
+      const tbody = document.querySelector("#stockTable tbody");
+      tbody.innerHTML = '';
+      data.forEach(item => {
+        const row = tbody.insertRow();
+        row.innerHTML = `
+          <td>${item.name}</td>
+          <td>${item.category}</td>
+          <td>${item.qty}</td>
+          <td class="actions">
+            <button onclick="editRow(this)">✏️ Edit</button>
+            <button onclick="deleteRow(this)">🗑️ Delete</button>
+          </td>
+        `;
+      });
+    }
+
+    async function addProduct() {
+      const name = document.getElementById("productName").value.trim();
+      const cat = document.getElementById("productCategory").value;
+      const qty = document.getElementById("productQty").value;
+
+      if (!name || !cat || !qty) return alert("Please fill all fields");
+
+      await supabase.from("stock").insert([{ name, category: cat, qty }]);
+      document.getElementById("productName").value = '';
+      document.getElementById("productCategory").value = '';
+      document.getElementById("productQty").value = '';
+      loadStock();
+    }
+
+    async function deleteRow(btn) {
+      const row = btn.closest('tr');
+      const name = row.children[0].innerText;
+      await supabase.from("stock").delete().eq("name", name);
+      loadStock();
+    }
+
+    function editRow(btn) {
+      const row = btn.closest("tr");
+      const name = row.cells[0].innerText;
+      const cat = row.cells[1].innerText;
+      const qty = row.cells[2].innerText;
+
+      document.getElementById("productName").value = name;
+      document.getElementById("productCategory").value = cat;
+      document.getElementById("productQty").value = qty;
+
+      deleteRow(btn);
+    }
+
+    function exportStock() {
+      const table = document.getElementById("stockTable");
+      let csv = [];
+      for (let row of table.rows) {
+        const rowData = Array.from(row.cells).map(cell => `"${cell.innerText}"`);
+        csv.push(rowData.join(","));
+      }
+      const blob = new Blob([csv.join("\n")], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "modna_stock.csv";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    loadStock();
+  </script>
+</body>
+</html>
