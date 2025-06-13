@@ -3,113 +3,147 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Order History</title>
+  <title>Order History - MODNA Admin</title>
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-    const SUPABASE_URL = 'https://rwmwsaxlqblvnhfyuuqg.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // Replace with full key
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    async function loadOrders() {
-      const { data, error } = await supabase.from('orders').select('*');
-      if (error) {
-        console.error('Error loading orders:', error);
-        return;
-      }
-
-      const tbody = document.getElementById('orderBody');
-      tbody.innerHTML = '';
-
-      data.forEach(order => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>#${order.id}</td>
-          <td>${order.region}</td>
-          <td>${order.product}</td>
-          <td>${order.qty}</td>
-          <td>${new Date(order.created_at).toLocaleDateString('en-GB')}</td>
-          <td class="status ${order.status === 'Fulfilled' ? 'fulfilled' : 'pending'}">${order.status}</td>
-          <td>
-            <button class="view-btn" onclick="viewOrder(${order.id})">View</button>
-            <button class="print-btn" onclick="printOrder(${order.id})">Print</button>
-            <button class="fulfill-btn" onclick="markFulfilled(${order.id})" ${order.status === 'Fulfilled' ? 'disabled' : ''}>${order.status === 'Fulfilled' ? 'Done' : 'Fulfill'}</button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    async function markFulfilled(id) {
-      const { error } = await supabase
-        .from('orders')
-        .update({ status: 'Fulfilled' })
-        .eq('id', id);
-
-      if (error) console.error('Failed to update order:', error);
-      else loadOrders();
-    }
-
-    function printOrder(id) {
-      window.print();
-    }
-
-    function viewOrder(id) {
-      alert(`View order #${id}`);
-    }
-
-    function exportCSV() {
-      const rows = [...document.querySelectorAll('table tr')].map(row =>
-        [...row.children].map(cell => cell.textContent).join(',')
-      );
-      const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'orders.csv';
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-
-    window.onload = loadOrders;
-  </script>
   <style>
-    body { font-family: sans-serif; background: #0d1b2a; color: white; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; background-color: #1b263b; }
-    th, td { padding: 10px; border: 1px solid #32455e; text-align: center; }
-    th { background-color: #112d4e; }
-    .fulfilled { color: #00ff88; font-weight: bold; }
-    .pending { color: orange; font-weight: bold; }
-    button { margin: 2px; padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; }
-    .view-btn { background-color: #2196f3; color: white; }
-    .print-btn { background-color: #fbc02d; }
-    .fulfill-btn { background-color: #00b894; color: white; }
-    h1 { text-align: center; margin-top: 30px; }
-    .controls { text-align: center; margin: 20px 0; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #0d1b2a;
+      color: #fff;
+      display: flex;
+      height: 100vh;
+    }
+    .sidebar {
+      width: 220px;
+      background-color: #112d4e;
+      padding: 20px;
+    }
+    .sidebar h2 {
+      text-align: center;
+    }
+    .sidebar a {
+      display: block;
+      color: #ddd;
+      padding: 10px;
+      text-decoration: none;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+    .sidebar a.active,
+    .sidebar a:hover {
+      background-color: #1b3a57;
+    }
+    .main-content {
+      flex-grow: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #1b263b;
+      color: #fff;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid #2b3a50;
+      text-align: left;
+    }
+    th {
+      background-color: #112d4e;
+    }
+    .btn {
+      padding: 6px 12px;
+      font-size: 14px;
+      margin-right: 5px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .fulfilled { color: #38b000; }
+    .view-btn { background-color: #0077b6; color: white; }
+    .print-btn { background-color: #adb5bd; }
+    .fulfill-btn { background-color: #ef476f; color: white; }
   </style>
 </head>
 <body>
-  <h1>Order History</h1>
-  <div class="controls">
-    <button onclick="exportCSV()">📁 Export to CSV</button>
-    <button onclick="window.print()">🖨️ Print All</button>
+  <div class="sidebar">
+    <h2>MODNA Admin</h2>
+    <a href="dashboard-admin.html">Dashboard</a>
+    <a href="manage-stock.html">Manage Stock</a>
+    <a href="order-history.html" class="active">Order History</a>
+    <a href="#">Report</a>
+    <a href="index.html">Logout</a>
   </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Order ID</th>
-        <th>Region</th>
-        <th>Product</th>
-        <th>Qty</th>
-        <th>Date</th>
-        <th>Status</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody id="orderBody">
-      <tr><td colspan="7">Loading...</td></tr>
-    </tbody>
-  </table>
+  <div class="main-content">
+    <h1>Order History</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>User</th>
+          <th>Items</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="orderTable">
+        <!-- Dynamic Orders -->
+      </tbody>
+    </table>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script>
+  const { createClient } = supabase;
+  const supabaseUrl = 'https://rwmwsaxlqblvnhfyuuqg.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // Truncated for safety
+  const db = createClient(supabaseUrl, supabaseKey);
+
+  async function loadOrders() {
+    const { data, error } = await db.from('orders').select('*').order('created_at', { ascending: false });
+    if (error) {
+      console.error('Error loading orders:', error);
+      return;
+    }
+
+    const table = document.getElementById('orderTable');
+    table.innerHTML = '';
+
+    data.forEach(order => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${new Date(order.created_at).toLocaleDateString('en-GB')}</td>
+        <td>${order.user || 'N/A'}</td>
+        <td>${order.items}</td>
+        <td class="${order.status === 'fulfilled' ? 'fulfilled' : ''}">${order.status}</td>
+        <td>
+          <button class="btn view-btn" onclick="alert('Viewing order: ${order.items}')">View</button>
+          <button class="btn print-btn" onclick="window.print()">Print</button>
+          <button class="btn fulfill-btn" onclick="fulfillOrder(${order.id})">Mark Fulfilled</button>
+        </td>
+      `;
+      table.appendChild(row);
+    });
+  }
+
+  async function fulfillOrder(id) {
+    const { error } = await db.from('orders').update({ status: 'fulfilled' }).eq('id', id);
+    if (error) {
+      console.error('Error updating status:', error);
+    } else {
+      loadOrders();
+    }
+  }
+
+  loadOrders();
+</script>
 </body>
 </html>
