@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Order History - MODNA Admin</title>
   <link rel="stylesheet" href="style.css" />
   <style>
@@ -73,6 +73,11 @@
       color: white;
     }
 
+    .btn-print {
+      background-color: #f1c40f;
+      color: black;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
@@ -95,6 +100,15 @@
     tr:last-child td {
       border-bottom: none;
     }
+
+    .fulfilled {
+      color: #2ecc71;
+      font-weight: bold;
+    }
+
+    .status-cell {
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -112,7 +126,7 @@
 
     <div class="actions">
       <button class="btn btn-view" onclick="exportOrders()">📤 Export to CSV</button>
-      <button class="btn btn-fulfill" onclick="printOrders()">🖨️ Print</button>
+      <button class="btn btn-print" onclick="printOrders()">🖨️ Print All</button>
     </div>
 
     <table id="orderTable">
@@ -123,6 +137,8 @@
           <th>Product</th>
           <th>Qty</th>
           <th>Date</th>
+          <th>Status</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -132,6 +148,12 @@
           <td>Lash Pro D</td>
           <td>30</td>
           <td>2025-06-13</td>
+          <td class="status-cell">Pending</td>
+          <td>
+            <button class="btn btn-view" onclick="viewOrder(this)">View</button>
+            <button class="btn btn-print" onclick="printOrder(this)">Print</button>
+            <button class="btn btn-fulfill" onclick="markFulfilled(this)">Fulfill</button>
+          </td>
         </tr>
         <tr>
           <td>#1002</td>
@@ -139,6 +161,12 @@
           <td>Glue Max</td>
           <td>10</td>
           <td>2025-06-13</td>
+          <td class="status-cell">Pending</td>
+          <td>
+            <button class="btn btn-view" onclick="viewOrder(this)">View</button>
+            <button class="btn btn-print" onclick="printOrder(this)">Print</button>
+            <button class="btn btn-fulfill" onclick="markFulfilled(this)">Fulfill</button>
+          </td>
         </tr>
       </tbody>
     </table>
@@ -150,7 +178,9 @@
       let csv = [];
 
       for (let row of table.rows) {
-        const rowData = Array.from(row.cells).map(cell => `"${cell.innerText}"`);
+        const rowData = Array.from(row.cells)
+          .slice(0, 6) // Exclude action buttons
+          .map(cell => `"${cell.innerText}"`);
         csv.push(rowData.join(","));
       }
 
@@ -187,6 +217,48 @@
       `);
       win.document.close();
       win.print();
+    }
+
+    function viewOrder(btn) {
+      const row = btn.closest("tr");
+      const orderDetails = Array.from(row.cells)
+        .slice(0, 6)
+        .map((cell, index) => ["Order ID", "Region", "Product", "Qty", "Date", "Status"][index] + ": " + cell.innerText)
+        .join("\n");
+      alert("📦 Order Details:\n\n" + orderDetails);
+    }
+
+    function printOrder(btn) {
+      const row = btn.closest("tr");
+      const rowHTML = "<table border='1'>" + row.outerHTML + "</table>";
+
+      const win = window.open("", "_blank");
+      win.document.write(`
+        <html>
+          <head>
+            <title>Print Order</title>
+            <style>
+              body { font-family: Arial; padding: 20px; }
+              table { width: 100%; border-collapse: collapse; }
+              th, td { border: 1px solid #000; padding: 8px; }
+              th { background-color: #eee; }
+            </style>
+          </head>
+          <body>
+            <h1>Order Print</h1>
+            ${rowHTML}
+          </body>
+        </html>
+      `);
+      win.document.close();
+      win.print();
+    }
+
+    function markFulfilled(btn) {
+      const row = btn.closest("tr");
+      const statusCell = row.querySelector(".status-cell");
+      statusCell.textContent = "Fulfilled";
+      statusCell.classList.add("fulfilled");
     }
   </script>
 </body>
