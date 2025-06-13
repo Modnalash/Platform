@@ -118,6 +118,7 @@
 
   <div class="main-content">
     <h1>📜 Order History</h1>
+    <button onclick="exportOrders()">📥 Export Orders</button>
     <table id="orderTable">
       <thead>
         <tr>
@@ -210,5 +211,26 @@
       location.reload(); // quick way to re-render UI for now
     }
   </script>
+  <script>
+  function exportOrders() {
+    const table = document.querySelector("table");
+    let csv = [];
+    for (let row of table.rows) {
+      const rowData = Array.from(row.cells).map(cell => `"${cell.innerText}"`);
+      csv.push(rowData.join(","));
+    }
+
+    const blob = new Blob([csv.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "modna_orders.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+</script>
+
 </body>
 </html>
