@@ -36,9 +36,7 @@
     const password = document.querySelector('input[type="password"]').value;
 
     if (users[username] && users[username] === password) {
-      alert("✅ Login successful! Welcome, " + username + ".");
-      // Redirect placeholder
-      // window.location.href = `dashboard-${username}.html`;
+      window.location.href = "dashboard.html";
     } else {
       alert("❌ Invalid username or password.");
     }
