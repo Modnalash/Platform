@@ -23,10 +23,9 @@
   </div>
   <script>
   const users = {
-    "admin": "modna123",
-    "pluser": "pl123",
-    "ukuser": "uk123",
-    "skuser": "sk123"
+    "admin": { password: "modna123", dashboard: "dashboard-admin.html" },
+    "pluser": { password: "pl123", dashboard: "dashboard-pluser.html" },
+    "ukuser": { password: "uk123", dashboard: "dashboard-ukuser.html" }
   };
 
   document.querySelector("form.login-form").addEventListener("submit", function (e) {
@@ -35,8 +34,10 @@
     const username = document.querySelector('input[type="text"]').value.trim();
     const password = document.querySelector('input[type="password"]').value;
 
-    if (users[username] && users[username] === password) {
-      window.location.href = "dashboard.html";
+    const user = users[username];
+
+    if (user && user.password === password) {
+      window.location.href = user.dashboard;
     } else {
       alert("❌ Invalid username or password.");
     }
