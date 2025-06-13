@@ -3,11 +3,98 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard</title>
+  <title>Admin Dashboard - MODNA LASH</title>
   <link rel="stylesheet" href="style.css" />
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #0d1b2a;
+      color: #fff;
+      display: flex;
+      height: 100vh;
+    }
+
+    .sidebar {
+      width: 220px;
+      background-color: #112d4e;
+      padding: 20px;
+    }
+
+    .sidebar h2 {
+      font-size: 20px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .sidebar a {
+      display: block;
+      padding: 10px;
+      color: #ddd;
+      text-decoration: none;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+
+    .sidebar a:hover {
+      background-color: #1b3a57;
+    }
+
+    .main-content {
+      flex-grow: 1;
+      padding: 20px;
+    }
+
+    header {
+      background-color: #1e3a5f;
+      padding: 10px 20px;
+      font-size: 18px;
+    }
+
+    .section {
+      margin-top: 20px;
+    }
+
+    .section h3 {
+      color: #a8dadc;
+      margin-bottom: 10px;
+    }
+
+    .card {
+      background-color: #1b263b;
+      padding: 15px;
+      border-radius: 6px;
+    }
+  </style>
 </head>
 <body>
-  <h1>Welcome to the Dashboard!</h1>
-  <p>You are now logged in to MODNA LASH Staff Platform.</p>
+  <div class="sidebar">
+    <h2>MODNA Admin</h2>
+    <a href="#">Dashboard</a>
+    <a href="#">Manage Stock</a>
+    <a href="#">Order History</a>
+    <a href="#">Export</a>
+    <a href="index.html">Logout</a>
+  </div>
+
+  <div class="main-content">
+    <header>Welcome, Admin</header>
+
+    <div class="section">
+      <h3>Quick Overview</h3>
+      <div class="card">
+        <p>📦 132 products in stock</p>
+        <p>📝 14 new orders this week</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Recent Activity</h3>
+      <div class="card">
+        <p>✅ Order #2384 fulfilled</p>
+        <p>🛒 New order placed by UK user</p>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
