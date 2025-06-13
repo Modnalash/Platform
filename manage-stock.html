@@ -107,6 +107,7 @@
   <div class="main-content">
     <h1>Manage Stock</h1>
 
+    <button onclick="exportStock()">📥 Export Stock</button>
     <table id="stockTable">
       <thead>
         <tr>
@@ -188,6 +189,27 @@
 
       row.remove();
     }
+   <script>
+    function exportStock() {
+      const table = document.getElementById("stockTable");
+      let csv = [];
+
+      for (let row of table.rows) {
+        const rowData = Array.from(row.cells).map(cell => `"${cell.innerText}"`);
+        csv.push(rowData.join(","));
+      }
+
+      const blob = new Blob([csv.join("\n")], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "modna_stock.csv";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   </script>
+
 </body>
 </html>
