@@ -3,117 +3,116 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Manage Stock - MODNA Admin</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <title>MODNA Admin - Manage Stock</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js"></script>
 </head>
-<body class="bg-gray-900 text-white font-sans">
-  <div class="flex min-h-screen">
+<body class="bg-gray-900 text-white min-h-screen">
+  <div class="flex">
     <!-- Sidebar -->
-    <div class="w-64 bg-gray-800 p-6">
-      <h2 class="text-2xl font-bold mb-8">MODNA Admin</h2>
-      <ul class="space-y-4">
-        <li><a href="admin-dashboard.html" class="block py-2 px-4 rounded bg-gray-700">Dashboard</a></li>
-        <li><a href="manage-stock.html" class="block py-2 px-4 rounded bg-gray-700">Manage Stock</a></li>
-        <li><a href="order-history.html" class="block py-2 px-4 rounded hover:bg-gray-700">Order History</a></li>
-        <li><a href="report.html" class="block py-2 px-4 rounded hover:bg-gray-700">Report</a></li>
-        <li><a href="index.html" class="block py-2 px-4 rounded hover:bg-gray-700">Logout</a></li>
-      </ul>
+    <div class="w-64 bg-blue-900 text-white p-6 min-h-screen">
+      <h2 class="text-3xl font-bold mb-8">MODNA Admin</h2>
+      <nav class="space-y-4">
+        <a href="dashboard-admin.html" class="block bg-blue-800 p-2 rounded">Dashboard</a>
+        <a href="manage-stock.html" class="block bg-blue-700 p-2 rounded">Manage Stock</a>
+        <a href="order-history.html" class="block hover:bg-blue-800 p-2 rounded">Order History</a>
+        <a href="report.html" class="block hover:bg-blue-800 p-2 rounded">Report</a>
+        <a href="login.html" class="block hover:bg-red-600 p-2 rounded">Logout</a>
+      </nav>
     </div>
 
     <!-- Main content -->
-    <div class="flex-1 p-10">
+    <div class="flex-1 p-8">
       <h1 class="text-4xl font-bold mb-6">Manage Stock</h1>
+      <button onclick="exportStock()" class="mb-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded flex items-center">
+        📄 Export Stock
+      </button>
 
-      <button onclick="exportStock()" class="mb-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded">📤 Export Stock</button>
+      <!-- Stock Table -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left rounded bg-gray-800">
+          <thead>
+            <tr class="bg-blue-800 text-white">
+              <th class="p-3">Product</th>
+              <th class="p-3">Category</th>
+              <th class="p-3">Quantity</th>
+              <th class="p-3">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="stock-table-body">
+            <!-- JS Injected Rows -->
+          </tbody>
+        </table>
+      </div>
 
-      <table id="stockTable" class="w-full text-left border-collapse">
-        <thead>
-          <tr class="bg-gray-800">
-            <th class="p-2">Product</th>
-            <th class="p-2">Category</th>
-            <th class="p-2">Quantity</th>
-            <th class="p-2">Actions</th>
-          </tr>
-        </thead>
-        <tbody id="stockBody">
-          <!-- Stock rows injected here -->
-        </tbody>
-      </table>
-
-      <div class="mt-10 p-6 bg-gray-800 rounded-lg">
-        <h2 class="text-xl font-bold mb-4 text-center">Add New Product</h2>
-        <div class="flex flex-wrap gap-4 justify-center">
-          <input type="text" id="productName" placeholder="Product Name" class="p-2 rounded text-black" />
-          <input type="text" id="productCategory" placeholder="Category" class="p-2 rounded text-black" />
-          <input type="number" id="productQty" placeholder="Quantity" class="p-2 rounded text-black" />
-          <button onclick="addProduct()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">Add Product</button>
+      <!-- Add Product Form -->
+      <div class="mt-10 bg-gray-800 p-6 rounded">
+        <h2 class="text-2xl font-semibold mb-4">Add New Product</h2>
+        <div class="flex space-x-4">
+          <input type="text" id="product-name" placeholder="Product Name" class="p-2 rounded w-1/3 text-black" />
+          <select id="product-category" class="p-2 rounded w-1/3 text-black">
+            <option value="">-- Select Category --</option>
+            <option value="Lashes">Lashes</option>
+            <option value="Adhesives">Adhesives</option>
+            <option value="Accessories">Accessories</option>
+          </select>
+          <input type="number" id="product-qty" placeholder="Quantity" class="p-2 rounded w-1/4 text-black" />
+          <button onclick="addProduct()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Add Product</button>
         </div>
       </div>
     </div>
   </div>
 
   <script>
-    const { createClient } = supabase;
-    const supabaseUrl = 'https://rwmwsaxlqblvnhfyuuqg.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y';
-    const supabaseClient = createClient(supabaseUrl, supabaseKey);
+    const SUPABASE_URL = 'https://rwmwsaxlqblvnhfyuuqg.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    async function fetchStock() {
-      const { data, error } = await supabaseClient.from('stock').select('*');
-      if (error) return console.error(error);
-
-      const tbody = document.getElementById('stockBody');
-      tbody.innerHTML = '';
-
-      data.forEach(item => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td class="p-2">${item.name}</td>
-          <td class="p-2">${item.category}</td>
-          <td class="p-2">${item.qty}</td>
-          <td class="p-2">
-            <button onclick="deleteProduct(${item.id})" class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded">Delete</button>
-          </td>
-        `;
-        tbody.appendChild(row);
-      });
+    async function loadStock() {
+      const { data, error } = await supabase.from('stock').select('*');
+      const tableBody = document.getElementById('stock-table-body');
+      tableBody.innerHTML = '';
+      if (data) {
+        data.forEach(item => {
+          const row = `<tr class="border-t border-gray-700">
+            <td class="p-3">${item.name}</td>
+            <td class="p-3">${item.category}</td>
+            <td class="p-3">${item.qty}</td>
+            <td class="p-3">
+              <button onclick="deleteProduct(${item.id})" class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded">Delete</button>
+            </td>
+          </tr>`;
+          tableBody.insertAdjacentHTML('beforeend', row);
+        });
+      }
     }
 
     async function addProduct() {
-      const name = document.getElementById('productName').value;
-      const category = document.getElementById('productCategory').value;
-      const qty = parseInt(document.getElementById('productQty').value);
-      if (!name || !category || !qty) return alert('All fields required');
-
-      const { error } = await supabaseClient.from('stock').insert([{ name, category, qty }]);
-      if (error) return alert('Error: ' + error.message);
-
-      document.getElementById('productName').value = '';
-      document.getElementById('productCategory').value = '';
-      document.getElementById('productQty').value = '';
-      fetchStock();
+      const name = document.getElementById('product-name').value.trim();
+      const category = document.getElementById('product-category').value;
+      const qty = parseInt(document.getElementById('product-qty').value);
+      if (!name || !category || isNaN(qty)) return alert('All fields are required.');
+      const { error } = await supabase.from('stock').insert([{ name, category, qty }]);
+      if (!error) {
+        loadStock();
+        document.getElementById('product-name').value = '';
+        document.getElementById('product-category').value = '';
+        document.getElementById('product-qty').value = '';
+      } else {
+        alert('Error adding product.');
+      }
     }
 
     async function deleteProduct(id) {
-      const { error } = await supabaseClient.from('stock').delete().eq('id', id);
-      if (error) return alert('Delete failed: ' + error.message);
-      fetchStock();
+      const { error } = await supabase.from('stock').delete().eq('id', id);
+      if (!error) loadStock();
     }
 
     function exportStock() {
-      const rows = document.querySelectorAll('#stockTable tr');
-      const csv = [...rows].map(row => [...row.children].map(cell => cell.innerText).join(',')).join('\n');
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'modna_stock.csv';
-      a.click();
-      URL.revokeObjectURL(url);
+      alert('Export logic coming soon.');
     }
 
-    fetchStock();
+    loadStock();
   </script>
 </body>
 </html>
