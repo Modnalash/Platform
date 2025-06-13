@@ -132,7 +132,12 @@
     <div class="add-form">
       <h3>Add New Product</h3>
       <input type="text" id="productName" placeholder="Product Name" />
-      <input type="text" id="productCategory" placeholder="Category" />
+      <select id="productCategory">
+  <option value="">-- Select Category --</option>
+  <option value="Lashes">Lashes</option>
+  <option value="Accessories">Accessories</option>
+  <option value="Make-up">Make-up</option>
+</select>
       <input type="number" id="productQty" placeholder="Quantity" />
       <button onclick="addProduct()">Add Product</button>
     </div>
