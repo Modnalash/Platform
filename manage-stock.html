@@ -84,13 +84,41 @@
       border-radius: 6px;
     }
 
-    .add-form input {
+    .add-form input,
+    .add-form select {
       padding: 6px 10px;
       margin-right: 10px;
+      font-size: 14px;
+      border: none;
+      border-radius: 4px;
     }
 
     .add-form button {
       padding: 6px 14px;
+      font-size: 14px;
+      border-radius: 4px;
+      background-color: #0077b6;
+      color: white;
+      border: none;
+    }
+
+    .add-form button:hover {
+      background-color: #005f87;
+    }
+
+    .export-btn {
+      margin: 10px 0 20px;
+      padding: 8px 16px;
+      font-size: 14px;
+      background-color: #00b4d8;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .export-btn:hover {
+      background-color: #0077b6;
     }
   </style>
 </head>
@@ -107,7 +135,8 @@
   <div class="main-content">
     <h1>Manage Stock</h1>
 
-    <button onclick="exportStock()">📥 Export Stock</button>
+    <button class="export-btn" onclick="exportStock()">📤 Export Stock</button>
+
     <table id="stockTable">
       <thead>
         <tr>
@@ -134,11 +163,11 @@
       <h3>Add New Product</h3>
       <input type="text" id="productName" placeholder="Product Name" />
       <select id="productCategory">
-  <option value="">-- Select Category --</option>
-  <option value="Lashes">Lashes</option>
-  <option value="Accessories">Accessories</option>
-  <option value="Make-up">Make-up</option>
-</select>
+        <option value="" disabled selected>-- Select Category --</option>
+        <option value="Lashes">Lashes</option>
+        <option value="Accessories">Accessories</option>
+        <option value="Make-up">Make-up</option>
+      </select>
       <input type="number" id="productQty" placeholder="Quantity" />
       <button onclick="addProduct()">Add Product</button>
     </div>
@@ -189,7 +218,7 @@
 
       row.remove();
     }
-   <script>
+
     function exportStock() {
       const table = document.getElementById("stockTable");
       let csv = [];
@@ -210,6 +239,5 @@
       document.body.removeChild(link);
     }
   </script>
-
 </body>
 </html>
