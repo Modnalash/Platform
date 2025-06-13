@@ -41,11 +41,32 @@
 
     .main-content {
       flex-grow: 1;
-      padding: 20px;
+      padding: 30px;
+      background-color: #0d1b2a;
     }
 
     h1 {
-      margin-bottom: 10px;
+      text-align: center;
+      font-size: 32px;
+    }
+
+    .top-actions {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .top-actions button {
+      background-color: #2196f3;
+      color: white;
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .top-actions button:hover {
+      background-color: #1976d2;
     }
 
     table {
@@ -55,70 +76,80 @@
       color: #fff;
       border-radius: 6px;
       overflow: hidden;
+      margin-bottom: 30px;
     }
 
     th, td {
       padding: 12px 16px;
       border-bottom: 1px solid #2b3a50;
+      text-align: left;
     }
 
     th {
       background-color: #112d4e;
-      text-align: left;
-    }
-
-    tr:last-child td {
-      border-bottom: none;
+      font-size: 16px;
     }
 
     .actions button {
-      margin-right: 5px;
       padding: 6px 12px;
       font-size: 14px;
+      border: none;
+      border-radius: 4px;
+      margin-right: 6px;
+      cursor: pointer;
+    }
+
+    .actions .edit {
+      background-color: #ff9800;
+      color: #fff;
+    }
+
+    .actions .delete {
+      background-color: #f44336;
+      color: #fff;
+    }
+
+    .actions .edit:hover {
+      background-color: #fb8c00;
+    }
+
+    .actions .delete:hover {
+      background-color: #e53935;
     }
 
     .add-form {
-      margin-top: 20px;
       background-color: #1b263b;
-      padding: 15px;
-      border-radius: 6px;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .add-form h3 {
+      margin-bottom: 15px;
+      font-size: 22px;
     }
 
     .add-form input,
     .add-form select {
-      padding: 6px 10px;
+      padding: 10px;
       margin-right: 10px;
       font-size: 14px;
-      border: none;
       border-radius: 4px;
+      border: none;
     }
 
     .add-form button {
-      padding: 6px 14px;
+      padding: 10px 20px;
       font-size: 14px;
-      border-radius: 4px;
-      background-color: #0077b6;
-      color: white;
-      border: none;
-    }
-
-    .add-form button:hover {
-      background-color: #005f87;
-    }
-
-    .export-btn {
-      margin: 10px 0 20px;
-      padding: 8px 16px;
-      font-size: 14px;
-      background-color: #00b4d8;
-      color: white;
+      background-color: #007bff;
+      color: #fff;
       border: none;
       border-radius: 4px;
       cursor: pointer;
     }
 
-    .export-btn:hover {
-      background-color: #0077b6;
+    .add-form button:hover {
+      background-color: #0056b3;
     }
   </style>
 </head>
@@ -128,14 +159,16 @@
     <a href="dashboard-admin.html">Dashboard</a>
     <a href="manage-stock.html" class="active">Manage Stock</a>
     <a href="order-history.html">Order History</a>
-    <a href="#">Export</a>
+    <a href="#">Report</a>
     <a href="index.html">Logout</a>
   </div>
 
   <div class="main-content">
     <h1>Manage Stock</h1>
 
-    <button class="export-btn" onclick="exportStock()">📤 Export Stock</button>
+    <div class="top-actions">
+      <button onclick="exportStock()">📤 Export Stock</button>
+    </div>
 
     <table id="stockTable">
       <thead>
@@ -152,8 +185,8 @@
           <td>Adhesives</td>
           <td>34</td>
           <td class="actions">
-            <button onclick="editRow(this)">✏️ Edit</button>
-            <button onclick="deleteRow(this)">🗑️ Delete</button>
+            <button class="edit" onclick="editRow(this)">✏️ Edit</button>
+            <button class="delete" onclick="deleteRow(this)">🗑️ Delete</button>
           </td>
         </tr>
       </tbody>
@@ -163,10 +196,11 @@
       <h3>Add New Product</h3>
       <input type="text" id="productName" placeholder="Product Name" />
       <select id="productCategory">
-        <option value="" disabled selected>-- Select Category --</option>
+        <option value="">-- Select Category --</option>
         <option value="Lashes">Lashes</option>
         <option value="Accessories">Accessories</option>
         <option value="Make-up">Make-up</option>
+        <option value="Adhesives">Adhesives</option>
       </select>
       <input type="number" id="productQty" placeholder="Quantity" />
       <button onclick="addProduct()">Add Product</button>
@@ -189,8 +223,8 @@
         <td>${cat}</td>
         <td>${qty}</td>
         <td class="actions">
-          <button onclick="editRow(this)">✏️ Edit</button>
-          <button onclick="deleteRow(this)">🗑️ Delete</button>
+          <button class="edit" onclick="editRow(this)">✏️ Edit</button>
+          <button class="delete" onclick="deleteRow(this)">🗑️ Delete</button>
         </td>
       `;
 
@@ -222,15 +256,13 @@
     function exportStock() {
       const table = document.getElementById("stockTable");
       let csv = [];
-
       for (let row of table.rows) {
-        const rowData = Array.from(row.cells).map(cell => `"${cell.innerText}"`);
+        const rowData = Array.from(row.cells).map(cell => cell.innerText);
         csv.push(rowData.join(","));
       }
 
       const blob = new Blob([csv.join("\n")], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
-
       const link = document.createElement("a");
       link.href = url;
       link.download = "modna_stock.csv";
