@@ -103,6 +103,18 @@
       padding: 6px;
       margin-bottom: 10px;
     }
+    .edit-btn, .delete-btn {
+      padding: 4px 8px;
+      margin-left: 5px;
+      font-size: 12px;
+    }
+    .edit-btn {
+      background-color: #ffc107;
+      color: black;
+    }
+    .delete-btn {
+      background-color: #dc3545;
+    }
   </style>
 </head>
 <body>
@@ -119,7 +131,7 @@
     <header>Welcome, Admin</header>
 
     <div class="section">
-      <h3>Stock Overview</h3>
+      <h3>Stock Management</h3>
       <button onclick="document.getElementById('addModal').style.display='flex'">➕ Add Product</button>
       <div class="card">
         <table>
@@ -129,12 +141,12 @@
               <th>Category</th>
               <th>Region</th>
               <th>Qty</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="stock-table">
-            <tr><td>Lash Tray A</td><td>Classic</td><td>PL</td><td>120</td></tr>
-            <tr><td>Glue X</td><td>Supplies</td><td>UK</td><td>80</td></tr>
-            <tr><td>Lash Tray C</td><td>Volume</td><td>SK</td><td>50</td></tr>
+            <tr><td>Lash Tray A</td><td>Classic</td><td>PL</td><td>120</td><td><button class="edit-btn">✏️</button><button class="delete-btn" onclick="this.parentElement.parentElement.remove()">🗑️</button></td></tr>
+            <tr><td>Glue X</td><td>Supplies</td><td>UK</td><td>80</td><td><button class="edit-btn">✏️</button><button class="delete-btn" onclick="this.parentElement.parentElement.remove()">🗑️</button></td></tr>
           </tbody>
         </table>
       </div>
@@ -165,7 +177,7 @@
         return;
       }
 
-      const row = `<tr><td>${name}</td><td>${cat}</td><td>${reg}</td><td>${qty}</td></tr>`;
+      const row = `<tr><td>${name}</td><td>${cat}</td><td>${reg}</td><td>${qty}</td><td><button class='edit-btn'>✏️</button><button class='delete-btn' onclick='this.parentElement.parentElement.remove()'>🗑️</button></td></tr>`;
       document.getElementById("stock-table").innerHTML += row;
 
       document.getElementById("addModal").style.display = 'none';
