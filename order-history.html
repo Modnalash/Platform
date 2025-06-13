@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Order History - Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Order History - MODNA Admin</title>
   <link rel="stylesheet" href="style.css" />
   <style>
     body {
@@ -23,6 +23,8 @@
 
     .sidebar h2 {
       text-align: center;
+      font-size: 20px;
+      margin-bottom: 20px;
     }
 
     .sidebar a {
@@ -45,13 +47,37 @@
     }
 
     h1 {
-      margin-bottom: 20px;
+      margin-bottom: 10px;
+    }
+
+    .actions {
+      margin-bottom: 15px;
+    }
+
+    .btn {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+      font-weight: bold;
+    }
+
+    .btn-view {
+      background-color: #0077b6;
+      color: white;
+    }
+
+    .btn-fulfill {
+      background-color: #00b894;
+      color: white;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
       background: #1b263b;
+      color: #fff;
       border-radius: 6px;
       overflow: hidden;
     }
@@ -59,45 +85,15 @@
     th, td {
       padding: 12px 16px;
       border-bottom: 1px solid #2b3a50;
-      text-align: left;
     }
 
     th {
       background-color: #112d4e;
+      text-align: left;
     }
 
     tr:last-child td {
       border-bottom: none;
-    }
-
-    .btn {
-      padding: 6px 12px;
-      font-size: 14px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    .btn-view {
-      background-color: #00b4d8;
-      color: white;
-    }
-
-    .btn-fulfill {
-      background-color: #38b000;
-      color: white;
-      margin-left: 5px;
-    }
-
-    .btn-fulfill[disabled] {
-      background-color: #5c677d;
-      cursor: default;
-    }
-
-    .fulfilled {
-      background-color: #1d2f44 !important;
-      text-decoration: line-through;
-      color: #bbb;
     }
   </style>
 </head>
@@ -107,54 +103,90 @@
     <a href="dashboard-admin.html">Dashboard</a>
     <a href="manage-stock.html">Manage Stock</a>
     <a href="order-history.html" class="active">Order History</a>
-    <a href="#">Export</a>
+    <a href="export.html">Export</a>
     <a href="index.html">Logout</a>
   </div>
 
   <div class="main-content">
     <h1>Order History</h1>
 
+    <div class="actions">
+      <button class="btn btn-view" onclick="exportOrders()">📤 Export to CSV</button>
+      <button class="btn btn-fulfill" onclick="printOrders()">🖨️ Print</button>
+    </div>
+
     <table id="orderTable">
       <thead>
         <tr>
           <th>Order ID</th>
-          <th>User</th>
-          <th>Items</th>
-          <th>Status</th>
-          <th>Actions</th>
+          <th>Region</th>
+          <th>Product</th>
+          <th>Qty</th>
+          <th>Date</th>
         </tr>
       </thead>
       <tbody>
         <tr>
           <td>#1001</td>
-          <td>PL User</td>
-          <td>Glue Pro x2, Lash Tray A x5</td>
-          <td>Pending</td>
-          <td>
-            <button class="btn btn-view">👁️ View</button>
-            <button class="btn btn-fulfill" onclick="markFulfilled(this)">✅ Fulfill</button>
-          </td>
+          <td>PL</td>
+          <td>Lash Pro D</td>
+          <td>30</td>
+          <td>2025-06-13</td>
         </tr>
         <tr>
           <td>#1002</td>
-          <td>UK User</td>
-          <td>Remover x1, Tape Roll x2</td>
-          <td>Pending</td>
-          <td>
-            <button class="btn btn-view">👁️ View</button>
-            <button class="btn btn-fulfill" onclick="markFulfilled(this)">✅ Fulfill</button>
-          </td>
+          <td>UK</td>
+          <td>Glue Max</td>
+          <td>10</td>
+          <td>2025-06-13</td>
         </tr>
       </tbody>
     </table>
   </div>
 
   <script>
-    function markFulfilled(btn) {
-      const row = btn.closest('tr');
-      row.classList.add('fulfilled');
-      row.cells[3].innerText = "Fulfilled";
-      btn.disabled = true;
+    function exportOrders() {
+      const table = document.getElementById("orderTable");
+      let csv = [];
+
+      for (let row of table.rows) {
+        const rowData = Array.from(row.cells).map(cell => `"${cell.innerText}"`);
+        csv.push(rowData.join(","));
+      }
+
+      const blob = new Blob([csv.join("\n")], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "order_history.csv";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    function printOrders() {
+      const tableHTML = document.getElementById("orderTable").outerHTML;
+      const win = window.open("", "_blank");
+      win.document.write(`
+        <html>
+          <head>
+            <title>Print Order History</title>
+            <style>
+              body { font-family: Arial; padding: 20px; }
+              table { width: 100%; border-collapse: collapse; }
+              th, td { border: 1px solid #000; padding: 8px; }
+              th { background-color: #eee; }
+            </style>
+          </head>
+          <body>
+            <h1>Order History</h1>
+            ${tableHTML}
+          </body>
+        </html>
+      `);
+      win.document.close();
+      win.print();
     }
   </script>
 </body>
