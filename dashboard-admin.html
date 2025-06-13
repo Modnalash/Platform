@@ -3,101 +3,127 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin Dashboard - MODNA LASH</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Admin Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
     body {
       margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background-color: #0d1b2a;
-      color: #fff;
+      font-family: 'Inter', sans-serif;
+      background-color: #0b1c2c;
+      color: white;
+    }
+    .container {
       display: flex;
+    }
+    .sidebar {
+      width: 250px;
+      background-color: #112b44;
+      padding: 2rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
       height: 100vh;
     }
-
-    .sidebar {
-      width: 220px;
-      background-color: #112d4e;
-      padding: 20px;
-    }
-
     .sidebar h2 {
-      text-align: center;
+      margin-bottom: 2rem;
+      font-size: 24px;
     }
-
     .sidebar a {
-      display: block;
-      color: #ddd;
-      padding: 10px;
+      color: white;
       text-decoration: none;
-      border-radius: 4px;
-      margin-bottom: 8px;
+      padding: 0.8rem 1rem;
+      border-radius: 8px;
     }
-
-    .sidebar a.active,
-    .sidebar a:hover {
-      background-color: #1b3a57;
+    .sidebar a:hover,
+    .sidebar a.active {
+      background-color: #1e3d5e;
     }
-
-    .main-content {
-      flex-grow: 1;
-      padding: 20px;
+    .main {
+      flex: 1;
+      padding: 2rem;
     }
-
-    header {
-      background-color: #1e3a5f;
-      padding: 10px 20px;
-      font-size: 18px;
-      margin-bottom: 20px;
+    .header {
+      background-color: #1e3d5e;
+      padding: 1rem;
+      text-align: center;
+      font-size: 1.25rem;
+      border-radius: 12px;
     }
-
     .section {
-      margin-bottom: 20px;
+      background-color: #1a2b3e;
+      padding: 1.5rem;
+      margin-top: 2rem;
+      border-radius: 12px;
     }
-
-    .card {
-      background-color: #1b263b;
-      padding: 15px;
-      border-radius: 6px;
+    .section h3 {
+      margin-bottom: 1rem;
+      color: #7ee2f6;
     }
-
-    .card p {
-      margin: 8px 0;
-    }
-
-    h3 {
-      color: #a8dadc;
+    .stat {
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
     }
   </style>
 </head>
 <body>
-  <div class="sidebar">
-    <h2>MODNA Admin</h2>
-    <a href="dashboard-admin.html" class="active">Dashboard</a>
-    <a href="manage-stock.html">Manage Stock</a>
-    <a href="order-history.html">Order History</a>
-    <a href="#">Report</a>
-    <a href="index.html">Logout</a>
-  </div>
-
-  <div class="main-content">
-    <header>Welcome, Admin</header>
-
-    <div class="section">
-      <h3>Quick Overview</h3>
-      <div class="card">
-        <p>🛋️ 132 products in stock</p>
-        <p>📄 14 new orders this week</p>
-      </div>
+  <div class="container">
+    <div class="sidebar">
+      <h2>MODNA Admin</h2>
+      <a class="active" href="#">Dashboard</a>
+      <a href="manage-stock.html">Manage Stock</a>
+      <a href="order-history.html">Order History</a>
+      <a href="report.html">Report</a>
+      <a href="index.html">Logout</a>
     </div>
+    <div class="main">
+      <div class="header">Welcome, Admin</div>
 
-    <div class="section">
-      <h3>Recent Activity</h3>
-      <div class="card">
-        <p>✅ Order #2384 fulfilled</p>
-        <p>🛒 New order placed by UK user</p>
+      <div class="section">
+        <h3>Quick Overview</h3>
+        <div class="stat" id="stockCount">💼 Loading product count...</div>
+        <div class="stat" id="orderCount">📄 Loading new orders...</div>
+      </div>
+
+      <div class="section">
+        <h3>Recent Activity</h3>
+        <div class="stat" id="recentActivity">🔄 Loading recent activity...</div>
       </div>
     </div>
   </div>
+
+  <script>
+    const supabase = supabase.createClient(
+      'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
+    );
+
+    async function loadDashboardData() {
+      const { data: products, error: productError } = await supabase
+        .from('stock')
+        .select('*');
+      const totalQty = products.reduce((sum, p) => sum + (p.qty || 0), 0);
+      document.getElementById('stockCount').textContent = `💼 ${totalQty} products in stock`;
+
+      const { data: orders, error: orderError } = await supabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      document.getElementById('orderCount').textContent = `📄 ${orders.length} new orders this week`;
+
+      const recent = orders.slice(0, 2)
+        .map(order => {
+          return order.status === 'fulfilled'
+            ? `👌 Order #${order.id} fulfilled`
+            : `🛒 New order placed by ${order.region} user`;
+        })
+        .join('<br>');
+
+      document.getElementById('recentActivity').innerHTML = recent;
+    }
+
+    loadDashboardData();
+  </script>
 </body>
 </html>
