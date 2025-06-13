@@ -1,27 +1,169 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MODNA Dashboard</title>
-  <link rel="stylesheet" href="style.css">
-  
-<!-- Supabase Client CDN -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-  const supabase = window.supabase.createClient(
-    'https://YOUR-PROJECT.supabase.co', // replace with your Supabase URL
-    'YOUR-ANON-KEY'                      // replace with your anon key
-  );
-</script>
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UK Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body {
+      background-color: #0d1b2a;
+      color: white;
+      font-family: 'Segoe UI', sans-serif;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    .filter {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      background: #1b263b;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #415a77;
+    }
+    th {
+      background-color: #112d4e;
+    }
+    input[type='number'] {
+      width: 60px;
+    }
+    button {
+      background: #00b4d8;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .popup {
+      background: #1b263b;
+      padding: 20px;
+      border-radius: 8px;
+      width: 300px;
+      margin: 0 auto;
+      margin-top: 20px;
+      text-align: center;
+      display: none;
+    }
+  </style>
 </head>
-
 <body>
-  <div class="main-content">
-    <h1>UK Dashboard</h1>
-    <!-- Content goes here -->
+  <h1>UK Dashboard</h1>
+  <div class="filter">
+    <label for="category">Filter by Category: </label>
+    <select id="category" onchange="filterStock()">
+      <option value="all">All</option>
+      <option value="Lashes">Lashes</option>
+      <option value="Accessories">Accessories</option>
+      <option value="Make-up">Make-up</option>
+    </select>
   </div>
+
+  <form id="orderForm">
+    <table id="stockTable">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Category</th>
+          <th>Stock</th>
+          <th>Qty to Order</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div style="text-align:center; margin-top:20px">
+      <button type="submit">Submit Order</button>
+    </div>
+  </form>
+
+  <div class="popup" id="orderSummary"></div>
+
+  <script>
+    const supabase = supabase.createClient(
+      'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
+    );
+
+    let allStock = [];
+
+    async function loadStock() {
+      const { data, error } = await supabase
+        .from('stock')
+        .select('*')
+        .eq('region', 'UK');
+
+      if (error) {
+        console.error(error);
+        return;
+      }
+      allStock = data;
+      displayStock(data);
+    }
+
+    function displayStock(items) {
+      const tbody = document.querySelector('#stockTable tbody');
+      tbody.innerHTML = '';
+      items.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${item.name}</td>
+          <td>${item.category}</td>
+          <td>${item.qty}</td>
+          <td><input type="number" name="qty_${item.id}" min="0" max="${item.qty}" /></td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function filterStock() {
+      const selected = document.getElementById('category').value;
+      const filtered = selected === 'all' ? allStock : allStock.filter(i => i.category === selected);
+      displayStock(filtered);
+    }
+
+    document.getElementById('orderForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const orders = [];
+      allStock.forEach(item => {
+        const input = document.querySelector(`[name='qty_${item.id}']`);
+        const value = parseInt(input.value);
+        if (value > 0) {
+          orders.push({
+            product: item.name,
+            qty: value,
+            region: 'UK',
+            user_email: 'uk@modna.com',
+            status: 'Pending'
+          });
+        }
+      });
+
+      if (orders.length === 0) return alert('Please select at least one item.');
+
+      let summary = '<h3>Order Summary</h3><ul>';
+      for (const order of orders) {
+        await supabase.from('orders').insert([order]);
+        await supabase.from('stock').update({ qty: allStock.find(i => i.name === order.product).qty - order.qty }).eq('name', order.product).eq('region', 'UK');
+        summary += `<li>${order.product} - Qty: ${order.qty}</li>`;
+      }
+      summary += '</ul><p>Order submitted successfully!</p>';
+      const popup = document.getElementById('orderSummary');
+      popup.innerHTML = summary;
+      popup.style.display = 'block';
+      loadStock();
+    });
+
+    loadStock();
+  </script>
 </body>
 </html>
