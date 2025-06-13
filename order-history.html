@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Order History - Admin</title>
+  <title>Order History - MODNA LASH</title>
   <link rel="stylesheet" href="style.css" />
   <style>
     body {
@@ -14,104 +14,98 @@
       display: flex;
       height: 100vh;
     }
-
     .sidebar {
       width: 220px;
       background-color: #112d4e;
       padding: 20px;
     }
-
     .sidebar h2 {
       text-align: center;
     }
-
     .sidebar a {
       display: block;
-      color: #ddd;
       padding: 10px;
+      color: #ddd;
       text-decoration: none;
       border-radius: 4px;
       margin-bottom: 8px;
     }
-
-    .sidebar a.active,
-    .sidebar a:hover {
+    .sidebar a:hover,
+    .sidebar a.active {
       background-color: #1b3a57;
     }
-
     .main-content {
       flex-grow: 1;
-      padding: 40px;
+      padding: 30px;
     }
-
     h1 {
-      text-align: center;
-      margin-bottom: 30px;
-      font-size: 32px;
-    }
-
-    .btn-group {
       text-align: center;
       margin-bottom: 20px;
     }
-
-    .btn {
-      padding: 10px 20px;
-      font-size: 14px;
-      border: none;
-      border-radius: 5px;
-      margin: 0 5px;
-      cursor: pointer;
+    .buttons {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 20px;
     }
-
-    .btn-blue {
-      background-color: #007bff;
+    .buttons button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn-export {
+      background-color: #2196f3;
       color: #fff;
     }
-
-    .btn-yellow {
-      background-color: #f1c40f;
+    .btn-print {
+      background-color: #fbc02d;
       color: #000;
     }
-
-    .btn-green {
-      background-color: #1abc9c;
-      color: #fff;
-    }
-
     table {
       width: 100%;
       border-collapse: collapse;
-      background: #1b263b;
+      background-color: #1b263b;
       border-radius: 6px;
       overflow: hidden;
     }
-
     th, td {
-      padding: 14px 16px;
-      text-align: center;
+      padding: 12px 14px;
       border-bottom: 1px solid #2b3a50;
+      text-align: center;
     }
-
     th {
       background-color: #112d4e;
     }
-
-    .btn-actions {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
     .status-pending {
+      color: orange;
       font-weight: bold;
-      color: #f39c12;
     }
-
     .status-fulfilled {
+      color: #00ff88;
       font-weight: bold;
-      color: #2ecc71;
+    }
+    .btn {
+      padding: 6px 12px;
+      font-size: 14px;
+      border: none;
+      border-radius: 4px;
+      margin: 2px;
+      cursor: pointer;
+    }
+    .btn-view {
+      background-color: #2196f3;
+      color: #fff;
+    }
+    .btn-fulfill {
+      background-color: #1abc9c;
+      color: #fff;
+    }
+    .btn-print-single {
+      background-color: #fbc02d;
+      color: #000;
     }
   </style>
 </head>
@@ -127,12 +121,13 @@
 
   <div class="main-content">
     <h1>Order History</h1>
-    <div class="btn-group">
-      <button class="btn btn-blue" onclick="exportToCSV()">📥 Export to CSV</button>
-      <button class="btn btn-yellow" onclick="window.print()">🖨️ Print All</button>
+
+    <div class="buttons">
+      <button class="btn btn-export" onclick="exportOrders()">📥 Export to CSV</button>
+      <button class="btn btn-print" onclick="window.print()">🖨️ Print All</button>
     </div>
 
-    <table id="orderTable">
+    <table>
       <thead>
         <tr>
           <th>Order ID</th>
@@ -144,18 +139,18 @@
           <th>Actions</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="orderTable">
         <tr>
           <td>#1001</td>
           <td>PL</td>
           <td>Lash Pro D</td>
           <td>30</td>
-          <td>2025-06-13</td>
-          <td class="status-pending">Pending</td>
-          <td class="btn-actions">
-            <button class="btn btn-blue" onclick="alert('Order #1001\nProduct: Lash Pro D\nQty: 30\nRegion: PL')">View</button>
-            <button class="btn btn-yellow" onclick="window.print()">Print</button>
-            <button class="btn btn-green" onclick="fulfillOrder(this)">Fulfill</button>
+          <td>13/06/25</td>
+          <td class="status status-fulfilled">Fulfilled</td>
+          <td>
+            <button class="btn btn-view">View</button>
+            <button class="btn btn-print-single" onclick="printRow(this)">Print</button>
+            <button class="btn btn-fulfill" onclick="markFulfilled(this)" disabled>Done</button>
           </td>
         </tr>
         <tr>
@@ -163,12 +158,12 @@
           <td>UK</td>
           <td>Glue Max</td>
           <td>10</td>
-          <td>2025-06-13</td>
-          <td class="status-pending">Pending</td>
-          <td class="btn-actions">
-            <button class="btn btn-blue" onclick="alert('Order #1002\nProduct: Glue Max\nQty: 10\nRegion: UK')">View</button>
-            <button class="btn btn-yellow" onclick="window.print()">Print</button>
-            <button class="btn btn-green" onclick="fulfillOrder(this)">Fulfill</button>
+          <td>13/06/25</td>
+          <td class="status status-pending">Pending</td>
+          <td>
+            <button class="btn btn-view">View</button>
+            <button class="btn btn-print-single" onclick="printRow(this)">Print</button>
+            <button class="btn btn-fulfill" onclick="markFulfilled(this)">Fulfill</button>
           </td>
         </tr>
       </tbody>
@@ -176,34 +171,48 @@
   </div>
 
   <script>
-    function fulfillOrder(button) {
-      const row = button.closest("tr");
-      const statusCell = row.querySelector("td:nth-child(6)");
-      statusCell.textContent = "Fulfilled";
-      statusCell.className = "status-fulfilled";
-      button.disabled = true;
-      button.textContent = "Done";
-    }
-
-    function exportToCSV() {
-      const table = document.getElementById("orderTable");
-      const rows = table.querySelectorAll("tr");
-      let csv = [];
+    function exportOrders() {
+      const rows = document.querySelectorAll("table tr");
+      const csv = [];
 
       rows.forEach(row => {
-        const cols = row.querySelectorAll("td, th");
-        const rowData = Array.from(cols).map(col => `"${col.innerText}"`);
+        const cols = row.querySelectorAll("th, td");
+        const rowData = Array.from(cols).map(col => col.innerText.trim());
         csv.push(rowData.join(","));
       });
 
       const blob = new Blob([csv.join("\n")], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
+
       const link = document.createElement("a");
       link.href = url;
-      link.download = "modna_orders.csv";
+      link.download = "order_history.csv";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+    }
+
+    function printRow(button) {
+      const row = button.closest("tr").cloneNode(true);
+      const printWindow = window.open("", "", "width=600,height=400");
+      printWindow.document.write("<html><head><title>Print Order</title></head><body>");
+      printWindow.document.write("<table border='1' style='width:100%; font-family:sans-serif; text-align:center;'>");
+      row.querySelectorAll("td:last-child, th:last-child").forEach(cell => cell.remove()); // remove Actions
+      printWindow.document.write("<tr><th>Order ID</th><th>Region</th><th>Product</th><th>Qty</th><th>Date</th><th>Status</th></tr>");
+      printWindow.document.write(`<tr>${row.innerHTML}</tr>`);
+      printWindow.document.write("</table></body></html>");
+      printWindow.document.close();
+      printWindow.print();
+    }
+
+    function markFulfilled(button) {
+      const row = button.closest("tr");
+      const statusCell = row.querySelector(".status");
+      statusCell.textContent = "Fulfilled";
+      statusCell.classList.remove("status-pending");
+      statusCell.classList.add("status-fulfilled");
+      button.textContent = "Done";
+      button.disabled = true;
     }
   </script>
 </body>
