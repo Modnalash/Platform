@@ -1,0 +1,221 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Order History - Admin</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #0d1b2a;
+      color: #fff;
+      display: flex;
+      height: 100vh;
+    }
+
+    .sidebar {
+      width: 220px;
+      background-color: #112d4e;
+      padding: 20px;
+    }
+
+    .sidebar h2 {
+      text-align: center;
+    }
+
+    .sidebar a {
+      display: block;
+      color: #ddd;
+      padding: 10px;
+      text-decoration: none;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+
+    .sidebar a.active,
+    .sidebar a:hover {
+      background-color: #1b3a57;
+    }
+
+    .main-content {
+      flex-grow: 1;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #1b263b;
+      color: #fff;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #2b3a50;
+    }
+
+    th {
+      background-color: #112d4e;
+      text-align: left;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .actions button {
+      margin-right: 5px;
+      padding: 6px 12px;
+      font-size: 14px;
+    }
+
+    .fulfilled {
+      color: #00ff7f;
+      font-weight: bold;
+    }
+
+    .pending {
+      color: orange;
+      font-weight: bold;
+    }
+
+    .action-btn {
+      padding: 6px 10px;
+      border: none;
+      border-radius: 4px;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .view-btn {
+      background-color: #2196f3;
+    }
+
+    .print-btn {
+      background-color: #ffc107;
+      color: #000;
+    }
+
+    .fulfill-btn {
+      background-color: #00b894;
+    }
+
+    .export-btns {
+      margin-bottom: 20px;
+    }
+
+    .export-btns button {
+      margin-right: 10px;
+      padding: 10px 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>MODNA Admin</h2>
+    <a href="dashboard-admin.html">Dashboard</a>
+    <a href="manage-stock.html">Manage Stock</a>
+    <a href="order-history.html" class="active">Order History</a>
+    <a href="#">Report</a>
+    <a href="index.html">Logout</a>
+  </div>
+
+  <div class="main-content">
+    <h1>Order History</h1>
+    <div class="export-btns">
+      <button onclick="exportOrders()">📥 Export to CSV</button>
+      <button onclick="window.print()">🖨️ Print All</button>
+    </div>
+    <table id="orderTable">
+      <thead>
+        <tr>
+          <th>Order ID</th>
+          <th>Region</th>
+          <th>Product</th>
+          <th>Qty</th>
+          <th>Date</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    const supabase = supabase.createClient(
+      'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
+    );
+
+    async function fetchOrders() {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+      const tbody = document.querySelector('#orderTable tbody');
+      tbody.innerHTML = '';
+
+      data.forEach(order => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>#${order.id}</td>
+          <td>${order.region}</td>
+          <td>${order.product}</td>
+          <td>${order.qty}</td>
+          <td>${new Date(order.created_at).toLocaleDateString('en-GB')}</td>
+          <td class="${order.status === 'Fulfilled' ? 'fulfilled' : 'pending'}">${order.status}</td>
+          <td class="actions">
+            <button class="action-btn view-btn">View</button>
+            <button class="action-btn print-btn" onclick="window.print()">Print</button>
+            <button class="action-btn fulfill-btn" onclick="markFulfilled(${order.id}, this)">Fulfill</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function markFulfilled(id, btn) {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: 'Fulfilled' })
+        .eq('id', id);
+
+      if (error) return alert('Failed to update status');
+      btn.closest('tr').querySelector('td:nth-child(6)').textContent = 'Fulfilled';
+      btn.closest('tr').querySelector('td:nth-child(6)').className = 'fulfilled';
+    }
+
+    function exportOrders() {
+      const rows = Array.from(document.querySelectorAll("#orderTable tr"));
+      const csv = rows.map(row => Array.from(row.cells).map(cell => `"${cell.innerText}"`).join(",")).join("\n");
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "order_history.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    fetchOrders();
+  </script>
+</body>
+</html>
