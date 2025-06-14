@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UK Live Stock Overview</title>
+  <script src="https://unpkg.com/@supabase/supabase-js"></script>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background-color: #0d1b2a; color: #fff; margin: 0; padding: 0; }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 20px; background-color: #112d4e; }
+    header h1 { margin: 0; font-size: 1.5rem; }
+    .logout-btn { background: #f44336; border: none; color: white; padding: 8px 16px; cursor: pointer; border-radius: 5px; }
+    .container { padding: 20px; }
+    .filter-row { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 20px; align-items: center; }
+    .filter-row label { margin-right: 4px; }
+    .filter-row input, .filter-row select { padding: 6px 12px; border-radius: 4px; border: none; font-size: 1rem; }
+    table { width: 100%; border-collapse: collapse; background-color: #1b263b; margin-bottom: 20px; }
+    th, td { padding: 10px; border: 1px solid #2b3a50; text-align: left; }
+    th { background-color: #112d4e; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>UK Live Stock Overview</h1>
+    <button class="logout-btn" onclick="location.href='index.html'">Logout</button>
+  </header>
+
+  <div class="container">
+    <div class="filter-row">
+      <label for="searchInput">Search Product:</label>
+      <input type="text" id="searchInput" placeholder="Search by product..." oninput="renderTable()" />
+      <label for="categoryFilter">Category:</label>
+      <select id="categoryFilter" onchange="renderTable()">
+        <option value="All">All</option>
+        <option value="Starter Kit">Starter Kit</option>
+        <option value="Express Lash">Express Lash</option>
+        <option value="Wielokrotnego">Wielokrotnego</option>
+        <option value="Bio">Bio</option>
+        <option value="Ribbon">Ribbon</option>
+        <option value="Accessories">Accessories</option>
+        <option value="Make-up">Make-up</option>
+      </select>
+    </div>
+
+    <table id="combinedTable">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Category</th>
+          <th>PL Qty</th>
+          <th>Admin Qty</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    // initialise Supabase
+    const supabaseUrl = 'https://rwmwsaxlqblvnhfyuuqg.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y';
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    let combinedData = [];
+
+    async function fetchData() {
+      // fetch both tables
+      const [{ data: plData, error: plErr }, { data: adminData, error: adminErr }] = await Promise.all([
+        supabase.from('pl_stock').select('*'),
+        supabase.from('stock').select('*')
+      ]);
+      if (plErr || adminErr) {
+        console.error(plErr || adminErr);
+        return;
+      }
+
+      // merge by name|category
+      const map = {};
+      plData.forEach(item => {
+        const key = item.name + '|' + item.category;
+        map[key] = { name: item.name, category: item.category, pl_qty: item.qty, admin_qty: 0 };
+      });
+      adminData.forEach(item => {
+        const key = item.name + '|' + item.category;
+        if (map[key]) {
+          map[key].admin_qty = item.qty;
+        } else {
+          map[key] = { name: item.name, category: item.category, pl_qty: 0, admin_qty: item.qty };
+        }
+      });
+
+      combinedData = Object.values(map).map(x => ({
+        ...x,
+        total: x.pl_qty + x.admin_qty
+      }));
+
+      renderTable();
+    }
+
+    function renderTable() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const cat = document.getElementById('categoryFilter').value;
+      const tbody = document.querySelector('#combinedTable tbody');
+      tbody.innerHTML = '';
+
+      combinedData
+        .filter(item =>
+          (cat === 'All' || item.category === cat) &&
+          (!search || item.name.toLowerCase().includes(search))
+        )
+        .forEach(item => {
+          const row = `<tr>
+            <td>${item.name}</td>
+            <td>${item.category}</td>
+            <td>${item.pl_qty}</td>
+            <td>${item.admin_qty}</td>
+            <td>${item.total}</td>
+          </tr>`;
+          tbody.insertAdjacentHTML('beforeend', row);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchData();
+      // auto-refresh every minute
+      setInterval(fetchData, 60000);
+    });
+  </script>
+</body>
+</html>
