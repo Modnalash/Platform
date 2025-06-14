@@ -1,130 +1,131 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8" />
   <title>Order History</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
-    body { margin: 0; font-family: 'Segoe UI', sans-serif; background-color: #0b1c2c; color: white; }
-    .container { display: flex; }
-    .sidebar { width: 250px; background-color: #112b44; padding: 2rem 1rem; height: 100vh; display: flex; flex-direction: column; gap: 1.5rem; }
-    .sidebar a { color: white; text-decoration: none; padding: 0.8rem 1rem; border-radius: 8px; }
-    .sidebar a:hover, .sidebar a.active { background-color: #1e3d5e; }
-    .main { flex: 1; padding: 2rem; }
-    .header { background-color: #1e3d5e; padding: 1rem; text-align: center; font-size: 1.25rem; border-radius: 12px; }
-    .order-block { background-color: #1a2b3e; padding: 1.5rem; margin-top: 1rem; border-radius: 12px; }
-    .fulfilled { background-color: #234f1e !important; }
-    button { padding: 6px 12px; margin-right: 10px; border: none; border-radius: 5px; cursor: pointer; }
-    .btn-fulfilled { background: #06d6a0; color: #0b1c2c; }
-    .btn-print { background: #48cae4; color: #0b1c2c; }
-    ul { padding-left: 1rem; }
-    li { margin-bottom: 4px; }
+    body { background: #112233; color: #fff; font-family: 'Segoe UI', Arial, sans-serif; margin: 0; }
+    .header { background: #243d5a; padding: 32px 0 16px 0; text-align: center; font-size: 2.2rem; }
+    .container { max-width: 900px; margin: 36px auto; }
+    .order-group { background: #223044; border-radius: 18px; margin-bottom: 28px; padding: 32px 28px; box-shadow: 0 6px 20px #0002;}
+    .order-id { font-size: 1.35rem; margin-bottom: 12px; font-weight: bold;}
+    ul { margin-top: 0; }
+    li { margin-bottom: 4px; font-size: 1.12rem;}
+    .actions { margin-top: 18px; }
+    button, .print-btn {
+      font-size: 1.02rem; border: none; border-radius: 9px; padding: 8px 22px;
+      cursor: pointer; margin-right: 12px; transition: background .15s;
+    }
+    .fulfilled-btn { background: #179a57; color: #fff; }
+    .pending-btn { background: #1c88cc; color: #fff; }
+    .fulfilled-btn[disabled] { opacity: 0.7; cursor: not-allowed; }
+    .print-btn { background: #30b7e3; color: #fff;}
   </style>
 </head>
 <body>
-<div class="container">
-  <div class="sidebar">
-    <h2>MODNA Admin</h2>
-    <a href="dashboard-admin.html">Dashboard</a>
-    <a href="manage-stock.html">Manage Stock</a>
-    <a href="order-history.html" class="active">Order History</a>
-    <a href="report.html">Report</a>
-    <a href="index.html">Logout</a>
+  <div class="header">Order History</div>
+  <div class="container" id="orders-container">
+    <!-- Orders go here -->
   </div>
-  <div class="main">
-    <div class="header">Order History</div>
-    <div id="ordersContainer"></div>
-  </div>
-</div>
 
-<script>
-const supabase = window.supabase.createClient(
-  'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
-);
+  <script>
+    // CONFIG — CHANGE THESE
+    const SUPABASE_URL = https://rwmwsaxlqblvnhfyuuqg.supabase.co;
+    const SUPABASE_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y;
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-async function fetchOrders() {
-  const { data: orders, error } = await supabase
-    .from('orders')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  const grouped = {};
-  orders.forEach(order => {
-    const groupId = order.order_group_id || `ungrouped-${order.id}`;
-    if (!grouped[groupId]) grouped[groupId] = [];
-    grouped[groupId].push(order);
-  });
-
-  const container = document.getElementById("ordersContainer");
-  container.innerHTML = '';
-
-  Object.entries(grouped).forEach(([groupId, items]) => {
-    const fulfilled = items.every(i => i.status === 'Fulfilled');
-    const block = document.createElement("div");
-    block.className = "order-block" + (fulfilled ? " fulfilled" : "");
-    block.innerHTML = `
-      <h3>Order #${groupId.slice(0, 8)}${fulfilled ? " - ✅ Fulfilled" : ""}</h3>
-      <ul>
-        ${items.map(i => `<li>${i.product} (${i.region}) - Qty: ${i.qty} - ${i.status}</li>`).join('')}
-      </ul>
-      <button class="btn-fulfilled" onclick="markGroup('${groupId}')">✔ Fulfilled</button>
-      <button class="btn-print" onclick="printGroup('${groupId}')">🖨 Print</button>
-    `;
-    container.appendChild(block);
-  });
-}
-
-async function markGroup(groupId) {
-  let isUngrouped = groupId.startsWith("ungrouped-");
-  let quotedGroupId = `"${groupId}"`;
-
-  let data, error;
-
-  if (isUngrouped) {
-    // Fallback for legacy ungrouped
-    ({ data, error } = await supabase
-      .from('orders')
-      .select('id')
-      .eq('id', groupId.replace('ungrouped-', '')));
-  } else {
-    // THE KEY FIX: No parens, just comma!
-    ({ data, error } = await supabase
-      .from('orders')
-      .select('id')
-      .or(`order_group_id.eq.${quotedGroupId},id.eq.${groupId}`));
-  }
-
-  if (error || !data || data.length === 0) {
-    alert("Could not find matching orders.");
-    return;
-  }
-
-  const ids = data.map(row => row.id);
-
-  if (ids.length > 0) {
-    const { error: updateError } = await supabase
-      .from('orders')
-      .update({ status: 'Fulfilled' })
-      .in('id', ids);
-
-    if (updateError) {
-      alert("Failed to update order(s).");
-    } else {
-      fetchOrders();
+    async function fetchOrders() {
+      // Fetch all orders, newest first
+      let { data: orders, error } = await supabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) { alert('Error loading orders'); return []; }
+      return orders;
     }
-  }
-}
 
-function printGroup(groupId) {
-  const block = [...document.querySelectorAll(".order-block")].find(b => b.innerHTML.includes(groupId.slice(0, 8)));
-  const w = window.open('', '_blank');
-  w.document.write('<html><body>' + block.innerHTML + '</body></html>');
-  w.document.close(); w.print();
-}
+    function groupOrdersById(orders) {
+      // Group orders by order_group_id (or id fallback)
+      const groups = {};
+      for (const order of orders) {
+        const groupId = order.order_group_id || order.id;
+        if (!groups[groupId]) groups[groupId] = [];
+        groups[groupId].push(order);
+      }
+      return groups;
+    }
 
-document.addEventListener("DOMContentLoaded", fetchOrders);
-</script>
+    function renderOrders(groups) {
+      const container = document.getElementById('orders-container');
+      container.innerHTML = '';
+      const groupIds = Object.keys(groups);
+      if (groupIds.length === 0) {
+        container.innerHTML = "<div style='padding:40px;text-align:center;'>No orders found.</div>";
+        return;
+      }
+
+      groupIds.forEach(groupId => {
+        const orders = groups[groupId];
+        // For group display, just use first item as header
+        const status = orders.every(o => o.status === 'Fulfilled') ? 'Fulfilled' : 'Pending';
+        const isFulfilled = status === 'Fulfilled';
+        const orderHtml = `
+          <div class="order-group">
+            <div class="order-id">Order #${groupId.slice(0, 8)}</div>
+            <ul>
+              ${orders.map(o =>
+                `<li>
+                  ${o.product} (${o.region}) - Qty: ${o.qty} - <span style="color:${o.status==='Fulfilled'?'#29f469':'#ffe366'}">${o.status}</span>
+                </li>`).join('')}
+            </ul>
+            <div class="actions">
+              <button class="${isFulfilled ? 'fulfilled-btn' : 'pending-btn'}" 
+                onclick="markGroup('${groupId}')" ${isFulfilled ? 'disabled' : ''}>
+                &#10003; ${isFulfilled ? 'Fulfilled' : 'Mark Fulfilled'}
+              </button>
+              <button class="print-btn" onclick="printOrder('${groupId}')">&#128438; Print</button>
+            </div>
+          </div>
+        `;
+        container.innerHTML += orderHtml;
+      });
+    }
+
+    async function markGroup(groupId) {
+      // Set all items in group to Fulfilled
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: 'Fulfilled' })
+        .eq('order_group_id', groupId);
+      if (error) {
+        alert('Could not mark as Fulfilled!');
+        return;
+      }
+      // Re-render orders
+      loadOrders();
+    }
+
+    function printOrder(groupId) {
+      // Just print the group card (simplified)
+      const orderCard = [...document.querySelectorAll('.order-group')]
+        .find(card => card.innerHTML.includes(groupId.slice(0, 8)));
+      if (orderCard) {
+        const win = window.open('', '', 'width=800,height=600');
+        win.document.write(`<html><head><title>Order #${groupId}</title></head><body>${orderCard.innerHTML}</body></html>`);
+        win.print();
+      }
+    }
+
+    async function loadOrders() {
+      const orders = await fetchOrders();
+      const groups = groupOrdersById(orders);
+      renderOrders(groups);
+    }
+
+    window.markGroup = markGroup; // expose for inline handler
+    window.printOrder = printOrder;
+    loadOrders();
+  </script>
 </body>
 </html>
