@@ -4,129 +4,114 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Order History</title>
-  <!-- Supabase JS client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
     body { margin: 0; font-family: 'Segoe UI', sans-serif; background-color: #0b1c2c; color: white; }
     .container { display: flex; }
-    .sidebar { width: 250px; background-color: #112b44; padding: 2rem 1rem; display: flex; flex-direction: column; gap: 1.5rem; }
-    .sidebar h2 { color: #7ee2f6; margin: 0; }
+    .sidebar { width: 250px; background-color: #112b44; padding: 2rem 1rem; height: 100vh; display: flex; flex-direction: column; gap: 1.5rem; }
     .sidebar a { color: white; text-decoration: none; padding: 0.8rem 1rem; border-radius: 8px; }
-    .sidebar a.active, .sidebar a:hover { background-color: #1e3d5e; }
+    .sidebar a:hover, .sidebar a.active { background-color: #1e3d5e; }
     .main { flex: 1; padding: 2rem; }
-    .header { background-color: #1e3d5e; padding: 1rem; text-align: center; font-size: 1.5rem; border-radius: 12px; }
+    .header { background-color: #1e3d5e; padding: 1rem; text-align: center; font-size: 1.25rem; border-radius: 12px; }
     .order-block { background-color: #1a2b3e; padding: 1.5rem; margin-top: 1rem; border-radius: 12px; }
-    .order-block.fulfilled { background-color: #234f1e; }
-    .order-block h3 { margin: 0 0 8px; font-size: 1.25rem; }
-    ul { padding-left: 1.2rem; margin: 0; }
-    li { margin-bottom: 6px; }
-    .actions { margin-top: 12px; }
-    button { padding: 6px 14px; border: none; border-radius: 5px; cursor: pointer; font-size: 1rem; }
+    .fulfilled { background-color: #234f1e !important; }
+    button { padding: 6px 12px; margin-right: 10px; border: none; border-radius: 5px; cursor: pointer; }
     .btn-fulfilled { background: #06d6a0; color: #0b1c2c; }
-    .btn-fulfilled[disabled] { opacity: 0.6; cursor: not-allowed; }
     .btn-print { background: #48cae4; color: #0b1c2c; }
+    ul { padding-left: 1rem; }
+    li { margin-bottom: 4px; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="sidebar">
-      <h2>MODNA Admin</h2>
-      <a href="dashboard-admin.html">Dashboard</a>
-      <a href="manage-stock.html">Manage Stock</a>
-      <a href="order-history.html" class="active">Order History</a>
-      <a href="report.html">Report</a>
-      <a href="index.html">Logout</a>
-    </div>
-    <div class="main">
-      <div class="header">Order History</div>
-      <div id="ordersContainer"></div>
-    </div>
+<div class="container">
+  <div class="sidebar">
+    <h2>MODNA Admin</h2>
+    <a href="dashboard-admin.html">Dashboard</a>
+    <a href="manage-stock.html">Manage Stock</a>
+    <a href="order-history.html" class="active">Order History</a>
+    <a href="report.html">Report</a>
+    <a href="index.html">Logout</a>
   </div>
+  <div class="main">
+    <div class="header">Order History</div>
+    <div id="ordersContainer"></div>
+  </div>
+</div>
 
-  <script>
-    // — YOUR SUPABASE CONFIGURATION —
-    const SUPABASE_URL = 'https://rwmwsaxlqblvnhfyuuqg.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y';
+<script>
+const supabase = window.supabase.createClient(
+  'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
+);
 
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+async function fetchOrders() {
+  const { data: orders, error } = await supabase
+    .from('orders')
+    .select('*')
+    .order('created_at', { ascending: false });
 
-    async function loadOrders() {
-      // Fetch all orders, most recent first
-      const { data: orders, error } = await supabase
-        .from('orders')
-        .select('id, region, product, qty, status, created_at, order_group_id')
-        .order('created_at', { ascending: false });
+  const grouped = {};
+  orders.forEach(order => {
+    const groupId = order.order_group_id || `ungrouped-${order.id}`;
+    if (!grouped[groupId]) grouped[groupId] = [];
+    grouped[groupId].push(order);
+  });
 
-      if (error) {
-        console.error('Error loading orders:', error);
-        document.getElementById('ordersContainer').innerHTML = '<p style="padding:20px;">Failed to load orders.</p>';
-        return;
-      }
+  const container = document.getElementById("ordersContainer");
+  container.innerHTML = '';
 
-      // Group by order_group_id (fallback to ungrouped-id)
-      const groups = {};
-      orders.forEach(o => {
-        const key = o.order_group_id || `ungrouped-${o.id}`;
-        if (!groups[key]) groups[key] = [];
-        groups[key].push(o);
-      });
+  Object.entries(grouped).forEach(([groupId, items]) => {
+    const fulfilled = items.every(i => i.status === 'Fulfilled');
+    const block = document.createElement("div");
+    block.className = "order-block" + (fulfilled ? " fulfilled" : "");
+    block.innerHTML = `
+      <h3>Order #${groupId.slice(0, 8)}${fulfilled ? " - ✅ Fulfilled" : ""}</h3>
+      <ul>
+        ${items.map(i => `<li>${i.product} (${i.region}) - Qty: ${i.qty} - ${i.status}</li>`).join('')}
+      </ul>
+      <button class="btn-fulfilled" onclick="markGroup('${groupId}')">✔ Fulfilled</button>
+      <button class="btn-print" onclick="printGroup('${groupId}')">🖨 Print</button>
+    `;
+    container.appendChild(block);
+  });
+}
 
-      // Render
-      const container = document.getElementById('ordersContainer');
-      container.innerHTML = '';
-      for (const [gid, items] of Object.entries(groups)) {
-        const allFulfilled = items.every(i => i.status === 'Fulfilled');
-        const block = document.createElement('div');
-        block.className = 'order-block' + (allFulfilled ? ' fulfilled' : '');
-        block.innerHTML = `
-          <h3>Order #${gid.slice(0,8)}${allFulfilled ? ' – ✅ Fulfilled' : ''}</h3>
-          <ul>
-            ${items.map(i =>
-              `<li>${i.product} (${i.region}) – Qty: ${i.qty} – ${i.status}</li>`
-            ).join('')}
-          </ul>
-          <div class="actions">
-            <button class="btn-fulfilled" ${allFulfilled?'disabled':''}
-              onclick="markFulfilled('${gid}')">
-              ✔ ${allFulfilled ? 'Fulfilled' : 'Mark Fulfilled'}
-            </button>
-            <button class="btn-print" onclick="printOrder('${gid}')">🖨 Print</button>
-          </div>
-        `;
-        container.appendChild(block);
-      }
+async function markGroup(groupId) {
+  // Find all orders with this groupId OR matching id for ungrouped
+  const { data, error } = await supabase
+    .from('orders')
+    .select('id')
+    .or(`order_group_id.eq.${groupId},id.eq.${groupId.replace('ungrouped-', '')}`);
+
+  if (error || !data) {
+    alert("Could not find matching orders.");
+    return;
+  }
+
+  const ids = data.map(row => row.id);
+
+  if (ids.length > 0) {
+    const { error: updateError } = await supabase
+      .from('orders')
+      .update({ status: 'Fulfilled' })
+      .in('id', ids);
+
+    if (updateError) {
+      alert("Failed to update order(s).");
+    } else {
+      fetchOrders();
     }
+  }
+}
 
-    async function markFulfilled(groupId) {
-      const { error } = await supabase
-        .from('orders')
-        .update({ status: 'Fulfilled' })
-        .eq('order_group_id', groupId);
+function printGroup(groupId) {
+  const block = [...document.querySelectorAll(".order-block")].find(b => b.innerHTML.includes(groupId.slice(0, 8)));
+  const w = window.open('', '_blank');
+  w.document.write('<html><body>' + block.innerHTML + '</body></html>');
+  w.document.close(); w.print();
+}
 
-      if (error) {
-        alert('Could not update status: ' + error.message);
-      } else {
-        loadOrders();
-      }
-    }
-
-    function printOrder(groupId) {
-      const blocks = document.querySelectorAll('.order-block');
-      const card = Array.from(blocks).find(c => c.innerText.includes(groupId.slice(0,8)));
-      if (!card) return;
-      const w = window.open('', '_blank');
-      w.document.write(`
-        <html>
-          <head><title>Print Order</title></head>
-          <body style="font-family: Arial; padding:20px;">
-            ${card.innerHTML}
-          </body>
-        </html>`);
-      w.document.close();
-      w.print();
-    }
-
-    document.addEventListener('DOMContentLoaded', loadOrders);
-  </script>
+document.addEventListener("DOMContentLoaded", fetchOrders);
+</script>
 </body>
 </html>
