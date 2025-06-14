@@ -96,7 +96,11 @@
   let stockData = [];
 
   async function fetchStock() {
-    const { data, error } = await supabase.from('stock').select('*');
+    // fetch and order by id to keep original row order consistent
+    const { data, error } = await supabase
+      .from('stock')
+      .select('*')
+      .order('id', { ascending: true });
     if (!error && Array.isArray(data)) {
       stockData = data;
       renderTable();
