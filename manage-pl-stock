@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PL Local Stock</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #0d1b2a; color: #fff; }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; background: #112d4e; }
+    header h1 { margin: 0; font-size: 1.5rem; }
+    .back-btn, .logout-btn { background: #f44336; border: none; color: white; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer; }
+    .container { padding: 2rem; }
+    .controls { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
+    .controls input, .controls select { padding: 0.5rem 1rem; border-radius: 4px; border: none; font-size: 1rem; }
+    table { width: 100%; border-collapse: collapse; background: #1b263b; margin-bottom: 1.5rem; }
+    th, td { padding: 0.75rem 1rem; border: 1px solid #2b3a50; text-align: left; }
+    th { background: #112d4e; }
+    .actions button { background: #3fbc5f; border: none; color: #0d1b2a; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; }
+    .actions button:hover { background: #2c9e4c; }
+    .add-form { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 2rem; }
+    .add-form input, .add-form select, .add-form button { padding: 0.5rem 1rem; border-radius: 4px; border: none; font-size: 1rem; }
+    .add-form button { background: #00a8e8; color: white; cursor: pointer; }
+    .add-form button:hover { background: #008dbb; }
+    .msg { margin-top: 0.5rem; color: #7ee2f6; }
+  </style>
+</head>
+<body>
+  <header>
+    <button class="back-btn" onclick="location.href='dashboard-pluser.html'">← Back</button>
+    <h1>PL Local Stock</h1>
+    <button class="logout-btn" onclick="location.href='index.html'">Logout</button>
+  </header>
+  <div class="container">
+    <div class="controls">
+      <input type="text" id="searchInput" placeholder="Search by product..." oninput="renderTable()" />
+      <select id="categoryFilter" onchange="renderTable()">
+        <option value="All">All</option>
+        <option value="Starter Kit">Starter Kit</option>
+        <option value="Express Lash">Express Lash</option>
+        <option value="Wielokrotnego">Wielokrotnego</option>
+        <option value="Bio">Bio</option>
+        <option value="Ribbon">Ribbon</option>
+        <option value="Accessories">Accessories</option>
+        <option value="Make-up">Make-up</option>
+      </select>
+    </div>
+    <table id="localStockTable">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Category</th>
+          <th>Qty</th>
+          <th>Adjust</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <div class="add-form">
+      <input type="text" id="newName" placeholder="Product Name" />
+      <select id="newCategory">
+        <option value="">Select Category</option>
+        <option value="Starter Kit">Starter Kit</option>
+        <option value="Express Lash">Express Lash</option>
+        <option value="Wielokrotnego">Wielokrotnego</option>
+        <option value="Bio">Bio</option>
+        <option value="Ribbon">Ribbon</option>
+        <option value="Accessories">Accessories</option>
+        <option value="Make-up">Make-up</option>
+      </select>
+      <input type="number" id="newQty" placeholder="Quantity" min="0" />
+      <button onclick="addLocalProduct()">Add Local Item</button>
+    </div>
+    <div id="msg" class="msg"></div>
+  </div>
+
+  <script>
+    const supabase = window.supabase.createClient(
+      'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9…'
+    );
+
+    let localData = [];
+
+    async function fetchLocal() {
+      const { data, error } = await supabase.from('pl_stock').select('*').order('id', { ascending: true });
+      if (error) return console.error(error);
+      localData = data;
+      renderTable();
+    }
+
+    function renderTable() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const cat = document.getElementById('categoryFilter').value;
+      const tbody = document.querySelector('#localStockTable tbody');
+      tbody.innerHTML = '';
+
+      localData.filter(item => {
+        const mSearch = !search || item.name.toLowerCase().includes(search);
+        const mCat = cat === 'All' || item.category === cat;
+        return mSearch && mCat;
+      }).forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${item.name}</td>
+          <td>${item.category}</td>
+          <td class="qty-cell">${item.qty}</td>
+          <td><input type="number" id="adj-${item.id}" value="0" min="0" /></td>
+          <td class="actions">
+            <button onclick="updateLocal(${item.id})">Update</button>
+            <button onclick="deleteLocal(${item.id})">Delete</button>
+          </td>`;
+        tbody.appendChild(row);
+      });
+    }
+
+    async function updateLocal(id) {
+      const adj = parseInt(document.getElementById(`adj-${id}`).value);
+      if (isNaN(adj)) return alert('Enter valid amount');
+      const item = localData.find(i => i.id === id);
+      const newQty = item.qty + adj;
+      const { error } = await supabase.from('pl_stock').update({ qty: newQty }).eq('id', id);
+      if (error) return alert(error.message);
+      fetchLocal();
+    }
+
+    async function deleteLocal(id) {
+      if (!confirm('Delete this item?')) return;
+      const { error } = await supabase.from('pl_stock').delete().eq('id', id);
+      if (error) return alert(error.message);
+      fetchLocal();
+    }
+
+    async function addLocalProduct() {
+      const name = document.getElementById('newName').value.trim();
+      const category = document.getElementById('newCategory').value;
+      const qty = parseInt(document.getElementById('newQty').value);
+      if (!name || !category || isNaN(qty)) return alert('Fill out all fields');
+      const { error } = await supabase.from('pl_stock').insert([{ name, category, qty }]);
+      if (error) return alert(error.message);
+      document.getElementById('msg').innerText = '✅ Added!';
+      setTimeout(() => document.getElementById('msg').innerText = '', 2000);
+      document.getElementById('newName').value = '';
+      document.getElementById('newCategory').value = '';
+      document.getElementById('newQty').value = '';
+      fetchLocal();
+    }
+
+    document.addEventListener('DOMContentLoaded', fetchLocal);
+  </script>
+</body>
+</html>
