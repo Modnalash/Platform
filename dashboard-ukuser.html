@@ -9,7 +9,8 @@
     body { font-family: 'Segoe UI', sans-serif; background-color: #0d1b2a; color: #fff; margin: 0; padding: 0; }
     header { display: flex; justify-content: space-between; align-items: center; padding: 20px; background-color: #112d4e; }
     header h1 { margin: 0; }
-    .logout-btn { background: #f44336; border: none; color: white; padding: 8px 16px; cursor: pointer; border-radius: 5px; }
+    .nav-btn, .logout-btn { background: #00a8e8; border: none; color: white; padding: 8px 16px; cursor: pointer; border-radius: 5px; font-size: 1rem; }
+    .logout-btn { background: #f44336; }
     .container { padding: 20px; }
     .filter-row {
       display: flex;
@@ -55,7 +56,10 @@
 <body>
   <header>
     <h1>UK Dashboard</h1>
-    <button class="logout-btn" onclick="location.href='index.html'">Logout</button>
+    <div>
+      <button class="nav-btn" onclick="location.href='dashboard-uk-stock.html'">Live Stock Overview</button>
+      <button class="logout-btn" onclick="location.href='index.html'">Logout</button>
+    </div>
   </header>
 
   <div class="container">
@@ -189,22 +193,11 @@
       if (!orderItems.length) return alert('❌ No items to submit.');
       const groupId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
       for (const item of orderItems) {
-        const { error } = await supabase.from('orders').insert([{
-          region: 'UK',
-          product: item.product,
-          qty: item.qty,
-          category: item.category,
-          order_group_id: groupId,
-          status: 'Pending'
-        }]);
+        const { error } = await supabase.from('orders').insert([{ region: 'UK', product: item.product, qty: item.qty, category: item.category, order_group_id: groupId, status: 'Pending' }]);
         if (error) {
-          alert('❌ Failed to submit order.');
-          return;
+          alert('❌ Failed to submit order.'); return;
         }
-        // decrement stock
-        await supabase.from('stock')
-          .update({ qty: item.available - item.qty })
-          .eq('id', item.stock_id);
+        await supabase.from('stock').update({ qty: item.available - item.qty }).eq('id', item.stock_id);
       }
       alert('Order placed!');
       orderItems = [];
