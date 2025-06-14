@@ -121,11 +121,10 @@
         });
     }
 
+    // Updated: now sets qty = input value directly, not adds
     async function updateLocal(id) {
-      const adj = parseInt(document.getElementById(`adj-${id}`).value);
-      if (isNaN(adj)) return alert('Enter valid amount');
-      const item = localData.find(i => i.id === id);
-      const newQty = item.qty + adj;
+      const newQty = parseInt(document.getElementById(`adj-${id}`).value, 10);
+      if (isNaN(newQty)) return alert('Enter valid amount');
       const { error } = await supabase
         .from('pl_stock')
         .update({ qty: newQty })
@@ -147,7 +146,7 @@
     async function addLocalProduct() {
       const name = document.getElementById('newName').value.trim();
       const category = document.getElementById('newCategory').value;
-      const qty = parseInt(document.getElementById('newQty').value);
+      const qty = parseInt(document.getElementById('newQty').value, 10);
       if (!name || !category || isNaN(qty)) return alert('Fill out all fields');
       const { error } = await supabase
         .from('pl_stock')
