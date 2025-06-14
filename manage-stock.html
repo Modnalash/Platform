@@ -154,15 +154,16 @@
           <option value="Make-up">Make-up</option>
         </select>
         <input type="number" id="productQty" placeholder="Quantity" />
-        <button onclick="addProduct()">Add Product</button>
+        <button id="addBtn">Add Product</button>
       </div>
       <div class="success-msg" id="successMsg"></div>
     </div>
   </div>
 </div>
 
+<!-- JavaScript should come AFTER HTML and Supabase JS -->
 <script>
-  const supabase = supabase.createClient(
+  const supabase = window.supabase.createClient(
     'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
   );
@@ -171,17 +172,19 @@
     const { data, error } = await supabase.from('stock').select('*');
     const tbody = document.querySelector("#stockTable tbody");
     tbody.innerHTML = '';
-    data.forEach(item => {
-      const row = `<tr>
-          <td>${item.name}</td>
-          <td>${item.category}</td>
-          <td>${item.qty}</td>
-          <td class="actions">
-            <button onclick="deleteProduct(${item.id})">🗑️ Delete</button>
-          </td>
-        </tr>`;
-      tbody.innerHTML += row;
-    });
+    if (data && Array.isArray(data)) {
+      data.forEach(item => {
+        const row = `<tr>
+            <td>${item.name}</td>
+            <td>${item.category}</td>
+            <td>${item.qty}</td>
+            <td class="actions">
+              <button onclick="deleteProduct(${item.id})">🗑️ Delete</button>
+            </td>
+          </tr>`;
+        tbody.innerHTML += row;
+      });
+    }
   }
 
   async function addProduct() {
@@ -218,7 +221,11 @@
     if (!error) fetchStock();
   }
 
-  fetchStock();
+  // Bind button AFTER DOM and client initialized
+  document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById("addBtn").addEventListener("click", addProduct);
+    fetchStock();
+  });
 </script>
 </body>
 </html>
