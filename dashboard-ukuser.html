@@ -65,17 +65,21 @@
   </div>
 
   <script>
-    const { createClient } = supabase;
-    const supabaseUrl = 'https://rwmwsaxlqblvnhfyuuqg.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9…';
-    const supabaseClient = createClient(supabaseUrl, supabaseKey);
+    // Initialize Supabase client
+    const supabase = window.supabase.createClient(
+      'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
+    );
 
     let orderItems = [];
 
+    // Fetch live stock and populate table
     async function fetchStock() {
-      const { data } = await supabaseClient
-        .from('stock')
-        .select('*');
+      const { data, error } = await supabase.from('stock').select('*');
+      if (error) {
+        console.error(error);
+        return;
+      }
       const tbody = document.querySelector("#stockTable tbody");
       tbody.innerHTML = '';
       data.forEach(item => {
@@ -84,46 +88,47 @@
           <td>${item.name}</td>
           <td>${item.category}</td>
           <td>${item.qty}</td>
-          <td><input type="number"
-                     data-id="${item.id}"
-                     data-name="${item.name}"
-                     data-cat="${item.category}"
-                     data-qty="${item.qty}"
-                     value="0"
-                     min="0"
-                     max="${item.qty}"></td>
+          <td>
+            <input type="number"
+                   data-id="${item.id}"
+                   data-name="${item.name}"
+                   data-cat="${item.category}"
+                   data-qty="${item.qty}"
+                   value="0" min="0" max="${item.qty}" />
+          </td>
           <td><button class="order-btn" onclick="addToOrder(this)">Add</button></td>`;
         tbody.appendChild(row);
       });
       applyFilter();
     }
 
+    // Filter by category
     function applyFilter() {
       const sel = document.getElementById('categoryFilter').value;
       document.querySelectorAll('#stockTable tbody tr').forEach(row => {
-        const cat = row.children[1].innerText;
+        const cat = row.cells[1].innerText;
         row.style.display = (sel === 'All' || cat === sel) ? '' : 'none';
       });
     }
 
-    function addToOrder(button) {
-      const input = button.closest("tr").querySelector("input");
-      const qty = parseInt(input.value, 10);
-      if (qty > 0 && qty <= parseInt(input.dataset.qty, 10)) {
+    function addToOrder(btn) {
+      const inp = btn.closest('tr').querySelector('input');
+      const qty = parseInt(inp.value, 10);
+      if (qty > 0 && qty <= +inp.dataset.qty) {
         orderItems.push({
-          product: input.dataset.name,
-          category: input.dataset.cat,
-          qty: qty,
-          stock_id: input.dataset.id,
-          available: parseInt(input.dataset.qty, 10)
+          product: inp.dataset.name,
+          category: inp.dataset.cat,
+          qty,
+          stock_id: inp.dataset.id,
+          available: +inp.dataset.qty
         });
-        input.value = 0;
+        inp.value = 0;
         updateOrderPreview();
       }
     }
 
     function updateOrderPreview() {
-      const ul = document.getElementById("orderPreview");
+      const ul = document.getElementById('orderPreview');
       ul.innerHTML = '';
       orderItems.forEach(item => {
         ul.innerHTML += `<li>${item.product} (${item.category}) - Qty: ${item.qty}</li>`;
@@ -131,35 +136,34 @@
     }
 
     async function submitOrder() {
-      if (!orderItems.length) return alert("❌ No items in order.");
+      if (!orderItems.length) return alert('No items in order.');
       const groupId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
-
       for (const item of orderItems) {
-        const { error: insErr } = await supabaseClient
+        const { error } = await supabase
           .from('orders')
-          .insert([{
-            region: 'UK',
-            product: item.product,
-            qty: item.qty,
-            category: item.category,
-            order_group_id: groupId,
-            status: 'Pending'
-          }]);
-        if (insErr) { alert("❌ Failed to submit order."); return; }
-        const newQty = item.available - item.qty;
-        await supabaseClient
+          .insert([{ region: 'UK',
+                     product: item.product,
+                     qty: item.qty,
+                     category: item.category,
+                     order_group_id: groupId,
+                     status: 'Pending' }]);
+        if (error) {
+          alert('Failed to submit order.');
+          return;
+        }
+        // decrement stock
+        await supabase
           .from('stock')
-          .update({ qty: newQty })
+          .update({ qty: item.available - item.qty })
           .eq('id', item.stock_id);
       }
-
-      alert("✅ Order placed successfully.");
+      alert('Order placed!');
       orderItems = [];
       updateOrderPreview();
       fetchStock();
     }
 
-    document.addEventListener("DOMContentLoaded", fetchStock);
+    document.addEventListener('DOMContentLoaded', fetchStock);
   </script>
 </body>
 </html>
