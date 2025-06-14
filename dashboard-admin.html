@@ -68,47 +68,47 @@
     </div>
   </div>
 
-  <!-- 1) Supabase JS SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script>
-    // 2) Initialize via window.supabase
     const supabase = window.supabase.createClient(
       'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
 
-    // 3) Fetch & render
     async function loadDashboardData() {
-      // TOTAL STOCK
+      // 1) Total stock
       const { data: stocks, error: stockErr } = await supabase
         .from('stock')
         .select('qty');
       if (!stockErr && Array.isArray(stocks)) {
-        const total = stocks.reduce((s, r) => s + (r.qty || 0), 0);
+        const total = stocks.reduce((sum, r) => sum + (r.qty || 0), 0);
         document.getElementById('stockCount').textContent =
           `💼 ${total.toLocaleString()} units in stock`;
       } else {
-        document.getElementById('stockCount').textContent =
-          '💼 —';
+        document.getElementById('stockCount').textContent = '💼 —';
       }
 
-      // NEW ORDERS (Pending; last 7 days)
+      // 2) New orders by GROUP
       const weekAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString();
       const { data: orders, error: orderErr } = await supabase
         .from('orders')
-        .select('id')
+        .select('order_group_id, id')
         .eq('status', 'Pending')
         .gte('created_at', weekAgo);
+
       if (!orderErr && Array.isArray(orders)) {
+        // build a Set of distinct group IDs (or fallback to id if group_id is null)
+        const groups = new Set(
+          orders.map(o => o.order_group_id || String(o.id))
+        );
         document.getElementById('orderCount').textContent =
-          `📄 ${orders.length.toLocaleString()} new orders`;
+          `📄 ${groups.size.toLocaleString()} new orders`;
       } else {
-        document.getElementById('orderCount').textContent =
-          '📄 —';
+        document.getElementById('orderCount').textContent = '📄 —';
       }
     }
 
-    // initial + refresh every 60s
+    // initial + auto-refresh every minute
     loadDashboardData();
     setInterval(loadDashboardData, 60000);
   </script>
