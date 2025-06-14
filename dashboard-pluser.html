@@ -1,4 +1,3 @@
-<!-- dashboard-pluser.html - FIXED -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -39,21 +38,30 @@ const supabase = window.supabase.createClient(
 );
 
 async function fetchStock() {
-  const { data, error } = await supabase.from('stock').select('*');
-  if (error) return alert('Error fetching stock: ' + error.message);
-  const tbody = document.querySelector("#stockTable tbody");
-  tbody.innerHTML = '';
-  data.forEach(item => {
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>${item.name}</td>
-      <td>${item.category}</td>
-      <td>${item.qty}</td>
-      <td><input type="number" min="0" max="${item.qty}" value="0" data-id="${item.id}" data-name="${item.name}" data-cat="${item.category}" data-qty="${item.qty}"/></td>
-      <td><button onclick="orderProduct(this)">Add</button></td>
-    `;
-    tbody.appendChild(row);
-  });
+  try {
+    const { data, error } = await supabase.from('stock').select('*');
+    if (error) throw error;
+    const tbody = document.querySelector("#stockTable tbody");
+    tbody.innerHTML = '';
+    if (!data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5">No stock available.</td></tr>';
+      return;
+    }
+    data.forEach(item => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${item.name}</td>
+        <td>${item.category}</td>
+        <td>${item.qty}</td>
+        <td><input type="number" min="0" max="${item.qty}" value="0" data-id="${item.id}" data-name="${item.name}" data-cat="${item.category}" data-qty="${item.qty}"/></td>
+        <td><button onclick="orderProduct(this)">Add</button></td>
+      `;
+      tbody.appendChild(row);
+    });
+  } catch (err) {
+    console.error('Failed to load stock:', err);
+    alert('❌ Failed to load stock: ' + err.message);
+  }
 }
 
 function filterTable() {
