@@ -1,189 +1,100 @@
-
+<!-- dashboard-ukuser.html - FIXED -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>UK Dashboard</title>
-  <script src="https://unpkg.com/@supabase/supabase-js"></script>
-  <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background-color: #0d1b2a;
-      color: #fff;
-      margin: 0;
-      padding: 0;
-    }
-
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 20px;
-      background-color: #112d4e;
-    }
-
-    header h1 {
-      margin: 0;
-    }
-
-    .logout-btn {
-      background: #f44336;
-      border: none;
-      color: white;
-      padding: 8px 16px;
-      cursor: pointer;
-      border-radius: 5px;
-    }
-
-    .container {
-      padding: 20px;
-    }
-
-    h2 {
-      margin-bottom: 10px;
-    }
-
-    .category-filter {
-      margin-bottom: 20px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background-color: #1b263b;
-      margin-bottom: 20px;
-    }
-
-    th, td {
-      padding: 10px;
-      border: 1px solid #2b3a50;
-      text-align: left;
-    }
-
-    th {
-      background-color: #112d4e;
-    }
-
-    .order-btn {
-      padding: 6px 12px;
-      background: #3fbc5f;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>body { font-family: 'Segoe UI', sans-serif; background-color: #0d1b2a; color: #fff; margin: 0; padding: 0; } header { display: flex; justify-content: space-between; align-items: center; padding: 20px; background-color: #112d4e; } header h1 { margin: 0; } .logout-btn { background: #f44336; border: none; color: white; padding: 8px 16px; cursor: pointer; border-radius: 5px; } .container { padding: 20px; } h2 { margin-bottom: 10px; } .category-filter { margin-bottom: 20px; } table { width: 100%; border-collapse: collapse; background-color: #1b263b; margin-bottom: 20px; } th, td { padding: 10px; border: 1px solid #2b3a50; text-align: left; } th { background-color: #112d4e; } .order-btn { padding: 6px 12px; background: #3fbc5f; color: white; border: none; border-radius: 4px; cursor: pointer; }</style>
 </head>
 <body>
-  <header>
-    <h1>UK Dashboard</h1>
-    <button class="logout-btn" onclick="logout()">Logout</button>
-  </header>
-
-  <div class="container">
-    <h2>Place an Order</h2>
-
-    <div class="category-filter">
-      <label for="categoryFilter">Filter by Category:</label>
-      <select id="categoryFilter" onchange="filterTable()">
-        <option value="all">All</option>
-        <option value="Lashes">Lashes</option>
-        <option value="Accessories">Accessories</option>
-        <option value="Make-up">Make-up</option>
-      </select>
-    </div>
-
-    <table id="stockTable">
-      <thead>
-        <tr>
-          <th>Product</th>
-          <th>Category</th>
-          <th>Available</th>
-          <th>Qty</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-
-    <button class="order-btn" onclick="submitOrder()">Submit Order</button>
+<header>
+  <h1>UK Dashboard</h1>
+  <button class="logout-btn" onclick="logout()">Logout</button>
+</header>
+<div class="container">
+  <h2>Place an Order</h2>
+  <div class="category-filter">
+    <label for="categoryFilter">Filter by Category:</label>
+    <select id="categoryFilter" onchange="filterTable()">
+      <option value="all">All</option>
+      <option value="Lashes">Lashes</option>
+      <option value="Accessories">Accessories</option>
+      <option value="Make-up">Make-up</option>
+    </select>
   </div>
+  <table id="stockTable">
+    <thead>
+    <tr><th>Product</th><th>Category</th><th>Available</th><th>Qty</th><th>Action</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <button class="order-btn" onclick="submitOrder()">Submit Order</button>
+</div>
+<script>
+const supabase = window.supabase.createClient(
+  'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
+);
 
-  <script>
-    const { createClient } = supabase;
-    const supabaseUrl = 'https://rwmwsaxlqblvnhfyuuqg.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
-    const supabaseClient = createClient(supabaseUrl, supabaseKey);
+async function fetchStock() {
+  const { data, error } = await supabase.from('stock').select('*');
+  if (error) return alert('Error fetching stock: ' + error.message);
+  const tbody = document.querySelector("#stockTable tbody");
+  tbody.innerHTML = '';
+  data.forEach(item => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${item.name}</td>
+      <td>${item.category}</td>
+      <td>${item.qty}</td>
+      <td><input type="number" min="0" max="${item.qty}" value="0" data-id="${item.id}" data-name="${item.name}" data-cat="${item.category}" data-qty="${item.qty}"/></td>
+      <td><button onclick="orderProduct(this)">Add</button></td>
+    `;
+    tbody.appendChild(row);
+  });
+}
 
-    async function fetchStock() {
-      const { data, error } = await supabaseClient.from('stock').select('*');
-      if (error) return console.error(error);
+function filterTable() {
+  const value = document.getElementById('categoryFilter').value;
+  const rows = document.querySelectorAll('#stockTable tbody tr');
+  rows.forEach(row => {
+    const cat = row.children[1].innerText;
+    row.style.display = (value === 'all' || cat === value) ? '' : 'none';
+  });
+}
 
-      const tbody = document.querySelector("#stockTable tbody");
-      tbody.innerHTML = '';
-      data.forEach(item => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${item.name}</td>
-          <td>${item.category}</td>
-          <td>${item.qty}</td>
-          <td><input type="number" min="0" max="${item.qty}" value="0" data-id="${item.id}" data-name="${item.name}" data-cat="${item.category}" data-qty="${item.qty}"/></td>
-          <td><button onclick="orderProduct(this)">Add</button></td>
-        `;
-        tbody.appendChild(row);
-      });
-    }
+let orderItems = [];
 
-    function filterTable() {
-      const value = document.getElementById('categoryFilter').value;
-      const rows = document.querySelectorAll('#stockTable tbody tr');
-      rows.forEach(row => {
-        const cat = row.children[1].innerText;
-        row.style.display = (value === 'all' || cat === value) ? '' : 'none';
-      });
-    }
+function orderProduct(btn) {
+  const input = btn.parentElement.parentElement.querySelector('input');
+  const qty = parseInt(input.value);
+  if (qty > 0 && qty <= parseInt(input.dataset.qty)) {
+    orderItems.push({ product: input.dataset.name, category: input.dataset.cat, qty });
+    input.value = 0;
+    alert('Item added to order!');
+  } else {
+    alert('Invalid quantity.');
+  }
+}
 
-    let orderItems = [];
+async function submitOrder() {
+  if (orderItems.length === 0) return alert('No items in the order.');
+  for (const item of orderItems) {
+    const { error } = await supabase.from('orders').insert([{ region: 'UK', product: item.product, qty: item.qty, status: 'Pending' }]);
+    if (error) return alert('Order failed: ' + error.message);
+  }
+  alert('✅ Order placed successfully!');
+  orderItems = [];
+  fetchStock();
+}
 
-    function orderProduct(btn) {
-      const input = btn.parentElement.parentElement.querySelector('input');
-      const qty = parseInt(input.value);
-      if (qty > 0 && qty <= parseInt(input.dataset.qty)) {
-        orderItems.push({
-          product: input.dataset.name,
-          category: input.dataset.cat,
-          qty: qty
-        });
-        input.value = 0;
-        alert('Item added to order!');
-      } else {
-        alert('Invalid quantity.');
-      }
-    }
+function logout() {
+  window.location.href = "index.html";
+}
 
-    async function submitOrder() {
-      if (orderItems.length === 0) return alert('No items in the order.');
-
-      for (const item of orderItems) {
-        await supabaseClient.from('orders').insert([
-          {
-            region: 'UK',
-            product: item.product,
-            qty: item.qty,
-            status: 'Pending'
-          }
-        ]);
-      }
-      alert('Order placed!');
-      orderItems = [];
-    }
-
-    function logout() {
-      window.location.href = "index.html";
-    }
-
-    fetchStock();
-  </script>
+fetchStock();
+</script>
 </body>
 </html>
