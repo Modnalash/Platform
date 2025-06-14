@@ -1,13 +1,146 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Order History</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #0b1c2c; color: #fff; }
+    .container { display: flex; height: 100vh; }
+    .sidebar {
+      width: 250px; background: #112b44; padding: 2rem 1rem;
+      display: flex; flex-direction: column; gap: 1rem;
+    }
+    .sidebar h2 { margin: 0 0 1rem; color: #7ee2f6; }
+    .sidebar a {
+      color: #fff; text-decoration: none; padding: .75rem 1rem;
+      border-radius: 6px;
+    }
+    .sidebar a.active,
+    .sidebar a:hover { background: #1e3d5e; }
+    .main { flex: 1; overflow-y: auto; padding: 2rem; }
+    .header {
+      background: #1e3d5e; padding: 1rem; border-radius: 8px;
+      text-align: center; font-size: 1.5rem; margin-bottom: 1rem;
+    }
+    .order-block {
+      background: #1a2b3e; padding: 1.25rem; border-radius: 8px;
+      margin-bottom: 1rem;
+    }
+    .order-block.fulfilled { background: #234f1e; }
+    .order-block h3 { margin: 0 0 .5rem; font-size: 1.25rem; }
+    ul { margin: 0 0 1rem; padding-left: 1.2rem; }
+    li { margin-bottom: .5rem; }
+    .actions button {
+      border: none; border-radius: 5px; padding: .5rem 1rem;
+      font-size: 1rem; cursor: pointer; margin-right: .5rem;
+    }
+    .btn-fulfilled { background: #06d6a0; color: #0b1c2c; }
+    .btn-fulfilled[disabled] { opacity: .6; cursor: default; }
+    .btn-print { background: #48cae4; color: #0b1c2c; }
+  </style>
 </head>
 <body>
-  <h1>Order History</h1>
-  <!-- Content will go here -->
+  <div class="container">
+    <nav class="sidebar">
+      <h2>MODNA Admin</h2>
+      <a href="dashboard-admin.html">Dashboard</a>
+      <a href="manage-stock.html">Manage Stock</a>
+      <a href="order-history.html" class="active">Order History</a>
+      <a href="report.html">Report</a>
+      <a href="index.html">Logout</a>
+    </nav>
+    <main class="main">
+      <div class="header">Order History</div>
+      <div id="ordersContainer"></div>
+    </main>
+  </div>
+
+  <script>
+    // ←←← YOUR SUPABASE CONFIGURATION →→→
+    const SUPABASE_URL = 'https://rwmwsaxlqblvnhfyuuqg.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3...J6Y';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Fetch + render
+    async function loadOrders() {
+      const { data: orders, error } = await supabase
+        .from('orders')
+        .select('id, region, product, qty, status, created_at, order_group_i')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error(error);
+        return document.getElementById('ordersContainer')
+          .innerHTML = '<p style="padding:1rem;">Failed to load orders.</p>';
+      }
+
+      // Group by order_group_i (fallback on each own id)
+      const groups = {};
+      orders.forEach(o => {
+        const key = o.order_group_i || `ungrouped-${o.id}`;
+        (groups[key] = groups[key]||[]).push(o);
+      });
+
+      const container = document.getElementById('ordersContainer');
+      container.innerHTML = '';
+
+      Object.entries(groups).forEach(([gid, items]) => {
+        const allFulfilled = items.every(i => i.status === 'Fulfilled');
+        const block = document.createElement('div');
+        block.className = 'order-block' + (allFulfilled ? ' fulfilled' : '');
+        // store the numeric IDs in a data-attr for update
+        block.dataset.ids = items.map(i => i.id).join(',');
+        block.innerHTML = `
+          <h3>Order #${gid.slice(0,8)}${allFulfilled?' – ✅ Fulfilled':''}</h3>
+          <ul>
+            ${items.map(i =>
+              `<li>${i.product} (${i.region}) – Qty: ${i.qty} – ${i.status}</li>`
+            ).join('')}
+          </ul>
+          <div class="actions">
+            <button class="btn-fulfilled" ${allFulfilled?'disabled':''}
+              onclick="markFulfilled(this)">
+              ✔ ${allFulfilled?'Fulfilled':'Mark Fulfilled'}
+            </button>
+            <button class="btn-print" onclick="printOrder(this)">🖨 Print</button>
+          </div>
+        `;
+        container.appendChild(block);
+      });
+    }
+
+    // Mark as Fulfilled by IDs
+    async function markFulfilled(btn) {
+      const block = btn.closest('.order-block');
+      const ids = block.dataset.ids.split(',').map(x=>parseInt(x));
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: 'Fulfilled' })
+        .in('id', ids);
+
+      if (error) alert('❌ Update failed: '+error.message);
+      else loadOrders();
+    }
+
+    // Print the single block
+    function printOrder(btn) {
+      const block = btn.closest('.order-block');
+      const win = window.open('', '_blank');
+      win.document.write(`
+        <html><head>
+          <title>Print Order</title>
+          <style>body{font-family:Arial;padding:1rem;}ul{padding-left:1.2rem;}</style>
+        </head><body>
+          ${block.innerHTML}
+        </body></html>
+      `);
+      win.document.close();
+      win.print();
+    }
+
+    document.addEventListener('DOMContentLoaded', loadOrders);
+  </script>
 </body>
 </html>
