@@ -77,13 +77,32 @@ async function fetchOrders() {
 }
 
 async function markGroup(groupId) {
-  // Find all orders with this groupId OR matching id for ungrouped
-  const { data, error } = await supabase
-    .from('orders')
-    .select('id')
-    .or(`order_group_id.eq.${groupId},id.eq.${groupId.replace('ungrouped-', '')}`);
+  // If it's an ungrouped id, get just the number, else use groupId as string
+  let isUngrouped = groupId.startsWith("ungrouped-");
+  let quotedGroupId = `"${groupId}"`;
 
-  if (error || !data) {
+  // Formulate the correct OR filter
+  let orFilter = isUngrouped
+    ? `id.eq.${groupId.replace('ungrouped-', '')}`
+    : `(order_group_id.eq.${quotedGroupId},id.eq.${groupId})`;
+
+  let data = [];
+  let error = null;
+
+  if (isUngrouped) {
+    // fallback for ungrouped orders
+    ({ data, error } = await supabase
+      .from('orders')
+      .select('id')
+      .eq('id', groupId.replace('ungrouped-', '')));
+  } else {
+    ({ data, error } = await supabase
+      .from('orders')
+      .select('id')
+      .or(`order_group_id.eq.${quotedGroupId},id.eq.${groupId}`));
+  }
+
+  if (error || !data || data.length === 0) {
     alert("Could not find matching orders.");
     return;
   }
