@@ -14,11 +14,12 @@
     .main { flex: 1; padding: 2rem; }
     .header { background-color: #1e3d5e; padding: 1rem; text-align: center; font-size: 1.25rem; border-radius: 12px; }
     .section { background-color: #1a2b3e; padding: 1.5rem; margin-top: 2rem; border-radius: 12px; }
-    .controls { margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem; }
-    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    .controls { margin-bottom: 1rem; display: flex; gap: 1rem; align-items: center; }
+    .controls input { padding: 8px; border-radius: 4px; border: none; width: 200px; }
+    .controls select { padding: 8px 12px; border-radius: 4px; border: none; }
+    table { width: 100%; border-collapse: collapse; }
     th, td { padding: 10px; text-align: left; border-bottom: 1px solid #2a3c4f; }
     th { background-color: #112b44; }
-    input, select { padding: 6px; border-radius: 4px; border: none; margin-right: 10px; }
     button { background-color: #00a8e8; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; }
     button:hover { background-color: #008dbb; }
     .actions button { margin-right: 5px; }
@@ -37,13 +38,16 @@
 
   <div class="main">
     <div class="header">Manage Stock</div>
-
     <div class="section">
       <div class="controls">
         <input type="text" id="searchInput" placeholder="Search by product..." oninput="renderTable()" />
         <select id="sortCategory" onchange="renderTable()">
           <option value="">All</option>
-          <option value="Lashes">Lashes</option>
+          <option value="Starter Kit">Starter Kit</option>
+          <option value="Express Lash">Express Lash</option>
+          <option value="Wielokrotnego">Wielokrotnego</option>
+          <option value="Bio">Bio</option>
+          <option value="Ribbon">Ribbon</option>
           <option value="Accessories">Accessories</option>
           <option value="Make-up">Make-up</option>
         </select>
@@ -69,7 +73,11 @@
       <input type="text" id="productName" placeholder="Product Name" />
       <select id="productCategory">
         <option value="">Select Category</option>
-        <option value="Lashes">Lashes</option>
+        <option value="Starter Kit">Starter Kit</option>
+        <option value="Express Lash">Express Lash</option>
+        <option value="Wielokrotnego">Wielokrotnego</option>
+        <option value="Bio">Bio</option>
+        <option value="Ribbon">Ribbon</option>
         <option value="Accessories">Accessories</option>
         <option value="Make-up">Make-up</option>
       </select>
@@ -83,71 +91,51 @@
 <script>
   const supabase = window.supabase.createClient(
     'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
+    'YOUR_SUPABASE_KEY'
   );
-
   let stockData = [];
 
-  // Fetch once, sorted by id so the initial array order is stable:
   async function fetchStock() {
-    const { data, error } = await supabase
-      .from('stock')
-      .select('*')
-      .order('id', { ascending: true });
-
-    if (!error && Array.isArray(data)) {
-      stockData = data;
-      renderTable();
-    }
+    const { data } = await supabase.from('stock').select('*');
+    stockData = data || [];
+    renderTable();
   }
 
   function renderTable() {
-    const tbody = document.querySelector("#stockTable tbody");
-    const search = document.getElementById("searchInput").value.toLowerCase();
+    const tbody    = document.querySelector("#stockTable tbody");
+    const search   = document.getElementById("searchInput").value.toLowerCase();
     const category = document.getElementById("sortCategory").value;
-
-    // Filter but always iterate stockData in its original order:
-    let filtered = stockData.filter(item =>
-      item.name.toLowerCase().includes(search) &&
-      (!category || item.category === category)
-    );
-
     tbody.innerHTML = '';
-    filtered.forEach(item => {
-      tbody.insertAdjacentHTML('beforeend', `
-        <tr>
-          <td>${item.name}</td>
-          <td>${item.category}</td>
-          <td>${item.qty}</td>
-          <td>
-            <input type="number" id="add-${item.id}" value="0" min="0" style="width: 4em;" />
-          </td>
-          <td class="actions">
-            <button onclick="addQty(${item.id})">Add</button>
-            <button onclick="deleteProduct(${item.id})">🗑️ Delete</button>
-          </td>
-        </tr>
-      `);
-    });
+
+    stockData
+      .filter(item => item.name.toLowerCase().includes(search))
+      .filter(item => !category || item.category === category)
+      .forEach(item => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${item.name}</td>
+            <td>${item.category}</td>
+            <td>${item.qty}</td>
+            <td><input type='number' value='0' min='0' id='add-${item.id}'/></td>
+            <td class='actions'>
+              <button onclick='addQty(${item.id}, ${item.qty})'>Add</button>
+              <button onclick='deleteProduct(${item.id})'>🗑️ Delete</button>
+            </td>
+          </tr>`;
+      });
   }
 
   async function addProduct() {
-    const name = document.getElementById("productName").value.trim();
+    const name     = document.getElementById("productName").value.trim();
     const category = document.getElementById("productCategory").value;
-    const qty = parseInt(document.getElementById("productQty").value.trim());
-
+    const qty      = parseInt(document.getElementById("productQty").value.trim());
     if (!name || !category || isNaN(qty)) {
       alert("Please fill out all fields correctly.");
       return;
     }
-
-    const { error } = await supabase.from('stock').insert([{ name, category, qty }]);
-    if (error) {
-      alert("Error adding product: " + error.message);
-    } else {
-      document.getElementById("successMsg").textContent = "✅ Product added successfully!";
-      fetchStock();
-    }
+    await supabase.from('stock').insert([{ name, category, qty }]);
+    document.getElementById("successMsg").textContent = "✅ Product added successfully!";
+    fetchStock();
     document.getElementById("productName").value = '';
     document.getElementById("productCategory").value = '';
     document.getElementById("productQty").value = '';
@@ -155,40 +143,23 @@
 
   async function deleteProduct(id) {
     if (!confirm("Are you sure you want to delete this product?")) return;
-    const { error } = await supabase.from('stock').delete().eq('id', id);
-    if (error) {
-      alert("Error deleting product: " + error.message);
-    } else {
-      // Remove from local array and re-render:
-      stockData = stockData.filter(i => i.id !== id);
-      renderTable();
-    }
+    await supabase.from('stock').delete().eq('id', id);
+    fetchStock();
   }
 
-  async function addQty(id) {
-    const toAdd = parseInt(document.getElementById(`add-${id}`).value);
-    if (isNaN(toAdd) || toAdd < 0) {
+  async function addQty(id, currentQty) {
+    const toAdd = parseInt(document.getElementById(`add-${id}`).value) || 0;
+    if (toAdd < 0) {
       alert("Enter a valid quantity to add.");
       return;
     }
-    // Find local item
-    const item = stockData.find(i => i.id === id);
-    if (!item) return;
-
-    const newQty = item.qty + toAdd;
-    const { error } = await supabase.from('stock').update({ qty: newQty }).eq('id', id);
-    if (error) {
-      alert("Error updating quantity: " + error.message);
-    } else {
-      // Update local state and re-render (keeps row order)
-      item.qty = newQty;
-      renderTable();
-    }
+    await supabase.from('stock').update({ qty: currentQty + toAdd }).eq('id', id);
+    fetchStock();
   }
 
   function exportCSV() {
     const headers = ["Product","Category","Quantity"];
-    const rows = stockData.map(i => [i.name, i.category, i.qty]);
+    const rows = stockData.map(i => [i.name,i.category,i.qty]);
     const csv = [headers, ...rows].map(r => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const link = document.createElement("a");
