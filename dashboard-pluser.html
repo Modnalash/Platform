@@ -12,9 +12,9 @@
     .logout-btn { background: #f44336; border: none; color: white; padding: 8px 16px; cursor: pointer; border-radius: 5px; }
     .container { padding: 20px; }
     .list-btn { background: #00a8e8; border: none; color: white; padding: 8px 16px; cursor: pointer; border-radius: 5px; margin-bottom: 20px; }
-    .filter-row { margin-bottom: 20px; }
+    .filter-row { margin-bottom: 20px; display: flex; gap: 1rem; align-items: center; }
     .filter-row label { margin-right: 8px; }
-    .filter-row select { padding: 6px 12px; border-radius: 4px; border: none; }
+    .filter-row select, .filter-row input { padding: 6px 12px; border-radius: 4px; border: none; }
     table { width: 100%; border-collapse: collapse; background-color: #1b263b; margin-bottom: 20px; }
     th, td { padding: 10px; border: 1px solid #2b3a50; text-align: left; }
     th { background-color: #112d4e; }
@@ -35,6 +35,8 @@
     <h2>Place an Order</h2>
 
     <div class="filter-row">
+      <label for="productSearch">Search Product:</label>
+      <input type="text" id="productSearch" placeholder="Search by product..." oninput="applyFilter()" />
       <label for="categoryFilter">Filter by Category:</label>
       <select id="categoryFilter" onchange="applyFilter()">
         <option value="All">All</option>
@@ -101,23 +103,27 @@
     }
 
     function applyFilter() {
-      const sel = document.getElementById('categoryFilter').value;
+      const selCat = document.getElementById('categoryFilter').value;
+      const searchVal = document.getElementById('productSearch').value.toLowerCase();
       document.querySelectorAll('#stockTable tbody tr').forEach(row => {
         const cat = row.children[1].innerText;
-        row.style.display = (sel === 'All' || cat === sel) ? '' : 'none';
+        const prod = row.children[0].innerText.toLowerCase();
+        const matchCat = (selCat === 'All' || cat === selCat);
+        const matchProd = (!searchVal || prod.includes(searchVal));
+        row.style.display = (matchCat && matchProd) ? '' : 'none';
       });
     }
 
     function addToOrder(button) {
       const input = button.closest("tr").querySelector("input");
-      const qty = parseInt(input.value);
-      if (qty > 0 && qty <= parseInt(input.dataset.qty)) {
+      const qty = parseInt(input.value, 10);
+      if (qty > 0 && qty <= parseInt(input.dataset.qty, 10)) {
         orderItems.push({
           product: input.dataset.name,
           category: input.dataset.cat,
           qty: qty,
           stock_id: input.dataset.id,
-          available: parseInt(input.dataset.qty)
+          available: parseInt(input.dataset.qty, 10)
         });
         input.value = 0;
         updateOrderPreview();
