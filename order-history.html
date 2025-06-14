@@ -77,25 +77,19 @@ async function fetchOrders() {
 }
 
 async function markGroup(groupId) {
-  // If it's an ungrouped id, get just the number, else use groupId as string
   let isUngrouped = groupId.startsWith("ungrouped-");
   let quotedGroupId = `"${groupId}"`;
 
-  // Formulate the correct OR filter
-  let orFilter = isUngrouped
-    ? `id.eq.${groupId.replace('ungrouped-', '')}`
-    : `(order_group_id.eq.${quotedGroupId},id.eq.${groupId})`;
-
-  let data = [];
-  let error = null;
+  let data, error;
 
   if (isUngrouped) {
-    // fallback for ungrouped orders
+    // Fallback for legacy ungrouped
     ({ data, error } = await supabase
       .from('orders')
       .select('id')
       .eq('id', groupId.replace('ungrouped-', '')));
   } else {
+    // THE KEY FIX: No parens, just comma!
     ({ data, error } = await supabase
       .from('orders')
       .select('id')
