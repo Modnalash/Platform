@@ -24,14 +24,16 @@
       margin-bottom:1rem; text-align:center; font-size:1.5rem;
     }
     table {
-      width:100%; border-collapse:collapse; background:#1a2b3e; border-radius:8px; overflow:hidden;
+      width:100%; border-collapse:collapse; background:#1a2b3e;
+      border-radius:8px; overflow:hidden;
     }
     th, td {
       padding:.75rem 1rem; border-bottom:1px solid #22303f; text-align:left;
     }
     th { background:#112b44; }
     button {
-      padding:.5rem .75rem; border:none; border-radius:4px; cursor:pointer; font-size:1rem;
+      padding:.5rem .75rem; border:none; border-radius:4px;
+      cursor:pointer; font-size:1rem;
     }
     .btn-fulfill   { background:#06d6a0; color:#0b1c2c; }
     .btn-fulfill[disabled] { opacity:.6; cursor:default; }
@@ -55,50 +57,64 @@
     <table id="ordersTable">
       <thead>
         <tr>
-          <th>ID</th><th>Region</th><th>Product</th>
-          <th>Qty</th><th>Status</th><th>Date</th><th>Actions</th>
+          <th>ID</th>
+          <th>Region</th>
+          <th>Product</th>
+          <th>Category</th>
+          <th>Qty</th>
+          <th>Status</th>
+          <th>Date</th>
+          <th>Actions</th>
         </tr>
       </thead>
-      <tbody></tbody>
+      <tbody>
+        <!-- rows will go here -->
+      </tbody>
     </table>
   </main>
 </div>
 
 <script>
-  // — Supabase client —
+  // ─── Supabase setup ────────────────────────────────────────────────────────────
   const SUPABASE_URL = 'https://rwmwsaxlqblvnhfyuuqg.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y';
-  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // fetch & render
-  async function loadOrders(){
-    const { data, error } = await supabase
+  // ─── Fetch & render all orders ─────────────────────────────────────────────────
+  async function loadOrders() {
+    const { data: orders, error } = await supabase
       .from('orders')
-      .select('id, region, product, qty, status, created_at')
+      .select('id, region, product, category, qty, status, created_at')
       .order('created_at', { ascending: false });
-
-    if(error){
-      console.error(error);
-      document.querySelector('#ordersTable tbody')
-        .innerHTML = `<tr><td colspan="7">Error loading orders</td></tr>`;
-      return;
-    }
 
     const tbody = document.querySelector('#ordersTable tbody');
     tbody.innerHTML = '';
-    data.forEach(o => {
+
+    if (error) {
+      tbody.innerHTML = `<tr><td colspan="8">Error loading orders</td></tr>`;
+      console.error(error);
+      return;
+    }
+
+    if (!orders.length) {
+      tbody.innerHTML = `<tr><td colspan="8">No orders yet</td></tr>`;
+      return;
+    }
+
+    orders.forEach(o => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${o.id}</td>
         <td>${o.region}</td>
         <td>${o.product}</td>
+        <td>${o.category}</td>
         <td>${o.qty}</td>
         <td>${o.status}</td>
         <td>${new Date(o.created_at).toLocaleString()}</td>
         <td>
-          <button class="btn-fulfill"
+          <button class="btn-fulfill" 
                   ${o.status==='Fulfilled'?'disabled':''}
-                  onclick="fulfill(${o.id})">
+                  onclick="fulfillOrder(${o.id})">
             ✔ ${o.status==='Fulfilled'?'Done':'Fulfill'}
           </button>
           <button class="btn-print" onclick="printOrder(${o.id})">
@@ -109,33 +125,39 @@
     });
   }
 
-  // flip a single row to Fulfilled
-  async function fulfill(id){
+  // ─── Mark a single order Fulfilled ─────────────────────────────────────────────
+  async function fulfillOrder(id) {
     const { error } = await supabase
       .from('orders')
       .update({ status: 'Fulfilled' })
       .eq('id', id);
 
-    if(error) alert('Update failed: '+error.message);
-    else loadOrders();
+    if (error) {
+      alert('❌ Update failed: ' + error.message);
+      console.error(error);
+    } else {
+      loadOrders();
+    }
   }
 
-  // print a single row
-  function printOrder(id){
+  // ─── Print one order ────────────────────────────────────────────────────────────
+  function printOrder(id) {
     const row = [...document.querySelectorAll('#ordersTable tbody tr')]
-      .find(r => r.cells[0].innerText==id);
-    if(!row) return;
+      .find(r => r.cells[0].innerText == id);
+    if (!row) return;
     const html = `
       <h2>Order #${id}</h2>
       <p><strong>Region:</strong> ${row.cells[1].innerText}</p>
       <p><strong>Product:</strong> ${row.cells[2].innerText}</p>
-      <p><strong>Qty:</strong> ${row.cells[3].innerText}</p>
-      <p><strong>Status:</strong> ${row.cells[4].innerText}</p>
-      <p><strong>Date:</strong> ${row.cells[5].innerText}</p>
+      <p><strong>Category:</strong> ${row.cells[3].innerText}</p>
+      <p><strong>Qty:</strong> ${row.cells[4].innerText}</p>
+      <p><strong>Status:</strong> ${row.cells[5].innerText}</p>
+      <p><strong>Date:</strong> ${row.cells[6].innerText}</p>
     `;
-    const w = window.open('','_blank');
+    const w = window.open('', '_blank');
     w.document.write(`<html><body style="font-family:Arial;">${html}</body></html>`);
-    w.document.close(); w.print();
+    w.document.close();
+    w.print();
   }
 
   document.addEventListener('DOMContentLoaded', loadOrders);
