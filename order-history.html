@@ -54,82 +54,81 @@
   <main class="main">
     <div class="header">Order History</div>
     <div id="ordersContainer">
-      <!-- grouped orders will be injected here -->
+      <!-- orders will be injected here -->
     </div>
   </main>
 </div>
 
 <script>
-  // ─── Supabase setup ────────────────────────────────────────────────────────────
   const SUPABASE_URL = 'https://rwmwsaxlqblvnhfyuuqg.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y';
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // ─── Load & group orders ────────────────────────────────────────────────────────
+  // fetch & group
   async function loadOrders() {
     const { data: rows, error } = await supabase
       .from('orders')
-      .select('id, order_group_id, region, product, category, qty, status, created_at')
+      .select('order_group_id,region,product,category,qty,status,created_at')
       .order('created_at', { ascending: false });
 
     const container = document.getElementById('ordersContainer');
     container.innerHTML = '';
 
     if (error) {
-      container.innerHTML = '<p style="color:#f66">Error loading orders</p>';
+      container.innerHTML = `<p style="color:#f66">Error loading orders</p>`;
       console.error(error);
       return;
     }
     if (!rows.length) {
-      container.innerHTML = '<p>No orders yet</p>';
+      container.innerHTML = `<p>No orders yet</p>`;
       return;
     }
 
     // group by order_group_id
     const groups = {};
     rows.forEach(o => {
-      const gid = o.order_group_id || (`ungrouped-${o.id}`);
-      if (!groups[gid]) groups[gid] = [];
-      groups[gid].push(o);
+      if (!o.order_group_id) return;
+      groups[o.order_group_id] ||= [];
+      groups[o.order_group_id].push(o);
     });
 
-    // render each group
-    Object.entries(groups).forEach(([gid, items]) => {
+    // render each
+    for (const [gid, items] of Object.entries(groups)) {
       const allFulfilled = items.every(i => i.status === 'Fulfilled');
-      // earliest date in group
-      const date = new Date(Math.min(...items.map(i=>new Date(i.created_at))));
       const block = document.createElement('div');
-      block.className = 'order-block' + (allFulfilled ? ' fulfilled':'');
+      block.className = 'order-block' + (allFulfilled ? ' fulfilled' : '');
+
+      // earliest timestamp
+      const date = new Date(Math.min(...items.map(i=>new Date(i.created_at))));
+      const dateStr = date.toLocaleString();
+
       block.innerHTML = `
-        <h3>
-          Order #${gid.substring(0,8)}
-          ${allFulfilled ? ' - ✅ Fulfilled':''}
-        </h3>
+        <h3>Order #${gid.slice(0,8)}${allFulfilled?' - ✅ Fulfilled':''}</h3>
+        <p><small><em>${dateStr}</em></small></p>
         <ul>
-          ${items.map(i=>
-            `<li>${i.product} (${i.category}) - Qty: ${i.qty} - ${i.region} - ${i.status}</li>`
+          ${items.map(i =>
+            `<li>${i.product} (${i.category}) — Qty: ${i.qty} — ${i.region} — ${i.status}</li>`
           ).join('')}
         </ul>
         <button class="btn-fulfill" ${allFulfilled?'disabled':''}
-                onclick="fulfillGroup('${gid}')">
+                onclick="fulfill('${gid}')">
           ✔ ${allFulfilled?'Done':'Fulfill'}
         </button>
-        <button class="btn-print" onclick="printGroup('${gid}')">
+        <button class="btn-print" onclick="printOrder('${gid}')">
           🖨 Print
         </button>
       `;
       container.appendChild(block);
-    });
+    }
   }
 
-  // ─── Fulfill all items in a group ──────────────────────────────────────────────
-  async function fulfillGroup(gid) {
+  // fulfill by group_id only
+  async function fulfill(gid) {
     const { error } = await supabase
       .from('orders')
       .update({ status: 'Fulfilled' })
-      .eq('order_group_id', gid)
-      .or(`order_group_id.is.null,id.eq.${gid.replace('ungrouped-','')}`)
-      ;
+      .eq('order_group_id', gid);
+
     if (error) {
       alert('❌ Update failed: '+error.message);
       console.error(error);
@@ -138,15 +137,15 @@
     }
   }
 
-  // ─── Print a grouped order ──────────────────────────────────────────────────────
-  function printGroup(gid) {
+  // print the HTML from that block
+  function printOrder(gid) {
     const block = [...document.querySelectorAll('.order-block')]
-      .find(b => b.querySelector('h3').innerText.includes(gid.substring(0,8)));
+      .find(b => b.querySelector('h3').innerText.includes(gid.slice(0,8)));
     if (!block) return;
-    const win = window.open('', '_blank');
-    win.document.write(`<html><body style="font-family:Arial;padding:2rem;">${block.innerHTML}</body></html>`);
-    win.document.close();
-    win.print();
+    const w = window.open('', '_blank');
+    w.document.write(`<html><body style="font-family:Arial;padding:2rem;">${block.innerHTML}</body></html>`);
+    w.document.close();
+    w.print();
   }
 
   document.addEventListener('DOMContentLoaded', loadOrders);
