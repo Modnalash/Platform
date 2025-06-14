@@ -10,9 +10,7 @@
     header, .container { padding: 20px; }
     header { display: flex; justify-content: space-between; align-items: center; background-color: #112b44; }
     .logout { background: #e63946; border: none; padding: 10px 20px; border-radius: 5px; color: white; cursor: pointer; }
-    .controls { margin: 10px 0; display: flex; gap: 1rem; align-items: center; }
-    .controls input { padding: 8px; border-radius: 4px; border: none; width: 200px; }
-    .controls select { padding: 8px 12px; border-radius: 4px; border: none; }
+    .filter-row { margin: 10px 0; }
     table { width: 100%; background: #1b263b; margin-bottom: 20px; border-collapse: collapse; }
     th, td { padding: 10px; border: 1px solid #2b3a50; }
     th { background-color: #112d4e; }
@@ -27,9 +25,9 @@
 </header>
 <div class="container">
   <h2>Place an Order</h2>
-  <div class="controls">
-    <input type="text" id="searchInput" placeholder="Search by product..." oninput="applyFilter()" />
-    <select id="categoryFilter" onchange="applyFilter()">
+  <div class="filter-row">
+    <label for="categoryFilter">Filter by Category:</label>
+    <select id="categoryFilter">
       <option value="All">All</option>
       <option value="Starter Kit">Starter Kit</option>
       <option value="Express Lash">Express Lash</option>
@@ -40,7 +38,6 @@
       <option value="Make-up">Make-up</option>
     </select>
   </div>
-
   <table id="stockTable">
     <thead>
       <tr>
@@ -64,11 +61,11 @@
 <script>
 const supabase = window.supabase.createClient(
   'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
-  'YOUR_SUPABASE_KEY'
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9…'
 );
+
 let orderItems = [];
 
-// fetch + render
 async function fetchStock() {
   const { data } = await supabase.from('stock').select('*');
   const tbody = document.querySelector("#stockTable tbody");
@@ -93,29 +90,25 @@ async function fetchStock() {
   applyFilter();
 }
 
-// combined filter
 function applyFilter() {
-  const search = document.getElementById('searchInput').value.toLowerCase();
-  const catSel = document.getElementById('categoryFilter').value;
+  const sel = document.getElementById('categoryFilter').value;
   document.querySelectorAll('#stockTable tbody tr').forEach(row => {
-    const name = row.children[0].innerText.toLowerCase();
-    const cat  = row.children[1].innerText;
-    const matchName = !search || name.includes(search);
-    const matchCat  = catSel === 'All' || cat === catSel;
-    row.style.display = (matchName && matchCat) ? '' : 'none';
+    const cat = row.children[1].innerText;
+    row.style.display = (sel === 'All' || cat === sel) ? '' : 'none';
   });
 }
+document.getElementById('categoryFilter').addEventListener('change', applyFilter);
 
-function addToOrder(btn) {
-  const input = btn.closest('tr').querySelector('input');
+function addToOrder(button) {
+  const input = button.closest("tr").querySelector("input");
   const qty = parseInt(input.value);
-  if (qty > 0 && qty <= +input.dataset.qty) {
+  if (qty > 0 && qty <= parseInt(input.dataset.qty)) {
     orderItems.push({
       product: input.dataset.name,
       category: input.dataset.cat,
-      qty,
+      qty: qty,
       stock_id: input.dataset.id,
-      available: +input.dataset.qty
+      available: parseInt(input.dataset.qty)
     });
     input.value = 0;
     updateOrderPreview();
@@ -126,24 +119,28 @@ function updateOrderPreview() {
   const ul = document.getElementById("orderPreview");
   ul.innerHTML = '';
   orderItems.forEach(item => {
-    ul.innerHTML += `<li>${item.product} (${item.category}) – Qty: ${item.qty}</li>`;
+    ul.innerHTML += `<li>${item.product} (${item.category}) - Qty: ${item.qty}</li>`;
   });
 }
 
 async function submitOrder() {
   if (!orderItems.length) return alert("❌ No items in order.");
-  const groupId = crypto.randomUUID?.() || Math.random().toString(36).slice(2);
-  for (const i of orderItems) {
-    await supabase.from('orders').insert([{
+  const groupId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+
+  for (const item of orderItems) {
+    const { error: insErr } = await supabase.from('orders').insert([{
       region: 'PL',
-      product: i.product,
-      qty: i.qty,
-      category: i.category,
+      product: item.product,
+      qty: item.qty,
+      category: item.category,
       order_group_id: groupId,
       status: 'Pending'
     }]);
-    await supabase.from('stock').update({ qty: i.available - i.qty }).eq('id', i.stock_id);
+    if (insErr) { alert("❌ Failed to submit order."); return; }
+    const newQty = item.available - item.qty;
+    await supabase.from('stock').update({ qty: newQty }).eq('id', item.stock_id);
   }
+
   alert("✅ Order placed successfully.");
   orderItems = [];
   updateOrderPreview();
