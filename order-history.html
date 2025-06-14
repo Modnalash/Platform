@@ -4,7 +4,6 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Order History</title>
-  <!-- Supabase JS client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
     body { margin: 0; font-family: 'Segoe UI', sans-serif; background-color: #0b1c2c; color: white; }
@@ -44,84 +43,78 @@
   </div>
 
   <script>
-    // — YOUR SUPABASE CONFIGURATION —
+    // your real supabase creds
     const SUPABASE_URL = 'https://rwmwsaxlqblvnhfyuuqg.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y';
-
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ...'; 
     const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     async function loadOrders() {
-      // Fetch all orders, most recent first
       const { data: orders, error } = await supabase
         .from('orders')
-        .select('id, region, product, qty, status, created_at, order_group_id')
+        .select('id, region, product, qty, status, created_at, order_group_i')
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error loading orders:', error);
-        document.getElementById('ordersContainer').innerHTML = '<p style="padding:20px;">Failed to load orders.</p>';
+        console.error(error);
+        document.getElementById('ordersContainer').innerHTML = 
+          '<p style="padding:20px;">Error loading orders.</p>';
         return;
       }
 
-      // Group by order_group_id (fallback to ungrouped-id)
+      // group by order_group_i or fallback to own id
       const groups = {};
       orders.forEach(o => {
-        const key = o.order_group_id || `ungrouped-${o.id}`;
-        if (!groups[key]) groups[key] = [];
-        groups[key].push(o);
+        const key = o.order_group_i || `ungrouped-${o.id}`;
+        (groups[key] = groups[key]||[]).push(o);
       });
 
-      // Render
       const container = document.getElementById('ordersContainer');
       container.innerHTML = '';
-      for (const [gid, items] of Object.entries(groups)) {
-        const allFulfilled = items.every(i => i.status === 'Fulfilled');
-        const block = document.createElement('div');
-        block.className = 'order-block' + (allFulfilled ? ' fulfilled' : '');
-        block.innerHTML = `
-          <h3>Order #${gid.slice(0,8)}${allFulfilled ? ' – ✅ Fulfilled' : ''}</h3>
+
+      Object.entries(groups).forEach(([gid, items]) => {
+        const fulfilled = items.every(i => i.status === 'Fulfilled');
+        const card = document.createElement('div');
+        card.className = 'order-block' + (fulfilled ? ' fulfilled' : '');
+        card.innerHTML = `
+          <h3>Order #${gid.slice(0,8)}${fulfilled ? ' – ✅ Fulfilled' : ''}</h3>
           <ul>
-            ${items.map(i =>
+            ${items.map(i => 
               `<li>${i.product} (${i.region}) – Qty: ${i.qty} – ${i.status}</li>`
             ).join('')}
           </ul>
           <div class="actions">
-            <button class="btn-fulfilled" ${allFulfilled?'disabled':''}
+            <button class="btn-fulfilled" ${fulfilled?'disabled':''}
               onclick="markFulfilled('${gid}')">
-              ✔ ${allFulfilled ? 'Fulfilled' : 'Mark Fulfilled'}
+              ✔ ${fulfilled?'Fulfilled':'Mark Fulfilled'}
             </button>
             <button class="btn-print" onclick="printOrder('${gid}')">🖨 Print</button>
           </div>
         `;
-        container.appendChild(block);
-      }
+        container.appendChild(card);
+      });
     }
 
     async function markFulfilled(groupId) {
+      // update by correct column name
       const { error } = await supabase
         .from('orders')
         .update({ status: 'Fulfilled' })
-        .eq('order_group_id', groupId);
+        .eq('order_group_i', groupId);
 
-      if (error) {
-        alert('Could not update status: ' + error.message);
-      } else {
-        loadOrders();
-      }
+      if (error) alert('Update failed: ' + error.message);
+      else loadOrders();
     }
 
     function printOrder(groupId) {
       const blocks = document.querySelectorAll('.order-block');
-      const card = Array.from(blocks).find(c => c.innerText.includes(groupId.slice(0,8)));
-      if (!card) return;
+      const target = Array.from(blocks)
+        .find(b => b.innerText.includes(groupId.slice(0,8)));
+      if (!target) return;
       const w = window.open('', '_blank');
       w.document.write(`
-        <html>
-          <head><title>Print Order</title></head>
-          <body style="font-family: Arial; padding:20px;">
-            ${card.innerHTML}
-          </body>
-        </html>`);
+        <html><head><title>Print</title></head>
+        <body style="font-family:Arial;padding:20px;">${target.innerHTML}</body></html>
+      `);
       w.document.close();
       w.print();
     }
