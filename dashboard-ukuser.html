@@ -116,9 +116,12 @@
 
     let orderItems = [];
 
-    // Fetch live stock and populate table
+    // Fetch live stock in fixed ID order and populate table
     async function fetchStock() {
-      const { data, error } = await supabase.from('stock').select('*');
+      const { data, error } = await supabase
+        .from('stock')
+        .select('*')
+        .order('id', { ascending: true });
       if (error) {
         console.error(error);
         return;
