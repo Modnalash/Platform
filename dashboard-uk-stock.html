@@ -9,7 +9,8 @@
     body { font-family: 'Segoe UI', sans-serif; background-color: #0d1b2a; color: #fff; margin: 0; padding: 0; }
     header { display: flex; justify-content: space-between; align-items: center; padding: 20px; background-color: #112d4e; }
     header h1 { margin: 0; font-size: 1.5rem; }
-    .logout-btn { background: #f44336; border: none; color: white; padding: 8px 16px; cursor: pointer; border-radius: 5px; }
+    .nav-btn, .logout-btn { background: #00a8e8; border: none; color: white; padding: 8px 16px; cursor: pointer; border-radius: 5px; margin-left: 8px; }
+    .logout-btn { background: #f44336; }
     .container { padding: 20px; }
     .filter-row { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 20px; align-items: center; }
     .filter-row label { margin-right: 4px; }
@@ -22,7 +23,10 @@
 <body>
   <header>
     <h1>UK Live Stock Overview</h1>
-    <button class="logout-btn" onclick="location.href='index.html'">Logout</button>
+    <div>
+      <button class="nav-btn" onclick="location.href='dashboard-ukuser.html'">← Back to Dashboard</button>
+      <button class="logout-btn" onclick="location.href='index.html'">Logout</button>
+    </div>
   </header>
 
   <div class="container">
