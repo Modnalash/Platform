@@ -68,42 +68,49 @@
     </div>
   </div>
 
-  <!-- 1) Load Supabase client library FIRST -->
+  <!-- 1) Supabase JS SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script>
-    // 2) Init your Supabase client
-    const supabase = supabase.createClient(
+    // 2) Initialize via window.supabase
+    const supabase = window.supabase.createClient(
       'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
 
-    // 3) Fetch & render dashboard metrics
+    // 3) Fetch & render
     async function loadDashboardData() {
-      // Total stock
-      const { data: stockRows, error: stockErr } = await supabase
+      // TOTAL STOCK
+      const { data: stocks, error: stockErr } = await supabase
         .from('stock')
         .select('qty');
-      let totalStock = 0;
-      if (!stockErr && stockRows) {
-        totalStock = stockRows.reduce((sum, r) => sum + (r.qty || 0), 0);
+      if (!stockErr && Array.isArray(stocks)) {
+        const total = stocks.reduce((s, r) => s + (r.qty || 0), 0);
+        document.getElementById('stockCount').textContent =
+          `💼 ${total.toLocaleString()} units in stock`;
+      } else {
+        document.getElementById('stockCount').textContent =
+          '💼 —';
       }
-      document.getElementById('stockCount').textContent =
-        `💼 ${totalStock.toLocaleString()} units in stock`;
 
-      // Orders in last 7 days
-      const oneWeekAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString();
-      const { data: orderRows, error: orderErr } = await supabase
+      // NEW ORDERS (Pending; last 7 days)
+      const weekAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString();
+      const { data: orders, error: orderErr } = await supabase
         .from('orders')
         .select('id')
-        .gte('created_at', oneWeekAgo);
-      const newOrders = orderErr || !orderRows ? 0 : orderRows.length;
-      document.getElementById('orderCount').textContent =
-        `📄 ${newOrders.toLocaleString()} orders this week`;
+        .eq('status', 'Pending')
+        .gte('created_at', weekAgo);
+      if (!orderErr && Array.isArray(orders)) {
+        document.getElementById('orderCount').textContent =
+          `📄 ${orders.length.toLocaleString()} new orders`;
+      } else {
+        document.getElementById('orderCount').textContent =
+          '📄 —';
+      }
     }
 
-    // Initial load + auto-refresh every minute
+    // initial + refresh every 60s
     loadDashboardData();
-    setInterval(loadDashboardData, 60_000);
+    setInterval(loadDashboardData, 60000);
   </script>
 </body>
 </html>
