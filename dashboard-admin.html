@@ -81,49 +81,46 @@
 
       <div class="section">
         <h3>Quick Overview</h3>
-        <div class="stat" id="stockCount">💼 Loading product count...</div>
-        <div class="stat" id="orderCount">📄 Loading new orders...</div>
-      </div>
-
-      <div class="section">
-        <h3>Recent Activity</h3>
-        <div class="stat" id="recentActivity">🔄 Loading recent activity...</div>
+        <div class="stat" id="stockCount">💼 Loading total stock…</div>
+        <div class="stat" id="orderCount">📄 Loading new orders…</div>
       </div>
     </div>
   </div>
 
   <script>
+    // Initialize Supabase
     const supabase = supabase.createClient(
       'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
 
+    // Fetch and render dashboard metrics
     async function loadDashboardData() {
-      const { data: products, error: productError } = await supabase
+      // 1) Total stock quantity
+      let { data: stockRows, error: stockErr } = await supabase
         .from('stock')
-        .select('*');
-      const totalQty = products.reduce((sum, p) => sum + (p.qty || 0), 0);
-      document.getElementById('stockCount').textContent = `💼 ${totalQty} products in stock`;
+        .select('qty');
+      let totalStock = 0;
+      if (!stockErr) {
+        totalStock = stockRows.reduce((sum, r) => sum + (r.qty || 0), 0);
+      }
+      document.getElementById('stockCount').textContent =
+        `💼 ${totalStock.toLocaleString()} units in stock`;
 
-      const { data: orders, error: orderError } = await supabase
+      // 2) New orders in past 7 days
+      const oneWeekAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString();
+      let { data: orderRows, error: orderErr } = await supabase
         .from('orders')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      document.getElementById('orderCount').textContent = `📄 ${orders.length} new orders this week`;
-
-      const recent = orders.slice(0, 2)
-        .map(order => {
-          return order.status === 'fulfilled'
-            ? `👌 Order #${order.id} fulfilled`
-            : `🛒 New order placed by ${order.region} user`;
-        })
-        .join('<br>');
-
-      document.getElementById('recentActivity').innerHTML = recent;
+        .select('id')
+        .gte('created_at', oneWeekAgo);
+      const newOrders = orderErr ? 0 : orderRows.length;
+      document.getElementById('orderCount').textContent =
+        `📄 ${newOrders.toLocaleString()} orders this week`;
     }
 
+    // Initial load + auto-refresh every 60s
     loadDashboardData();
+    setInterval(loadDashboardData, 60_000);
   </script>
 </body>
 </html>
