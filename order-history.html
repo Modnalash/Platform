@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -78,17 +77,30 @@ async function fetchOrders() {
 }
 
 async function markGroup(groupId) {
-  const { data } = await supabase
+  // Find all orders with this groupId OR matching id for ungrouped
+  const { data, error } = await supabase
     .from('orders')
     .select('id')
     .or(`order_group_id.eq.${groupId},id.eq.${groupId.replace('ungrouped-', '')}`);
 
+  if (error || !data) {
+    alert("Could not find matching orders.");
+    return;
+  }
+
   const ids = data.map(row => row.id);
+
   if (ids.length > 0) {
-    await supabase.from('orders')
+    const { error: updateError } = await supabase
+      .from('orders')
       .update({ status: 'Fulfilled' })
       .in('id', ids);
-    fetchOrders();
+
+    if (updateError) {
+      alert("Failed to update order(s).");
+    } else {
+      fetchOrders();
+    }
   }
 }
 
