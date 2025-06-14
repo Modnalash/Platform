@@ -1,47 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Order History</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
-    body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #0b1c2c; color: #fff; }
-    .container { display: flex; height: 100vh; }
+    body { margin:0; font-family:Segoe UI,sans-serif; background:#0b1c2c; color:#fff; }
+    .container { display:flex; height:100vh; }
     .sidebar {
-      width: 250px; background: #112b44; padding: 2rem 1rem;
-      display: flex; flex-direction: column; gap: 1rem;
+      width:250px; background:#112b44; padding:2rem 1rem;
+      display:flex; flex-direction:column; gap:1rem;
     }
-    .sidebar h2 { margin: 0 0 1rem; color: #7ee2f6; }
+    .sidebar h2 { color:#7ee2f6; margin:0 0 1rem; }
     .sidebar a {
-      color: #fff; text-decoration: none; padding: .75rem 1rem;
-      border-radius: 6px;
+      color:#fff; text-decoration:none; padding:.75rem 1rem;
+      border-radius:6px;
     }
     .sidebar a.active,
-    .sidebar a:hover { background: #1e3d5e; }
-    .main { flex: 1; overflow-y: auto; padding: 2rem; }
+    .sidebar a:hover { background:#1e3d5e; }
+    .main { flex:1; padding:2rem; overflow:auto; }
     .header {
-      background: #1e3d5e; padding: 1rem; border-radius: 8px;
-      text-align: center; font-size: 1.5rem; margin-bottom: 1rem;
+      background:#1e3d5e; padding:1rem; border-radius:8px;
+      margin-bottom:1rem; text-align:center; font-size:1.5rem;
     }
-    .order-block {
-      background: #1a2b3e; padding: 1.25rem; border-radius: 8px;
-      margin-bottom: 1rem;
+    table {
+      width:100%; border-collapse:collapse; background:#1a2b3e;
+      border-radius:8px; overflow:hidden;
     }
-    .order-block.fulfilled { background: #234f1e; }
-    .order-block h3 { margin: 0 0 .5rem; font-size: 1.25rem; }
-    ul { margin: 0 0 1rem; padding-left: 1.2rem; }
-    li { margin-bottom: .5rem; }
-    .actions button {
-      border: none; border-radius: 5px; padding: .5rem 1rem;
-      font-size: 1rem; cursor: pointer; margin-right: .5rem;
+    th,td {
+      padding:.75rem 1rem; border-bottom:1px solid #22303f;
+      text-align:left;
     }
-    .btn-fulfilled { background: #06d6a0; color: #0b1c2c; }
-    .btn-fulfilled[disabled] { opacity: .6; cursor: default; }
-    .btn-print { background: #48cae4; color: #0b1c2c; }
+    th { background:#112b44; }
+    button {
+      padding:.5rem .75rem; border:none; border-radius:4px;
+      cursor:pointer; font-size:1rem;
+    }
+    .btn-fulfill   { background:#06d6a0; color:#0b1c2c; }
+    .btn-fulfill[disabled] { opacity:.6; cursor:default; }
+    .btn-print     { background:#48cae4; color:#0b1c2c; margin-left:.5rem; }
   </style>
 </head>
 <body>
+
   <div class="container">
     <nav class="sidebar">
       <h2>MODNA Admin</h2>
@@ -51,93 +53,97 @@
       <a href="report.html">Report</a>
       <a href="index.html">Logout</a>
     </nav>
+
     <main class="main">
       <div class="header">Order History</div>
-      <div id="ordersContainer"></div>
+      <table id="ordersTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Region</th>
+            <th>Product</th>
+            <th>Qty</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </main>
   </div>
 
   <script>
-    // ←←← YOUR SUPABASE CONFIGURATION →→→
+    // — Supabase config — 
     const SUPABASE_URL = 'https://rwmwsaxlqblvnhfyuuqg.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3...J6Y';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y';
     const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Fetch + render
+    // load + display all orders
     async function loadOrders() {
-      const { data: orders, error } = await supabase
+      const { data, error } = await supabase
         .from('orders')
-        .select('id, region, product, qty, status, created_at, order_group_i')
+        .select('id, region, product, qty, status, created_at')
         .order('created_at', { ascending: false });
 
       if (error) {
         console.error(error);
-        return document.getElementById('ordersContainer')
-          .innerHTML = '<p style="padding:1rem;">Failed to load orders.</p>';
+        return;
       }
 
-      // Group by order_group_i (fallback on each own id)
-      const groups = {};
-      orders.forEach(o => {
-        const key = o.order_group_i || `ungrouped-${o.id}`;
-        (groups[key] = groups[key]||[]).push(o);
-      });
-
-      const container = document.getElementById('ordersContainer');
-      container.innerHTML = '';
-
-      Object.entries(groups).forEach(([gid, items]) => {
-        const allFulfilled = items.every(i => i.status === 'Fulfilled');
-        const block = document.createElement('div');
-        block.className = 'order-block' + (allFulfilled ? ' fulfilled' : '');
-        // store the numeric IDs in a data-attr for update
-        block.dataset.ids = items.map(i => i.id).join(',');
-        block.innerHTML = `
-          <h3>Order #${gid.slice(0,8)}${allFulfilled?' – ✅ Fulfilled':''}</h3>
-          <ul>
-            ${items.map(i =>
-              `<li>${i.product} (${i.region}) – Qty: ${i.qty} – ${i.status}</li>`
-            ).join('')}
-          </ul>
-          <div class="actions">
-            <button class="btn-fulfilled" ${allFulfilled?'disabled':''}
-              onclick="markFulfilled(this)">
-              ✔ ${allFulfilled?'Fulfilled':'Mark Fulfilled'}
+      const tbody = document.querySelector('#ordersTable tbody');
+      tbody.innerHTML = '';
+      data.forEach(o => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${o.id}</td>
+          <td>${o.region}</td>
+          <td>${o.product}</td>
+          <td>${o.qty}</td>
+          <td>${o.status}</td>
+          <td>${new Date(o.created_at).toLocaleString()}</td>
+          <td>
+            <button class="btn-fulfill" ${o.status==='Fulfilled'?'disabled':''}
+                    onclick="fulfill(${o.id})">
+              ✔ ${o.status==='Fulfilled'?'Done':'Fulfill'}
             </button>
-            <button class="btn-print" onclick="printOrder(this)">🖨 Print</button>
-          </div>
-        `;
-        container.appendChild(block);
+            <button class="btn-print" onclick="printOrder(${o.id})">
+              🖨 Print
+            </button>
+          </td>`;
+        tbody.appendChild(tr);
       });
     }
 
-    // Mark as Fulfilled by IDs
-    async function markFulfilled(btn) {
-      const block = btn.closest('.order-block');
-      const ids = block.dataset.ids.split(',').map(x=>parseInt(x));
+    // mark single order fulfilled
+    async function fulfill(id) {
       const { error } = await supabase
         .from('orders')
         .update({ status: 'Fulfilled' })
-        .in('id', ids);
+        .eq('id', id);
 
-      if (error) alert('❌ Update failed: '+error.message);
+      if (error) alert('Update failed: '+error.message);
       else loadOrders();
     }
 
-    // Print the single block
-    function printOrder(btn) {
-      const block = btn.closest('.order-block');
-      const win = window.open('', '_blank');
-      win.document.write(`
-        <html><head>
-          <title>Print Order</title>
-          <style>body{font-family:Arial;padding:1rem;}ul{padding-left:1.2rem;}</style>
-        </head><body>
-          ${block.innerHTML}
-        </body></html>
-      `);
-      win.document.close();
-      win.print();
+    // print that row
+    async function printOrder(id) {
+      // find row in table
+      const row = [...document.querySelectorAll('#ordersTable tbody tr')]
+        .find(r => r.cells[0].innerText == id);
+      if (!row) return;
+      const html = `
+        <h2>Order #${id}</h2>
+        <p><strong>Region:</strong> ${row.cells[1].innerText}</p>
+        <p><strong>Product:</strong> ${row.cells[2].innerText}</p>
+        <p><strong>Qty:</strong> ${row.cells[3].innerText}</p>
+        <p><strong>Status:</strong> ${row.cells[4].innerText}</p>
+        <p><strong>Date:</strong> ${row.cells[5].innerText}</p>
+      `;
+      const w = window.open('', '_blank');
+      w.document.write(`<html><body style="font-family:Arial;">${html}</body></html>`);
+      w.document.close();
+      w.print();
     }
 
     document.addEventListener('DOMContentLoaded', loadOrders);
