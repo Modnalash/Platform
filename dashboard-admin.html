@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
     body {
       margin: 0;
@@ -13,9 +12,7 @@
       background-color: #0b1c2c;
       color: white;
     }
-    .container {
-      display: flex;
-    }
+    .container { display: flex; }
     .sidebar {
       width: 250px;
       background-color: #112b44;
@@ -25,24 +22,15 @@
       gap: 1.5rem;
       height: 100vh;
     }
-    .sidebar h2 {
-      margin-bottom: 2rem;
-      font-size: 24px;
-    }
+    .sidebar h2 { margin-bottom: 2rem; font-size: 24px; }
     .sidebar a {
       color: white;
       text-decoration: none;
       padding: 0.8rem 1rem;
       border-radius: 8px;
     }
-    .sidebar a:hover,
-    .sidebar a.active {
-      background-color: #1e3d5e;
-    }
-    .main {
-      flex: 1;
-      padding: 2rem;
-    }
+    .sidebar a:hover, .sidebar a.active { background-color: #1e3d5e; }
+    .main { flex: 1; padding: 2rem; }
     .header {
       background-color: #1e3d5e;
       padding: 1rem;
@@ -56,21 +44,15 @@
       margin-top: 2rem;
       border-radius: 12px;
     }
-    .section h3 {
-      margin-bottom: 1rem;
-      color: #7ee2f6;
-    }
-    .stat {
-      font-size: 1.2rem;
-      margin-bottom: 0.5rem;
-    }
+    .section h3 { margin-bottom: 1rem; color: #7ee2f6; }
+    .stat { font-size: 1.2rem; margin-bottom: 0.5rem; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="sidebar">
       <h2>MODNA Admin</h2>
-      <a class="active" href="#">Dashboard</a>
+      <a href="#" class="active">Dashboard</a>
       <a href="manage-stock.html">Manage Stock</a>
       <a href="order-history.html">Order History</a>
       <a href="report.html">Report</a>
@@ -78,7 +60,6 @@
     </div>
     <div class="main">
       <div class="header">Welcome, Admin</div>
-
       <div class="section">
         <h3>Quick Overview</h3>
         <div class="stat" id="stockCount">💼 Loading total stock…</div>
@@ -87,38 +68,40 @@
     </div>
   </div>
 
+  <!-- 1) Load Supabase client library FIRST -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script>
-    // Initialize Supabase
+    // 2) Init your Supabase client
     const supabase = supabase.createClient(
       'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
 
-    // Fetch and render dashboard metrics
+    // 3) Fetch & render dashboard metrics
     async function loadDashboardData() {
-      // 1) Total stock quantity
-      let { data: stockRows, error: stockErr } = await supabase
+      // Total stock
+      const { data: stockRows, error: stockErr } = await supabase
         .from('stock')
         .select('qty');
       let totalStock = 0;
-      if (!stockErr) {
+      if (!stockErr && stockRows) {
         totalStock = stockRows.reduce((sum, r) => sum + (r.qty || 0), 0);
       }
       document.getElementById('stockCount').textContent =
         `💼 ${totalStock.toLocaleString()} units in stock`;
 
-      // 2) New orders in past 7 days
+      // Orders in last 7 days
       const oneWeekAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString();
-      let { data: orderRows, error: orderErr } = await supabase
+      const { data: orderRows, error: orderErr } = await supabase
         .from('orders')
         .select('id')
         .gte('created_at', oneWeekAgo);
-      const newOrders = orderErr ? 0 : orderRows.length;
+      const newOrders = orderErr || !orderRows ? 0 : orderRows.length;
       document.getElementById('orderCount').textContent =
         `📄 ${newOrders.toLocaleString()} orders this week`;
     }
 
-    // Initial load + auto-refresh every 60s
+    // Initial load + auto-refresh every minute
     loadDashboardData();
     setInterval(loadDashboardData, 60_000);
   </script>
