@@ -21,9 +21,7 @@
     table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
     th, td { padding: 10px; text-align: left; border-bottom: 1px solid #2a3c4f; }
     th { background-color: #112b44; }
-    /* narrow add-qty input */
     #stockTable td input[type="number"] { width: 60px; padding: 4px; }
-    /* button styles */
     .actions button { margin-right: 6px; padding: 6px 10px; border-radius: 4px; border: none; font-size: 0.9rem; cursor: pointer; }
     .btn-add { background-color: #79e08a; color: #0d1b2a; }
     .btn-add:hover { background-color: #6cc77e; }
@@ -87,6 +85,8 @@
           <option value="Make-up">Make-up</option>
         </select>
         <input type="number" id="productQty" placeholder="Quantity" />
+        <input type="number" id="costUsd" placeholder="Purchase Price (USD)" step="0.01" required />
+        <input type="number" id="sellPln" placeholder="Selling Price (PLN)" step="0.01" required />
         <button onclick="addProduct()">Add Product</button>
         <div id="successMsg" style="color:#7ee2f6; margin-top:10px;"></div>
       </div>
@@ -102,10 +102,7 @@
     let stockData = [];
 
     async function fetchStock() {
-      const { data, error } = await supabase
-        .from('stock')
-        .select('*')
-        .order('id', { ascending: true });
+      const { data, error } = await supabase.from('stock').select('*').order('id');
       if (!error && Array.isArray(data)) {
         stockData = data;
         renderTable();
@@ -141,13 +138,25 @@
       const name = document.getElementById('productName').value.trim();
       const category = document.getElementById('productCategory').value;
       const qty = parseInt(document.getElementById('productQty').value.trim(), 10);
-      if (!name || !category || isNaN(qty)) { alert('Please fill out all fields correctly.'); return; }
-      const { error } = await supabase.from('stock').insert([{ name, category, qty }]);
+      const cost_usd = parseFloat(document.getElementById('costUsd').value);
+      const sell_pln = parseFloat(document.getElementById('sellPln').value);
+
+      if (!name || !category || isNaN(qty) || isNaN(cost_usd) || isNaN(sell_pln)) {
+        alert('Please fill out all fields correctly.');
+        return;
+      }
+
+      const { error } = await supabase.from('stock').insert([{ name, category, qty, cost_usd, sell_pln }]);
       if (error) alert('Error adding product: ' + error.message);
-      else { document.getElementById('successMsg').textContent = '✅ Added!'; fetchStock(); }
+      else {
+        document.getElementById('successMsg').textContent = '✅ Added!';
+        fetchStock();
+      }
       document.getElementById('productName').value = '';
       document.getElementById('productCategory').value = '';
       document.getElementById('productQty').value = '';
+      document.getElementById('costUsd').value = '';
+      document.getElementById('sellPln').value = '';
     }
 
     async function deleteProduct(id) {
