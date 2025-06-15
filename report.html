@@ -34,9 +34,14 @@
       text-align:right;
       font-size:.9rem;
     }
+    #totalsSummary .summary-title {
+      font-weight:bold;
+      margin-bottom:0.5rem;
+      font-size:1rem;
+      text-align:left;
+    }
     #totalsSummary table { border-collapse:collapse; }
-    #totalsSummary td { padding:4px 8px; }
-    #totalsSummary th { padding:4px 8px; text-align:left; }
+    #totalsSummary td, #totalsSummary th { padding:4px 8px; }
   </style>
 </head>
 <body>
@@ -46,10 +51,11 @@
 
     <!-- Totals summary box -->
     <div id="totalsSummary">
+      <div class="summary-title">Stock Value</div>
       <table>
-        <tr><th>Total PLN:</th><td id="sumPln">0.00 PLN</td></tr>
-        <tr><th>Total GBP:</th><td id="sumGbp">£0.00</td></tr>
-        <tr><th>Total EUR:</th><td id="sumEur">€0.00</td></tr>
+        <tr><th>PLN:</th><td id="sumPln">0.00 PLN</td></tr>
+        <tr><th>GBP:</th><td id="sumGbp">£0.00</td></tr>
+        <tr><th>EUR:</th><td id="sumEur">€0.00</td></tr>
       </table>
     </div>
 
