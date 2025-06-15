@@ -18,11 +18,6 @@
     th { background: #112d4e; }
     .actions button { background: #3fbc5f; border: none; color: #0d1b2a; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; }
     .actions button:hover { background: #2c9e4c; }
-    .add-form { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 2rem; }
-    .add-form input, .add-form select, .add-form button { padding: 0.5rem 1rem; border-radius: 4px; border: none; font-size: 1rem; }
-    .add-form button { background: #00a8e8; color: white; cursor: pointer; }
-    .add-form button:hover { background: #008dbb; }
-    .msg { margin-top: 0.5rem; color: #7ee2f6; }
   </style>
 </head>
 <body>
@@ -33,8 +28,8 @@
   </header>
   <div class="container">
     <div class="controls">
-      <input type="text" id="searchInput" placeholder="Search by product..." oninput="renderTable()" />
-      <select id="categoryFilter" onchange="renderTable()">
+      <input type="text" id="searchInput" placeholder="Search by product..." />
+      <select id="categoryFilter">
         <option value="All">All</option>
         <option value="Starter Kit">Starter Kit</option>
         <option value="Express Lash">Express Lash</option>
@@ -45,6 +40,7 @@
         <option value="Make-up">Make-up</option>
       </select>
     </div>
+
     <table id="localStockTable">
       <thead>
         <tr>
@@ -57,23 +53,6 @@
       </thead>
       <tbody></tbody>
     </table>
-
-    <div class="add-form">
-      <input type="text" id="newName" placeholder="Product Name" />
-      <select id="newCategory">
-        <option value="">Select Category</option>
-        <option value="Starter Kit">Starter Kit</option>
-        <option value="Express Lash">Express Lash</option>
-        <option value="Wielokrotnego">Wielokrotnego</option>
-        <option value="Bio">Bio</option>
-        <option value="Ribbon">Ribbon</option>
-        <option value="Accessories">Accessories</option>
-        <option value="Make-up">Make-up</option>
-      </select>
-      <input type="number" id="newQty" placeholder="Quantity" min="0" />
-      <button onclick="addLocalProduct()">Add Local Item</button>
-    </div>
-    <div id="msg" class="msg"></div>
   </div>
 
   <script>
@@ -102,9 +81,9 @@
 
       localData
         .filter(item => {
-          const mSearch = !search || item.name.toLowerCase().includes(search);
-          const mCat = cat === 'All' || item.category === cat;
-          return mSearch && mCat;
+          const matchSearch = !search || item.name.toLowerCase().includes(search);
+          const matchCat = cat === 'All' || item.category === cat;
+          return matchSearch && matchCat;
         })
         .forEach(item => {
           const row = document.createElement('tr');
@@ -112,16 +91,15 @@
             <td>${item.name}</td>
             <td>${item.category}</td>
             <td class="qty-cell">${item.qty}</td>
-            <td><input type="number" id="adj-${item.id}" value="0" min="0" /></td>
+            <td><input type="number" id="adj-${item.id}" value="${item.qty}" min="0" /></td>
             <td class="actions">
               <button onclick="updateLocal(${item.id})">Update</button>
-              <button onclick="deleteLocal(${item.id})">Delete</button>
-            </td>`;
+            </td>
+          `;
           tbody.appendChild(row);
         });
     }
 
-    // Updated: now sets qty = input value directly, not adds
     async function updateLocal(id) {
       const newQty = parseInt(document.getElementById(`adj-${id}`).value, 10);
       if (isNaN(newQty)) return alert('Enter valid amount');
@@ -133,34 +111,11 @@
       fetchLocal();
     }
 
-    async function deleteLocal(id) {
-      if (!confirm('Delete this item?')) return;
-      const { error } = await supabase
-        .from('pl_stock')
-        .delete()
-        .eq('id', id);
-      if (error) return alert(error.message);
-      fetchLocal();
-    }
-
-    async function addLocalProduct() {
-      const name = document.getElementById('newName').value.trim();
-      const category = document.getElementById('newCategory').value;
-      const qty = parseInt(document.getElementById('newQty').value, 10);
-      if (!name || !category || isNaN(qty)) return alert('Fill out all fields');
-      const { error } = await supabase
-        .from('pl_stock')
-        .insert([{ name, category, qty }]);
-      if (error) return alert(error.message);
-      document.getElementById('msg').innerText = '✅ Added!';
-      setTimeout(() => document.getElementById('msg').innerText = '', 2000);
-      document.getElementById('newName').value = '';
-      document.getElementById('newCategory').value = '';
-      document.getElementById('newQty').value = '';
-      fetchLocal();
-    }
+    document.getElementById('searchInput').addEventListener('input', fetchLocal);
+    document.getElementById('categoryFilter').addEventListener('change', fetchLocal);
 
     document.addEventListener('DOMContentLoaded', fetchLocal);
   </script>
 </body>
 </html>
+
