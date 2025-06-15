@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Inventory Valuation & Multi-Currency Report</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body { margin:0; font-family:Inter,sans-serif; background:#0b1c2c; color:#fff; position:relative; }
+    .container { max-width:1200px; margin:0 auto; padding:2rem; }
+    .back-btn { background:#1e3d5e; color:#fff; padding:8px 12px; border-radius:6px; text-decoration:none; display:inline-block; margin-bottom:1rem; }
+    .back-btn:hover { background:#285a87; }
+    h1 { margin-top:0; }
+    .controls { display:flex; gap:1rem; flex-wrap:wrap; align-items:center; margin-bottom:1rem; }
+    .controls button.toggle { padding:8px 12px; background:#1e3d5e; color:#fff; border:none; border-radius:6px; cursor:pointer; }
+    .controls button.toggle.active { background:#285a87; }
+    .controls input, .controls select { font-size:1rem; padding:8px; border:0; border-radius:6px; background:#fff; color:#000; }
+
+    /* Top-right summary boxes */
+    #summaryContainer {
+      position:absolute; top:1.5rem; right:1.5rem;
+      display:flex; align-items:flex-start; gap:1rem;
+    }
+    .summaryBox {
+      background:#112b44; border:1px solid #1e3d5e;
+      padding:1rem; border-radius:8px; width:160px;
+    }
+    .summary-title { font-weight:bold; margin-bottom:.5rem; font-size:1rem; text-align:left; }
+    .summaryBox table { width:100%; border-collapse:collapse; }
+    .summaryBox td, .summaryBox th { padding:4px 8px; }
+
+    /* Table styling */
+    table { width:100%; border-collapse:collapse; background:#15273a; border-radius:8px; overflow:hidden; }
+    th, td { padding:8px 12px; border-bottom:1px solid #1e3d5e; font-size:.9rem; }
+    th { background:#112b44; text-align:left; }
+    .numeric { text-align:right; }
+    tr.low-stock { background:rgba(255,0,0,0.1); }
+
+    /* Pagination */
+    #paginationControls { text-align:center; margin:1rem 0; }
+    #paginationControls button { margin:0 0.5rem; padding:6px 12px; font-size:1rem;
+      border:none; border-radius:6px; background:#1e3d5e; color:#fff; cursor:pointer; }
+    #paginationControls button:disabled { background:#4a637a; cursor:default; }
+    #paginationControls span { font-size:1rem; }
+
+    /* Chart styling */
+    canvas { margin-top:2rem; background:#fff; border-radius:8px; padding:1rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="dashboard-admin.html" class="back-btn">⬅ Back to Dashboard</a>
+    <h1>Inventory Valuation &amp; Multi-Currency Report</h1>
+
+    <!-- Top-right summaries -->
+    <div id="summaryContainer">
+      <div class="summaryBox">
+        <div class="summary-title">Stock Value</div>
+        <table>
+          <tr><th>PLN:</th><td id="sumPln">0.00 PLN</td></tr>
+          <tr><th>GBP:</th><td id="sumGbp">£0.00</td></tr>
+          <tr><th>EUR:</th><td id="sumEur">€0.00</td></tr>
+        </table>
+      </div>
+      <div class="summaryBox">
+        <div class="summary-title">Total Profit</div>
+        <table>
+          <tr><th>PLN:</th><td id="profitPln">0.00 PLN</td></tr>
+          <tr><th>GBP:</th><td id="profitGbp">£0.00</td></tr>
+          <tr><th>EUR:</th><td id="profitEur">€0.00</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- Controls: toggle + search + filter -->
+    <div class="controls">
+      <button id="btnToggle" class="toggle">Show Profit</button>
+      <input type="text" id="searchInput" placeholder="Search product…"/>
+      <select id="categoryFilter"></select>
+    </div>
+
+    <!-- Data table -->
+    <table id="reportTable">
+      <thead>
+        <tr>
+          <th>Product</th><th>Category</th>
+          <th class="numeric">Qty (Admin)</th><th class="numeric">Qty (PL)</th><th class="numeric">Total Qty</th>
+          <th class="numeric">Cost USD</th><th class="numeric">Cost PLN</th><th class="numeric">Cost GBP</th><th class="numeric">Cost EUR</th>
+          <th class="numeric">Sell PLN</th><th class="numeric">Sell GBP</th><th class="numeric">Sell EUR</th>
+          <th id="colX1" class="numeric">Value PLN</th>
+          <th id="colX2" class="numeric">Value GBP</th>
+          <th id="colX3" class="numeric">Value EUR</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div id="paginationControls">
+      <button id="prevBtn">Prev</button>
+      <span id="pageInfo">Page 1 of 1</span>
+      <button id="nextBtn">Next</button>
+    </div>
+
+    <!-- Chart -->
+    <canvas id="categoryChart" height="80"></canvas>
+  </div>
+
+  <script>
+    const rowsPerPage=10;
+    let currentPage=0, showProfit=false;
+    const supabase=window.supabase.createClient(
+      'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
+    );
+    let adminStock=[], plStock=[], fx={PLN:1,GBP:1,EUR:1};
+
+    // UI elements
+    const btnToggle=document.getElementById('btnToggle');
+    const prevBtn=document.getElementById('prevBtn');
+    const nextBtn=document.getElementById('nextBtn');
+    const searchInput=document.getElementById('searchInput');
+    const categoryFilter=document.getElementById('categoryFilter');
+
+    btnToggle.onclick=()=>{ showProfit=!showProfit; btnToggle.textContent= showProfit?'Show Value':'Show Profit'; btnToggle.classList.toggle('active',showProfit); render(); };
+    prevBtn.onclick=()=>{ currentPage--; render(); };
+    nextBtn.onclick=()=>{ currentPage++; render(); };
+
+    window.addEventListener('DOMContentLoaded',async()=>{
+      const [a,p]=await Promise.all([
+        supabase.from('stock').select('*'),
+        supabase.from('pl_stock').select('*')
+      ]);
+      adminStock=a.data||[]; plStock=p.data||[];
+      // populate categories
+      const cats=[...new Set(adminStock.map(r=>r.category))];
+      categoryFilter.innerHTML=`<option value="">All Categories</option>`+cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+      // wire filter/search
+      searchInput.addEventListener('input',()=>{ currentPage=0; render(); });
+      categoryFilter.addEventListener('change',()=>{ currentPage=0; render(); });
+      await loadFx();
+    });
+
+    async function loadFx(){
+      try{
+        const res=await fetch('https://open.er-api.com/v6/latest/USD'),
+              json=await res.json();
+        if(json.result==='success'&&json.rates) fx={ PLN:json.rates.PLN, GBP:json.rates.GBP, EUR:json.rates.EUR };
+      }catch(e){}
+      render();
+    }
+
+    function render(){
+      const term=searchInput.value.toLowerCase();
+      const catF=categoryFilter.value;
+      const filtered=adminStock.filter(r=>r.name.toLowerCase().includes(term) && (!catF||r.category===catF));
+      const totalPages=Math.max(1,Math.ceil(filtered.length/rowsPerPage));
+      currentPage=Math.min(Math.max(0,currentPage),totalPages-1);
+      // update headers
+      colX1.textContent=showProfit?'Profit PLN':'Value PLN';
+      colX2.textContent=showProfit?'Profit GBP':'Value GBP';
+      colX3.textContent=showProfit?'Profit EUR':'Value EUR';
+
+      // slice
+      const start=currentPage*rowsPerPage, items=filtered.slice(start,start+rowsPerPage);
+
+      // compute totals
+      let totV={PLN:0,GBP:0,EUR:0}, totP={PLN:0,GBP:0,EUR:0};
+      filtered.forEach(r=>{
+        const pl=plStock.find(x=>x.name===r.name)||{};
+        const qa=+r.qty||0, qp=+pl.qty||0, tq=qa+qp;
+        const cUsd=+r.cost_usd||0, cPln=cUsd*fx.PLN, cGbp=cUsd*fx.GBP, cEur=cUsd*fx.EUR;
+        const sPln=+r.sell_pln||0, sUsd=sPln/fx.PLN;
+        const sGbp=sUsd*fx.GBP, sEur=sUsd*fx.EUR;
+        const vPln=tq*sPln, vGbp=tq*sGbp, vEur=tq*sEur;
+        const pPln=tq*(sPln-cPln), pGbp=tq*(sGbp-cGbp), pEur=tq*(sEur-cEur);
+        totV.PLN+=vPln; totV.GBP+=vGbp; totV.EUR+=vEur;
+        totP.PLN+=pPln; totP.GBP+=pGbp; totP.EUR+=pEur;
+      });
+
+      // fill table
+      const tbody=reportTable.tBodies[0];
+      tbody.innerHTML='';
+      items.forEach(r=>{
+        const pl=plStock.find(x=>x.name===r.name)||{};
+        const qa=+r.qty||0, qp=+pl.qty||0, tq=qa+qp;
+        const cUsd=+r.cost_usd||0, cPln=cUsd*fx.PLN, cGbp=cUsd*fx.GBP, cEur=cUsd*fx.EUR;
+        const sPln=+r.sell_pln||0, sUsd=sPln/fx.PLN;
+        const sGbp=sUsd*fx.GBP, sEur=sUsd*fx.EUR;
+        const vPln=tq*sPln, vGbp=tq*sGbp, vEur=tq*sEur;
+        const pPln=tq*(sPln-cPln), pGbp=tq*(sGbp-cGbp), pEur=tq*(sEur-cEur);
+        const tr=document.createElement('tr');
+        if(tq<=50) tr.classList.add('low-stock');
+        tr.innerHTML=`
+          <td>${r.name}</td>
+          <td>${r.category}</td>
+          <td class="numeric">${qa}</td>
+          <td class="numeric">${qp}</td>
+          <td class="numeric">${tq}</td>
+          <td class="numeric">${new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(cUsd)}</td>
+          <td class="numeric">${new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(cPln)}</td>
+          <td class="numeric">${new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(cGbp)}</td>
+          <td class="numeric">${new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(cEur)}</td>
+          <td class="numeric">${new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(sPln)}</td>
+          <td class="numeric">${new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(sGbp)}</td>
+          <td class="numeric">${new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(sEur)}</td>
+          <td class="numeric">${new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(showProfit?pPln:vPln)}</td>
+          <td class="numeric">${new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(showProfit?pGbp:vGbp)}</td>
+          <td class="numeric">${new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(showProfit?pEur:vEur)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // update top summaries
+      sumPln.textContent    = new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(totV.PLN);
+      sumGbp.textContent    = new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(totV.GBP);
+      sumEur.textContent    = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(totV.EUR);
+      profitPln.textContent = new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(totP.PLN);
+      profitGbp.textContent = new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(totP.GBP);
+      profitEur.textContent = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(totP.EUR);
+
+      // pagination UI
+      pageInfo.textContent = `Page ${currentPage+1} of ${totalPages}`;
+      prevBtn.disabled     = currentPage===0;
+      nextBtn.disabled     = currentPage>=totalPages-1;
+
+      // redraw chart
+      const sums={};
+      filtered.forEach(r=>{
+        const pl=plStock.find(x=>x.name===r.name)||{};
+        const qa=+r.qty||0, qp=+pl.qty||0, tq=qa+qp;
+        const sellPln=+r.sell_pln||0, costPln=(+r.cost_usd||0)*fx.PLN;
+        const v=showProfit ? tq*(sellPln-costPln) : tq*sellPln;
+        sums[r.category]=(sums[r.category]||0)+v;
+      });
+      const ctx=categoryChart.getContext('2d');
+      if(window.myChart) window.myChart.destroy();
+      window.myChart=new Chart(ctx,{
+        type:'bar',
+        data:{ labels:Object.keys(sums), datasets:[{ label: showProfit?'Profit by Category (PLN)':'Value by Category (PLN)', data:Object.values(sums) }] },
+        options:{ responsive:true, scales:{ y:{ beginAtZero:true } } }
+      });
+    }
+  </script>
+</body>
+</html>
