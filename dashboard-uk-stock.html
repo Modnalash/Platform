@@ -89,6 +89,8 @@
       });
 
       combinedData = Object.values(map).map(x => ({ ...x, total: x.pl_qty + x.admin_qty }));
+      // sort alphabetically by product name
+      combinedData.sort((a, b) => a.name.localeCompare(b.name));
       renderTable();
     }
 
