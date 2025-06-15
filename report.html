@@ -15,13 +15,21 @@
       border-radius:6px; text-decoration:none;
     }
     .back-btn:hover { background:#285a87 }
+    h1 { margin-top:0; }
     .filters {
       display:flex; flex-wrap:wrap; gap:1rem; margin-bottom:1rem;
     }
-    .filters input, .filters select, .filters button {
-      padding:8px; border:none; border-radius:6px; font-size:1rem;
+    .filters label, .filters input, .filters select, .filters button {
+      font-size:1rem;
+    }
+    .filters input[type=date],
+    .filters input[type=text],
+    .filters select,
+    .filters button {
+      padding:8px; border:none; border-radius:6px;
       background:#fff; color:#000;
     }
+    .filters button { cursor:pointer; }
     table {
       width:100%; border-collapse:collapse; background:#15273a;
       border-radius:8px; overflow:hidden; margin-top:1rem;
@@ -30,7 +38,7 @@
       padding:8px 12px; border-bottom:1px solid #1e3d5e;
       font-size:.9rem;
     }
-    th { background:#112b44; text-align:center; }
+    th { background:#112b44; text-align:left }
     .numeric { text-align:right; }
     tfoot td { background:#112b44; font-weight:bold }
     tr.low-stock { background:rgba(255,0,0,0.1) }
@@ -43,7 +51,8 @@
     <h1>Inventory Valuation &amp; Multi-Currency Report</h1>
 
     <div class="filters">
-      <label>FX Date:
+      <label>
+        FX Date:
         <input type="date" id="fxDate" max="">
       </label>
       <button onclick="loadFx()">Load FX Rates</button>
@@ -65,10 +74,10 @@
           <th class="numeric">Cost PLN</th>
           <th class="numeric">Cost GBP</th>
           <th class="numeric">Cost EUR</th>
-          <th class="numeric">Sell<br>PLN</th>
-          <th class="numeric">Sell<br>USD</th>
-          <th class="numeric">Sell<br>GBP</th>
-          <th class="numeric">Sell<br>EUR</th>
+          <th class="numeric">Sell PLN</th>
+          <th class="numeric">Sell USD</th>
+          <th class="numeric">Sell GBP</th>
+          <th class="numeric">Sell EUR</th>
           <th class="numeric">Value USD</th>
           <th class="numeric">Value PLN</th>
           <th class="numeric">Value GBP</th>
@@ -101,6 +110,7 @@
 
     let stockData = [], fx = { PLN:1, GBP:1, EUR:1 };
 
+    // date picker defaults to today
     const fxDate = document.getElementById('fxDate');
     fxDate.max = new Date().toISOString().slice(0,10);
     fxDate.value = fxDate.max;
@@ -116,10 +126,12 @@
 
     async function loadFx() {
       const d = fxDate.value;
-      const res = await fetch(
-        `https://api.exchangerate.host/${d}?base=USD&symbols=PLN,GBP,EUR`
-      );
-      fx = (await res.json()).rates || fx;
+      try {
+        const res = await fetch(`https://api.exchangerate.host/${d}?base=USD&symbols=PLN,GBP,EUR`);
+        fx = (await res.json()).rates || fx;
+      } catch (e) {
+        console.warn('FX load failed, using 1:1 rates');
+      }
       render();
     }
 
@@ -127,7 +139,7 @@
       const cats = [...new Set(stockData.map(r => r.category))];
       document.getElementById('categoryFilter').innerHTML =
         `<option value="">All Categories</option>` +
-        cats.map(c => `<option>${c}</option>`).join('');
+        cats.map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
     function render() {
@@ -158,8 +170,11 @@
           if (qty <= 50) tr.classList.add('low-stock');
 
           tr.innerHTML = `
-            <td>${r.name}</td><td>${r.category}</td>
-            <td class="numeric">${qty}</td><td class="numeric">—</td><td class="numeric">${qty}</td>
+            <td>${r.name}</td>
+            <td>${r.category}</td>
+            <td class="numeric">${qty}</td>
+            <td class="numeric">—</td>
+            <td class="numeric">${qty}</td>
             <td class="numeric">$${costUsd.toFixed(2)}</td>
             <td class="numeric">${costPln.toFixed(2)} PLN</td>
             <td class="numeric">£${costGbp.toFixed(2)}</td>
@@ -188,8 +203,7 @@
       document.getElementById('tSellGbp').textContent = `£${tot.sellGbp.toFixed(2)}`;
       document.getElementById('tSellEur').textContent = `€${tot.sellEur.toFixed(2)}`;
       document.getElementById('tValUsd').textContent  = `$${tot.valUsd.toFixed(2)}`;
-      document.getElementById('tValPln').textContent  = `
-      ${tot.valPln.toFixed(2)} PLN`;
+      document.getElementById('tValPln').textContent  = `${tot.valPln.toFixed(2)} PLN`;
       document.getElementById('tValGbp').textContent  = `£${tot.valGbp.toFixed(2)}`;
       document.getElementById('tValEur').textContent  = `€${tot.valEur.toFixed(2)}`;
 
@@ -198,15 +212,24 @@
 
     function drawChart() {
       const sums = {};
-      document.querySelectorAll('#reportTable tbody tr').forEach((tr, i) => {
+      document.querySelectorAll('#reportTable tbody tr').forEach(tr => {
         const cat = tr.cells[1].textContent;
-        const val = parseFloat(tr.cells[16].textContent.replace(/[^0-9.]/g, '')) || 0;
+        const val = parseFloat(tr.cells[16].textContent) || 0;
         sums[cat] = (sums[cat]||0) + val;
       });
       const ctx = document.getElementById('categoryChart').getContext('2d');
       if (window.myChart) window.myChart.destroy();
       window.myChart = new Chart(ctx, {
-        type:'bar', data:{ labels:Object.keys(sums), datasets:[{ label:'Value by Category (PLN)', data:Object.values(sums), backgroundColor:'#7ee2f6'}] }, options:{ responsive:true, scales:{ y:{ beginAtZero:true } } }
+        type:'bar',
+        data:{
+          labels:Object.keys(sums),
+          datasets:[{
+            label:'Value by Category (PLN)',
+            data:Object.values(sums),
+            backgroundColor:'#7ee2f6'
+          }]
+        },
+        options:{ responsive:true, scales:{ y:{ beginAtZero:true } } }
       });
     }
   </script>
