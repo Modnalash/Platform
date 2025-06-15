@@ -90,10 +90,14 @@
       <h2>Edit Product</h2>
       <label for="editName">Name</label>
       <input type="text" id="editName" />
-      <label for="editCategory">Category</label>
+      <label for="#editCategory">Category</label>
       <select id="editCategory"></select>
       <label for="editQty">Quantity</label>
       <input type="number" id="editQty" min="0" />
+      <label for="editCostUsd">Purchase Price (USD)</label>
+      <input type="number" id="editCostUsd" step="0.01" />
+      <label for="editSellPln">Selling Price (PLN)</label>
+      <input type="number" id="editSellPln" step="0.01" />
       <div class="modal-actions">
         <button onclick="closeModal()">Cancel</button>
         <button onclick="saveEdit()">Save</button>
@@ -116,7 +120,7 @@
     async function fetchStock() {
       const { data } = await supabase.from('stock').select('*').order('id');
       stockData = data || [];
-      categories = [...new Set(stockData.map(r=>r.category))];
+      categories = [...new Set(stockData.map(r => r.category))];
       populateCategorySelectors();
       renderTable();
     }
@@ -125,10 +129,10 @@
       const sortSel = document.getElementById('sortCategory');
       const prodSel = document.getElementById('productCategory');
       const editSel = document.getElementById('editCategory');
-      const opts = `<option value="">All</option>` + categories.map(c=>`<option>${c}</option>`).join('');
+      const opts = `<option value="">All</option>` + categories.map(c => `<option>${c}</option>`).join('');
       sortSel.innerHTML = opts;
-      prodSel.innerHTML = `<option value="">Select Category</option>` + categories.map(c=>`<option>${c}</option>`).join('');
-      editSel.innerHTML = categories.map(c=>`<option>${c}</option>`).join('');
+      prodSel.innerHTML = `<option value="">Select Category</option>` + categories.map(c => `<option>${c}</option>`).join('');
+      editSel.innerHTML = `<option value="">Select Category</option>` + categories.map(c => `<option>${c}</option>`).join('');
     }
 
     function renderTable() {
@@ -138,7 +142,7 @@
       tbody.innerHTML = '';
       stockData
         .filter(x => x.name.toLowerCase().includes(s))
-        .filter(x => !c || x.category===c)
+        .filter(x => !c || x.category === c)
         .forEach(item => {
           const tr = document.createElement('tr');
           tr.innerHTML = `
@@ -159,10 +163,10 @@
     async function addProduct() {
       const name = document.getElementById('productName').value.trim();
       const category = document.getElementById('productCategory').value;
-      const qty = parseInt(document.getElementById('productQty').value,10);
+      const qty = parseInt(document.getElementById('productQty').value, 10);
       const cost_usd = parseFloat(document.getElementById('costUsd').value);
       const sell_pln = parseFloat(document.getElementById('sellPln').value);
-      if (!name||!category||isNaN(qty)||isNaN(cost_usd)||isNaN(sell_pln)) {
+      if (!name || !category || isNaN(qty) || isNaN(cost_usd) || isNaN(sell_pln)) {
         return alert('Please fill out all fields correctly.');
       }
       await supabase.from('stock').insert([{ name, category, qty, cost_usd, sell_pln }]);
@@ -170,19 +174,21 @@
     }
 
     async function addQty(id) {
-      const toAdd = parseInt(document.getElementById(`add-${id}`).value,10);
+      const toAdd = parseInt(document.getElementById(`add-${id}`).value, 10);
       if (isNaN(toAdd)) return alert('Enter a valid number');
-      const item = stockData.find(x=>x.id===id);
+      const item = stockData.find(x => x.id === id);
       await supabase.from('stock').update({ qty: item.qty + toAdd }).eq('id', id);
       fetchStock();
     }
 
     function openModal(id) {
       editId = id;
-      const item = stockData.find(x=>x.id===id);
+      const item = stockData.find(x => x.id === id);
       document.getElementById('editName').value = item.name;
       document.getElementById('editCategory').value = item.category;
       document.getElementById('editQty').value = item.qty;
+      document.getElementById('editCostUsd').value = item.cost_usd;
+      document.getElementById('editSellPln').value = item.sell_pln;
       document.getElementById('editModal').classList.add('active');
     }
 
@@ -193,24 +199,33 @@
     async function saveEdit() {
       const newName = document.getElementById('editName').value.trim();
       const newCat = document.getElementById('editCategory').value;
-      const newQty = parseInt(document.getElementById('editQty').value,10);
-      if (!newName||!newCat||isNaN(newQty)) return alert('Please fill out all fields correctly.');
-      await supabase.from('stock').update({ name:newName, category:newCat, qty:newQty }).eq('id', editId);
+      const newQty = parseInt(document.getElementById('editQty').value, 10);
+      const newCost = parseFloat(document.getElementById('editCostUsd').value);
+      const newSell = parseFloat(document.getElementById('editSellPln').value);
+      if (!newName || !newCat || isNaN(newQty) || isNaN(newCost) || isNaN(newSell))
+        return alert('Please fill out all fields correctly.');
+      await supabase.from('stock').update({
+        name: newName,
+        category: newCat,
+        qty: newQty,
+        cost_usd: newCost,
+        sell_pln: newSell
+      }).eq('id', editId);
       closeModal();
       fetchStock();
     }
 
     async function deleteProduct(id) {
       if (!confirm('Delete this product?')) return;
-      await supabase.from('stock').delete().eq('id',id);
+      await supabase.from('stock').delete().eq('id', id);
       fetchStock();
     }
 
     function exportCSV() {
       const header = ['Product','Category','Quantity'];
-      const rows = stockData.map(i => [i.name,i.category,i.qty].join(','));
-      const blob = new Blob([[header.join(',')+'\n'+rows.join('\n')]], {type:'text/csv'});
-      const url = URL.createObjectURL(blob), a=document.createElement('a'); a.href=url; a.download='stock.csv'; a.click();
+      const rows = stockData.map(i => [i.name, i.category, i.qty].join(','));
+      const blob = new Blob([[header.join(',') + '\n' + rows.join('\n')]], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = 'stock.csv'; a.click();
     }
 
     document.addEventListener('DOMContentLoaded', fetchStock);
