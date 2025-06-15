@@ -103,15 +103,15 @@
   </div>
 
   <script>
-    const rowsPerPage=10;
-    let currentPage=0;
+    const rowsPerPage = 10;
+    let currentPage = 0;
 
     const supabase = window.supabase.createClient(
       'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
 
-    let adminStock=[], plStock=[], fx={PLN:1,GBP:1,EUR:1};
+    let adminStock = [], plStock = [], fx = { PLN:1, GBP:1, EUR:1 };
 
     const viewMode = document.getElementById('viewMode');
     const searchInput = document.getElementById('searchInput');
@@ -119,88 +119,126 @@
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
 
-    viewMode.addEventListener('change',()=>{currentPage=0;render();});
-    searchInput.addEventListener('input',()=>{currentPage=0;render();});
-    prevBtn.addEventListener('click',()=>{currentPage--;render();});
-    nextBtn.addEventListener('click',()=>{currentPage++;render();});
+    viewMode.addEventListener('change', () => { currentPage = 0; render(); });
+    searchInput.addEventListener('input', () => { currentPage = 0; render(); });
+    prevBtn.addEventListener('click', () => { currentPage--; render(); });
+    nextBtn.addEventListener('click', () => { currentPage++; render(); });
 
-    window.addEventListener('DOMContentLoaded',async()=>{
-      const [a,p] = await Promise.all([
+    window.addEventListener('DOMContentLoaded', async () => {
+      const [a, p] = await Promise.all([
         supabase.from('stock').select('*'),
         supabase.from('pl_stock').select('*')
       ]);
-      adminStock=a.data||[]; plStock=p.data||[];
-      // populate category filter
-      const cats=[...new Set(adminStock.map(r=>r.category))];
-      categoryFilter.innerHTML=`<option value="">All Categories</option>`+cats.map(c=>`<option>${c}</option>`).join('');
-      categoryFilter.addEventListener('change',()=>{currentPage=0;render();});
+      adminStock = a.data || [];
+      plStock = p.data || [];
+
+      const cats = [...new Set(adminStock.map(r => r.category))];
+      categoryFilter.innerHTML = `<option value="">All Categories</option>` + cats.map(c => `<option>${c}</option>`).join('');
+      categoryFilter.addEventListener('change', () => { currentPage = 0; render(); });
+
       await loadFx();
     });
 
-    async function loadFx(){
-      try{
-        const res=await fetch('https://open.er-api.com/v6/latest/USD');
-        const json=await res.json();
-        if(json.result==='success'&&json.rates) fx={PLN:json.rates.PLN,GBP:json.rates.GBP,EUR:json.rates.EUR};
-      }catch(e){}
+    async function loadFx() {
+      try {
+        const res = await fetch('https://open.er-api.com/v6/latest/USD');
+        const json = await res.json();
+        if (json.result === 'success' && json.rates) {
+          fx = { PLN: json.rates.PLN, GBP: json.rates.GBP, EUR: json.rates.EUR };
+        }
+      } catch (e) {}
       render();
     }
 
-    function render(){
+    function render() {
       const mode = viewMode.value;
-      const term=searchInput.value.toLowerCase();
-      const catF=categoryFilter.value;
-      const filtered = adminStock.filter(r=> r.name.toLowerCase().includes(term) && (!catF||r.category===catF));
-      const totalPages = Math.max(1,Math.ceil(filtered.length/rowsPerPage));
-      currentPage = Math.min(Math.max(0,currentPage),totalPages-1);
+      const term = searchInput.value.toLowerCase();
+      const catF = categoryFilter.value;
+      const filtered = adminStock.filter(r =>
+        r.name.toLowerCase().includes(term) && (!catF || r.category === catF)
+      );
+      const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
+      currentPage = Math.min(Math.max(0, currentPage), totalPages - 1);
 
-      // update headers
-      if(mode==='value'){
-        colX1.textContent='Value PLN';colX2.textContent='Value GBP';colX3.textContent='Value EUR';
-      } else if(mode==='profit'){
-        colX1.textContent='Profit PLN';colX2.textContent='Profit GBP';colX3.textContent='Profit EUR';
+      if (mode === 'value') {
+        colX1.textContent = 'Value PLN';
+        colX2.textContent = 'Value GBP';
+        colX3.textContent = 'Value EUR';
+      } else if (mode === 'profit') {
+        colX1.textContent = 'Profit PLN';
+        colX2.textContent = 'Profit GBP';
+        colX3.textContent = 'Profit EUR';
       } else {
-        colX1.textContent='Margin %';colX2.textContent='';colX3.textContent='';
+        colX1.textContent = 'Margin %';
+        colX2.textContent = '';
+        colX3.textContent = '';
       }
 
-      // slice
-      const start=currentPage*rowsPerPage;
-      const items=filtered.slice(start,start+rowsPerPage);
+      const start = currentPage * rowsPerPage;
+      const items = filtered.slice(start, start + rowsPerPage);
 
-      // compute metrics and summaries
-      const totValue={PLN:0,GBP:0,EUR:0}, totProfit={PLN:0,GBP:0,EUR:0}, catSums={};
-      filtered.forEach(r=>{
-        const pl=plStock.find(x=>x.name===r.name)||{};
-        const qa=+r.qty||0, qp=+pl.qty||0, tq=qa+qp;
-        const cUsd=+r.cost_usd||0;
-        const cost={PLN:cUsd*fx.PLN,GBP:cUsd*fx.GBP,EUR:cUsd*fx.EUR};
-        const sPLN=+r.sell_pln||0, usd=sPLN/fx.PLN;
-        const sell={PLN:sPLN,GBP:usd*fx.GBP,EUR:usd*fx.EUR};
-        const value={PLN:tq*sell.PLN,GBP:tq*sell.GBP,EUR:tq*sell.EUR};
-        const profit={PLN:tq*(sell.PLN-cost.PLN),GBP:tq*(sell.GBP-cost.GBP),EUR:tq*(sell.EUR-cost.EUR)};
-        const marginPct = value.PLN? profit.PLN/value.PLN : 0;
-        // totals
-        ['PLN','GBP','EUR'].forEach(k=>{totValue[k]+=value[k];totProfit[k]+=profit[k];});
-        // category sums for chart
-        catSums[r.category] = catSums[r.category]||{val:0,prof:0};
-        catSums[r.category].val += value.PLN;
-        catSums[r.category].prof += profit.PLN;
+      const totValue = { PLN: 0, GBP: 0, EUR: 0 };
+      const totProfit = { PLN: 0, GBP: 0, EUR: 0 };
+      const catSums = {};
+
+      filtered.forEach(r => {
+        const pl = plStock.find(x => x.name === r.name) || {};
+        const qa = +r.qty || 0;
+        const qp = +pl.qty || 0;
+        const tq = qa + qp;
+        const cUsd = +r.cost_usd || 0;
+        const costPLN = cUsd * fx.PLN;
+        const costGBP = cUsd * fx.GBP;
+        const costEUR = cUsd * fx.EUR;
+        const sellPLN = +r.sell_pln || 0;
+        const sellUSD = sellPLN / fx.PLN;
+        const sellGBP = sellUSD * fx.GBP;
+        const sellEUR = sellUSD * fx.EUR;
+        const valuePLN = tq * sellPLN;
+        const valueGBP = tq * sellGBP;
+        const valueEUR = tq * sellEUR;
+        const profitPLN = tq * (sellPLN - costPLN);
+        const profitGBP = tq * (sellGBP - costGBP);
+        const profitEUR = tq * (sellEUR - costEUR);
+
+        totValue.PLN += valuePLN;
+        totValue.GBP += valueGBP;
+        totValue.EUR += valueEUR;
+        totProfit.PLN += profitPLN;
+        totProfit.GBP += profitGBP;
+        totProfit.EUR += profitEUR;
+
+        if (!catSums[r.category]) catSums[r.category] = { val: 0, prof: 0 };
+        catSums[r.category].val += valuePLN;
+        catSums[r.category].prof += profitPLN;
       });
 
-      // populate table
-      const tbody=reportTable.tBodies[0]; tbody.innerHTML='';
-      items.forEach(r=>{
-        const pl=plStock.find(x=>x.name===r.name)||{};
-        const qa=+r.qty||0, qp=+pl.qty||0, tq=qa+qp;
-        const cUsd=+r.cost_usd||0;
-        const costPln=cUsd*fx.PLN, costGbp=cUsd*fx.GBP, costEur=cUsd*fx.EUR;
-        const sPln=+r.sell_pln||0, usd=sPln/fx.PLN;
-        const sellGbp=usd*fx.GBP, sellEur=usd*fx.EUR;
-        const vPln=tq*sPln, vGbp=tq*sellGbp, vEur=tq*sellEur;
-        const pPln=tq*(sPln-costPln), pGbp=tq*(sellGbp-costGbp), pEur=tq*(sellEur-costEur);
-        const mPct = vPln? (pPln/vPln)*100 : 0;
+      const tbody = reportTable.tBodies[0];
+      tbody.innerHTML = '';
 
-        const tr=document.createElement('tr'); if(tq<50) tr.classList.add('low-stock');
+      items.forEach(r => {
+        const pl = plStock.find(x => x.name === r.name) || {};
+        const qa = +r.qty || 0;
+        const qp = +pl.qty || 0;
+        const tq = qa + qp;
+        const cUsd = +r.cost_usd || 0;
+        const costPLN = cUsd * fx.PLN;
+        const costGBP = cUsd * fx.GBP;
+        const costEUR = cUsd * fx.EUR;
+        const sellPLN = +r.sell_pln || 0;
+        const sellUSD = sellPLN / fx.PLN;
+        const sellGBP = sellUSD * fx.GBP;
+        const sellEUR = sellUSD * fx.EUR;
+        const valuePLN = tq * sellPLN;
+        const valueGBP = tq * sellGBP;
+        const valueEUR = tq * sellEUR;
+        const profitPLN = tq * (sellPLN - costPLN);
+        const profitGBP = tq * (sellGBP - costGBP);
+        const profitEUR = tq * (sellEUR - costEUR);
+        const marginPct = valuePLN ? (profitPLN / valuePLN) * 100 : 0;
+
+        const tr = document.createElement('tr');
+        if (tq < 50) tr.classList.add('low-stock');
         tr.innerHTML = `
           <td>${r.name}</td>
           <td>${r.category}</td>
@@ -208,55 +246,71 @@
           <td class="numeric">${qp}</td>
           <td class="numeric">${tq}</td>
           <td class="numeric">${new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(cUsd)}</td>
-          <td class="numeric">${new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(costPln)}</td>
-          <td class="numeric">${new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(costGbp)}</td>
-          <td class="numeric">${new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(costEur)}</td>
-          <td class="numeric">${new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(sPln)}</td>
-          <td class="numeric">${new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(sellGbp)}</td>
-          <td class="numeric">${new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(sellEur)}</td>
-          <td class="numeric">${mode==='margin'
-            ? mPct.toFixed(2) + '%'   
-            : new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(mode==='profit'?pPln:vPln)
-          }</td>
-          <td class="numeric">${mode==='margin'
-            ? ''
-            : new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(mode==='profit'?pGbp:vGbp)
-          }</td>
-          <td class="numeric">${mode==='margin'
-            ? ''
-            : new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(mode==='profit'?pEur:vEur)
-          }</td>
+          <td class="numeric">${new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(costPLN)}</td>
+          <td class="numeric">${new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(costGBP)}</td>
+          <td class="numeric">${new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(costEUR)}</td>
+          <td class="numeric">${new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(sellPLN)}</td>
+          <td class="numeric">${new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(sellGBP)}</td>
+          <td class="numeric">${new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(sellEUR)}</td>
+          <td class="numeric">${mode==='margin' ? marginPct.toFixed(2)+'%' : new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(mode==='profit'?profitPLN:valuePLN)}</td>
+          <td class="numeric">${mode==='margin' ? '' : new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(mode==='profit'?profitGBP:valueGBP)}</td>
+          <td class="numeric">${mode==='margin' ? '' : new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(mode==='profit'?profitEUR:valueEUR)}</td>
         `;
         tbody.appendChild(tr);
       });
 
-      // top summaries
-      sumPln.textContent    = new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(totValue.PLN);
-      sumGbp.textContent    = new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(totValue.GBP);
-      sumEur.textContent    = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(totValue.EUR);
+      sumPln.textContent = new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(totValue.PLN);
+      sumGbp.textContent = new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(totValue.GBP);
+      sumEur.textContent = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(totValue.EUR);
       profitPln.textContent = new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(totProfit.PLN);
       profitGbp.textContent = new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(totProfit.GBP);
       profitEur.textContent = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(totProfit.EUR);
 
-      // pagination UI
       pageInfo.textContent = `Page ${currentPage+1} of ${totalPages}`;
       prevBtn.disabled = currentPage===0;
-      nextBtn.disabled = currentPage>=totalPages-1;
+      nextBtn.disabled = currentPage >= totalPages-1;
 
-      // chart
+      // Bar colors array
+      const barColors = [
+        'rgba(75, 192, 192, 0.6)',
+        'rgba(255, 159, 64, 0.6)',
+        'rgba(255, 99, 132, 0.6)',
+        'rgba(54, 162, 235, 0.6)',
+        'rgba(153, 102, 255, 0.6)',
+        'rgba(255, 206, 86, 0.6)'
+      ];
+
+      // Draw chart with per-bar colors
       const labels = Object.keys(catSums);
-      const data = labels.map(cat => {
-        if(mode==='value') return catSums[cat].val;
-        if(mode==='profit') return catSums[cat].prof;
-        // margin percent = prof/val*100
-        return catSums[cat].val ? (catSums[cat].prof/catSums[cat].val)*100 : 0;
-      });
-      const ctx=categoryChart.getContext('2d');
-      if(window.myChart) window.myChart.destroy();
+      const data = labels.map(cat => mode==='value'
+        ? catSums[cat].val
+        : mode==='profit'
+        ? catSums[cat].prof
+        : (catSums[cat].prof/catSums[cat].val)*100
+      );
+      const ctx = categoryChart.getContext('2d');
+      if (window.myChart) window.myChart.destroy();
       window.myChart = new Chart(ctx, {
-        type:'bar',
-        data:{ labels, datasets:[{ label: mode==='margin'?'Margin % by Category':'Amount by Category (PLN)', data }] },
-        options:{ responsive:true, scales:{ y:{ beginAtZero:true, ticks: mode==='margin'?{ callback: v=>v+'%' }:{} } } }
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: mode==='margin' ? 'Margin % by Category' : 'Amount by Category (PLN)',
+            data,
+            backgroundColor: labels.map((_,i)=>barColors[i % barColors.length]),
+            borderColor: labels.map((_,i)=>barColors[i % barColors.length].replace('0.6','1')),
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: mode==='margin' ? { callback: v => v+'%' } : {}
+            }
+          }
+        }
       });
     }
   </script>
