@@ -42,8 +42,7 @@
     <a href="dashboard-admin.html" class="back-btn">⬅ Back to Dashboard</a>
     <h1>Inventory Valuation & Multi-Currency Report</h1>
     <div class="filters">
-      <label>
-        FX Date:
+      <label>FX Date:
         <input type="date" id="fxDate" max="">
       </label>
       <button onclick="fetchFx()">Load FX Rates</button>
@@ -82,36 +81,35 @@
   </div>
 
   <script>
-    // Supabase init
     const supabase = window.supabase.createClient(
       'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
+      'YOUR_SUPABASE_ANON_KEY'
     );
 
     let adminStock = [], plStock = [], fx = {PLN:1,GBP:1,EUR:1};
 
-    // set FX date picker
+    // initialize date picker
     const fxDate = document.getElementById('fxDate');
     fxDate.max = new Date().toISOString().slice(0,10);
     fxDate.value = fxDate.max;
 
     async function init(){
-      // fetch both tables
+      // fetch your two tables (rename if needed)
       const { data: aData } = await supabase.from('stock').select('*');
       const { data: pData } = await supabase.from('pl_stock').select('*');
-      adminStock = aData||[];
-      plStock    = pData||[];
-      // populate categories
+      adminStock = aData || [];
+      plStock    = pData || [];
+      // fill category dropdown
       const cats = [...new Set(adminStock.map(x=>x.category))];
       document.getElementById('categoryFilter').innerHTML =
-        `<option value="">All Categories</option>`+
+        `<option value="">All Categories</option>` +
         cats.map(c=>`<option>${c}</option>`).join('');
       await fetchFx();
       render();
     }
 
-    // fetch FX from exchangerate.host
     async function fetchFx(){
+      // pull ECB rates via exchangerate.host
       const d = fxDate.value;
       const res = await fetch(
         `https://api.exchangerate.host/${d}?base=USD&symbols=PLN,GBP,EUR`
@@ -126,57 +124,69 @@
       const s = document.getElementById('searchInput').value.toLowerCase();
       const c = document.getElementById('categoryFilter').value;
       tbody.innerHTML = '';
-      // running totals
-      const tot = {sellUsd:0,sellGbp:0,sellEur:0,valUsd:0,valPln:0,valGbp:0,valEur:0};
 
-      // merge each admin row
-      const rows = adminStock.map(a=>{
-        const p = plStock.find(x=>x.name===a.name) || {qty:0};
-        const tQty = a.qty + p.qty;
-        const costUsd = a.cost_usd||0;
-        const costPln = costUsd * fx.PLN;
-        const costGbp = costUsd * fx.GBP;
-        const costEur = costUsd * fx.EUR;
-        const sellPln = a.sell_pln||0;
-        const sellUsd = sellPln / fx.PLN;
-        const sellGbp = sellUsd * fx.GBP;
-        const sellEur = sellUsd * fx.EUR;
-        const valUsd = tQty * sellUsd;
-        const valPln = tQty * sellPln;
-        const valGbp = tQty * sellGbp;
-        const valEur = tQty * sellEur;
-        return {name:a.name,category:a.category,qtyA:a.qty,qtyP:p.qty,tQty,
-                costUsd,costPln,costGbp,costEur,
-                sellPln,sellUsd,sellGbp,sellEur,
-                valUsd,valPln,valGbp,valEur};
-      })
-      .filter(r=>
-        r.name.toLowerCase().includes(s) &&
-        (!c||r.category===c)
-      );
+      // totals accumulator
+      const tot = {
+        sellUsd:0, sellGbp:0, sellEur:0,
+        valUsd:0,  valPln:0,  valGbp:0,  valEur:0
+      };
 
-      // populate rows
-      rows.forEach(r=>{
-        const tr = document.createElement('tr');
-        if(r.tQty<=50) tr.classList.add('low-stock');
-        tr.innerHTML=`
-          <td>${r.name}</td><td>${r.category}</td>
-          <td>${r.qtyA}</td><td>${r.qtyP}</td><td>${r.tQty}</td>
-          <td>$${r.costUsd.toFixed(2)}</td><td>${r.costPln.toFixed(2)}</td><td>${r.costGbp.toFixed(2)}</td><td>${r.costEur.toFixed(2)}</td>
-          <td>${r.sellPln.toFixed(2)}</td><td>$${r.sellUsd.toFixed(2)}</td><td>${r.sellGbp.toFixed(2)}</td><td>${r.sellEur.toFixed(2)}</td>
-          <td>$${r.valUsd.toFixed(2)}</td><td>${r.valPln.toFixed(2)}</td><td>${r.valGbp.toFixed(2)}</td><td>${r.valEur.toFixed(2)}</td>`;
-        tbody.appendChild(tr);
-        // accumulate
-        tot.sellUsd += r.sellUsd * r.tQty;
-        tot.sellGbp += r.sellGbp * r.tQty;
-        tot.sellEur += r.sellEur * r.tQty;
-        tot.valUsd  += r.valUsd;
-        tot.valPln  += r.valPln;
-        tot.valGbp  += r.valGbp;
-        tot.valEur  += r.valEur;
-      });
+      // merge & filter
+      adminStock
+        .map(a => {
+          const p = plStock.find(x=>x.name===a.name) || {qty:0};
+          const tQty = a.qty + p.qty;
+          const costUsd = a.cost_usd || 0;
+          const costPln = costUsd * fx.PLN;
+          const costGbp = costUsd * fx.GBP;
+          const costEur = costUsd * fx.EUR;
+          const sellPln  = a.sell_pln || 0;
+          const sellUsd  = sellPln / fx.PLN;
+          const sellGbp  = sellUsd * fx.GBP;
+          const sellEur  = sellUsd * fx.EUR;
+          const valUsd   = tQty * sellUsd;
+          const valPln   = tQty * sellPln;
+          const valGbp   = tQty * sellGbp;
+          const valEur   = tQty * sellEur;
+          return { ...a, qtyP:p.qty, tQty, costUsd, costPln, costGbp, costEur,
+                   sellUsd, sellPln, sellGbp, sellEur,
+                   valUsd, valPln, valGbp, valEur };
+        })
+        .filter(r=>
+          r.name.toLowerCase().includes(s) &&
+          (!c || r.category===c)
+        )
+        .forEach(r => {
+          const tr = document.createElement('tr');
+          if(r.tQty <= 50) tr.classList.add('low-stock');
+          tr.innerHTML = `
+            <td>${r.name}</td><td>${r.category}</td>
+            <td>${r.qty}</td><td>${r.qtyP}</td><td>${r.tQty}</td>
+            <td>$${r.costUsd.toFixed(2)}</td>
+            <td>${r.costPln.toFixed(2)}</td>
+            <td>${r.costGbp.toFixed(2)}</td>
+            <td>${r.costEur.toFixed(2)}</td>
+            <td>${r.sellPln.toFixed(2)}</td>
+            <td>$${r.sellUsd.toFixed(2)}</td>
+            <td>${r.sellGbp.toFixed(2)}</td>
+            <td>${r.sellEur.toFixed(2)}</td>
+            <td>$${r.valUsd.toFixed(2)}</td>
+            <td>${r.valPln.toFixed(2)}</td>
+            <td>${r.valGbp.toFixed(2)}</td>
+            <td>${r.valEur.toFixed(2)}</td>
+          `;
+          tbody.appendChild(tr);
 
-      // write footer
+          tot.sellUsd += r.sellUsd * r.tQty;
+          tot.sellGbp += r.sellGbp * r.tQty;
+          tot.sellEur += r.sellEur * r.tQty;
+          tot.valUsd  += r.valUsd;
+          tot.valPln  += r.valPln;
+          tot.valGbp  += r.valGbp;
+          tot.valEur  += r.valEur;
+        });
+
+      // footer totals
       document.getElementById('tSellUsd').textContent = `$${tot.sellUsd.toFixed(2)}`;
       document.getElementById('tSellGbp').textContent = tot.sellGbp.toFixed(2);
       document.getElementById('tSellEur').textContent = tot.sellEur.toFixed(2);
@@ -185,20 +195,27 @@
       document.getElementById('tValGbp').textContent  = tot.valGbp.toFixed(2);
       document.getElementById('tValEur').textContent  = tot.valEur.toFixed(2);
 
-      // draw chart
-      drawChart(rows);
+      drawChart();
     }
 
-    function drawChart(rows){
+    function drawChart(){
       const sums = {};
-      rows.forEach(r=> sums[r.category] = (sums[r.category]||0) + r.valPln);
+      document.querySelectorAll('#reportTable tbody tr').forEach(tr=>{
+        const cat = tr.cells[1].textContent;
+        const val = parseFloat(tr.cells[15].textContent) || 0; // Value PLN column
+        sums[cat] = (sums[cat]||0) + val;
+      });
       const ctx = document.getElementById('categoryChart').getContext('2d');
       if(window.myChart) window.myChart.destroy();
       window.myChart = new Chart(ctx,{
         type:'bar',
         data:{
           labels: Object.keys(sums),
-          datasets:[{label:'Value by Category (PLN)',data:Object.values(sums),backgroundColor:'#7ee2f6'}]
+          datasets:[{
+            label:'Value by Category (PLN)',
+            data:Object.values(sums),
+            backgroundColor:'#7ee2f6'
+          }]
         },
         options:{responsive:true,scales:{y:{beginAtZero:true}}}
       });
