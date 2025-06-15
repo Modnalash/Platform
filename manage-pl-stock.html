@@ -30,17 +30,9 @@
     <div class="controls">
       <input type="text" id="searchInput" placeholder="Search by product..." />
       <select id="categoryFilter">
-        <option value="All">All</option>
-        <option value="Starter Kit">Starter Kit</option>
-        <option value="Express Lash">Express Lash</option>
-        <option value="Wielokrotnego">Wielokrotnego</option>
-        <option value="Bio">Bio</option>
-        <option value="Ribbon">Ribbon</option>
-        <option value="Accessories">Accessories</option>
-        <option value="Make-up">Make-up</option>
+        <option value="">All</option>
       </select>
     </div>
-
     <table id="localStockTable">
       <thead>
         <tr>
@@ -54,23 +46,31 @@
       <tbody></tbody>
     </table>
   </div>
-
   <script>
     const supabase = window.supabase.createClient(
       'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
 
-    let localData = [];
+    let adminStock = [];
+    let plStock = [];
 
-    async function fetchLocal() {
-      const { data, error } = await supabase
-        .from('pl_stock')
-        .select('*')
-        .order('id', { ascending: true });
-      if (error) return console.error(error);
-      localData = data;
+    async function fetchData() {
+      const [mainRes, plRes] = await Promise.all([
+        supabase.from('stock').select('*').order('id'),
+        supabase.from('pl_stock').select('*').order('id')
+      ]);
+      adminStock = mainRes.data || [];
+      plStock = plRes.data || [];
+      populateCategoryFilter();
       renderTable();
+    }
+
+    function populateCategoryFilter() {
+      const cats = [...new Set(adminStock.map(r => r.category))];
+      const sel = document.getElementById('categoryFilter');
+      sel.innerHTML = `<option value="">All</option>` +
+        cats.map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
     function renderTable() {
@@ -79,43 +79,47 @@
       const tbody = document.querySelector('#localStockTable tbody');
       tbody.innerHTML = '';
 
-      localData
+      // Merge main and PL stock
+      const merged = adminStock.map(item => {
+        const pl = plStock.find(x => x.name === item.name) || {};
+        return { id: item.id, name: item.name, category: item.category, qty: pl.qty ?? 0 };
+      });
+
+      merged
         .filter(item => {
           const matchSearch = !search || item.name.toLowerCase().includes(search);
-          const matchCat = cat === 'All' || item.category === cat;
+          const matchCat = !cat || item.category === cat;
           return matchSearch && matchCat;
         })
         .forEach(item => {
-          const row = document.createElement('tr');
-          row.innerHTML = `
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
             <td>${item.name}</td>
             <td>${item.category}</td>
             <td class="qty-cell">${item.qty}</td>
-            <td><input type="number" id="adj-${item.id}" value="${item.qty}" min="0" /></td>
-            <td class="actions">
-              <button onclick="updateLocal(${item.id})">Update</button>
-            </td>
+            <td><input type="number" id="adj-${item.id}" value="${item.qty}" min="0"></td>
+            <td class="actions"><button onclick="updateLocal(${item.id})">Update</button></td>
           `;
-          tbody.appendChild(row);
+          tbody.appendChild(tr);
         });
     }
 
     async function updateLocal(id) {
       const newQty = parseInt(document.getElementById(`adj-${id}`).value, 10);
-      if (isNaN(newQty)) return alert('Enter valid amount');
-      const { error } = await supabase
-        .from('pl_stock')
-        .update({ qty: newQty })
-        .eq('id', id);
+      if (isNaN(newQty)) return alert('Enter a valid number');
+      const main = adminStock.find(r => r.id === id);
+      // Upsert into pl_stock based on name
+      const { error } = await supabase.from('pl_stock').upsert([
+        { name: main.name, category: main.category, qty: newQty }
+      ], { onConflict: ['name'] });
       if (error) return alert(error.message);
-      fetchLocal();
+      fetchData();
     }
 
-    document.getElementById('searchInput').addEventListener('input', fetchLocal);
-    document.getElementById('categoryFilter').addEventListener('change', fetchLocal);
+    document.getElementById('searchInput').addEventListener('input', renderTable);
+    document.getElementById('categoryFilter').addEventListener('change', () => { renderTable(); });
 
-    document.addEventListener('DOMContentLoaded', fetchLocal);
+    document.addEventListener('DOMContentLoaded', fetchData);
   </script>
 </body>
 </html>
-
