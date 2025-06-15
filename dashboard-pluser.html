@@ -20,7 +20,7 @@
     table { width: 100%; border-collapse: collapse; background-color: #1b263b; margin-bottom: 20px; }
     th, td { padding: 10px; border: 1px solid #2b3a50; text-align: left; }
     th { background-color: #112d4e; }
-    .order-btn, .submit-btn { background: #3fbc5f; padding: 8px 16px; border: none; color: white; border-radius: 5px; cursor: pointer; }
+    .order-btn, .submit-btn { background: #3fbc5f; padding: 8px 16px; border: none; color: white; border-radius: 5px; }
     .order-btn:hover, .submit-btn:hover { background: #2c9e4c; }
   </style>
 </head>
@@ -84,7 +84,7 @@
       const { data, error } = await supabaseClient
         .from('stock')
         .select('*')
-        .order('id', { ascending: true });
+        .order('name', { ascending: true });
       if (error) { console.error(error); return; }
       const tbody = document.querySelector('#stockTable tbody');
       tbody.innerHTML = '';
