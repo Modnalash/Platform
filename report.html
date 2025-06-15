@@ -7,26 +7,51 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
-    body { margin:0; font-family:Inter,sans-serif; background:#0b1c2c; color:#fff }
-    .container { max-width:1200px; margin:0 auto; padding:2rem }
-    .back-btn { background:#1e3d5e; color:#fff; padding:8px 12px; border-radius:6px; text-decoration:none; display:inline-block; margin-bottom:1rem }
-    .back-btn:hover { background:#285a87 }
-    h1 { margin-top:0 }
-    .filters { display:flex; flex-wrap:wrap; gap:1rem; margin-bottom:1rem }
-    .filters input, .filters select { font-size:1rem; padding:8px; border:0; border-radius:6px; background:#fff; color:#000 }
-    table { width:100%; border-collapse:collapse; background:#15273a; border-radius:8px; overflow:hidden }
-    th, td { padding:8px 12px; border-bottom:1px solid #1e3d5e; font-size:.9rem }
-    th { background:#112b44; text-align:left }
-    .numeric { text-align:right }
-    tfoot td { background:#112b44; font-weight:bold }
-    tr.low-stock { background:rgba(255,0,0,0.1) }
-    canvas { margin-top:2rem; background:#fff; border-radius:8px; padding:1rem }
+    body { margin:0; font-family:Inter,sans-serif; background:#0b1c2c; color:#fff; position:relative; }
+    .container { max-width:1200px; margin:0 auto; padding:2rem; }
+    .back-btn { background:#1e3d5e; color:#fff; padding:8px 12px; border-radius:6px; text-decoration:none; display:inline-block; margin-bottom:1rem; }
+    .back-btn:hover { background:#285a87; }
+    h1 { margin-top:0; }
+    .filters { display:flex; flex-wrap:wrap; gap:1rem; margin-bottom:1rem; }
+    .filters input, .filters select { font-size:1rem; padding:8px; border:0; border-radius:6px; background:#fff; color:#000; }
+    table { width:100%; border-collapse:collapse; background:#15273a; border-radius:8px; overflow:hidden; }
+    th, td { padding:8px 12px; border-bottom:1px solid #1e3d5e; font-size:.9rem; }
+    th { background:#112b44; text-align:left; }
+    .numeric { text-align:right; }
+    tfoot td { background:#112b44; font-weight:bold; }
+    tr.low-stock { background:rgba(255,0,0,0.1); }
+    canvas { margin-top:2rem; background:#fff; border-radius:8px; padding:1rem; }
+
+    /* Summary box in top right */
+    #totalsSummary {
+      position:absolute;
+      top:1.5rem;
+      right:1.5rem;
+      background:#112b44;
+      border:1px solid #1e3d5e;
+      padding:1rem;
+      border-radius:8px;
+      text-align:right;
+      font-size:.9rem;
+    }
+    #totalsSummary table { border-collapse:collapse; }
+    #totalsSummary td { padding:4px 8px; }
+    #totalsSummary th { padding:4px 8px; text-align:left; }
   </style>
 </head>
 <body>
   <div class="container">
     <a href="dashboard-admin.html" class="back-btn">⬅ Back to Dashboard</a>
     <h1>Inventory Valuation &amp; Multi-Currency Report</h1>
+
+    <!-- Totals summary box -->
+    <div id="totalsSummary">
+      <table>
+        <tr><th>Total PLN:</th><td id="sumPln">0.00 PLN</td></tr>
+        <tr><th>Total GBP:</th><td id="sumGbp">£0.00</td></tr>
+        <tr><th>Total EUR:</th><td id="sumEur">€0.00</td></tr>
+      </table>
+    </div>
 
     <div class="filters">
       <input type="text" id="searchInput" placeholder="Search product…" oninput="render()"/>
@@ -38,21 +63,11 @@
     <table id="reportTable">
       <thead>
         <tr>
-          <th>Product</th>
-          <th>Category</th>
-          <th class="numeric">Qty (Admin)</th>
-          <th class="numeric">Qty (PL)</th>
-          <th class="numeric">Total Qty</th>
-          <th class="numeric">Cost USD</th>
-          <th class="numeric">Cost PLN</th>
-          <th class="numeric">Cost GBP</th>
-          <th class="numeric">Cost EUR</th>
-          <th class="numeric">Sell PLN</th>
-          <th class="numeric">Sell GBP</th>
-          <th class="numeric">Sell EUR</th>
-          <th class="numeric">Value PLN</th>
-          <th class="numeric">Value GBP</th>
-          <th class="numeric">Value EUR</th>
+          <th>Product</th><th>Category</th>
+          <th class="numeric">Qty (Admin)</th><th class="numeric">Qty (PL)</th><th class="numeric">Total Qty</th>
+          <th class="numeric">Cost USD</th><th class="numeric">Cost PLN</th><th class="numeric">Cost GBP</th><th class="numeric">Cost EUR</th>
+          <th class="numeric">Sell PLN</th><th class="numeric">Sell GBP</th><th class="numeric">Sell EUR</th>
+          <th class="numeric">Value PLN</th><th class="numeric">Value GBP</th><th class="numeric">Value EUR</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -125,16 +140,16 @@
         if (!r.name.toLowerCase().includes(term) || (catF && r.category !== catF)) return;
 
         const pl = plStock.find(x => x.name === r.name) || {};
-        const qtyA = Number(r.qty) || 0;
-        const qtyP = Number(pl.qty) || 0;
+        const qtyA = +r.qty || 0;
+        const qtyP = +pl.qty || 0;
         const totalQty = qtyA + qtyP;
 
-        const costUsd = Number(r.cost_usd) || 0;
+        const costUsd = +r.cost_usd || 0;
         const costPln = costUsd * fx.PLN;
         const costGbp = costUsd * fx.GBP;
         const costEur = costUsd * fx.EUR;
 
-        const sellPln = Number(r.sell_pln) || 0;
+        const sellPln = +r.sell_pln || 0;
         const sellUsd = sellPln / fx.PLN;
         const sellGbp = sellUsd * fx.GBP;
         const sellEur = sellUsd * fx.EUR;
@@ -173,6 +188,12 @@
       document.getElementById('tValGbp').textContent = new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(totals.valGbp);
       document.getElementById('tValEur').textContent = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(totals.valEur);
 
+      // Update top-right summary
+      document.getElementById('sumPln').textContent = new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(totals.valPln);
+      document.getElementById('sumGbp').textContent = new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(totals.valGbp);
+      document.getElementById('sumEur').textContent = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(totals.valEur);
+
+      // Chart
       const sums = {};
       document.querySelectorAll('#reportTable tbody tr').forEach(tr => {
         const cat = tr.cells[1].textContent;
