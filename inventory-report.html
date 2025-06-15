@@ -17,10 +17,22 @@
     th { background-color: #112b44; }
     tfoot td { font-weight: bold; background-color: #112b44; }
     canvas { margin-top: 2rem; background: #fff; border-radius: 12px; padding: 1rem; }
+    .back-btn {
+      display: inline-block;
+      margin-bottom: 1rem;
+      background-color: #1e3d5e;
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 6px;
+      text-decoration: none;
+      transition: background 0.3s;
+    }
+    .back-btn:hover { background-color: #285a87; }
   </style>
 </head>
 <body>
   <div class="container">
+    <a href="dashboard-admin.html" class="back-btn">⬅ Back to Dashboard</a>
     <h1>Inventory Valuation Report</h1>
     <div class="filters">
       <input type="text" id="searchInput" placeholder="Search by product name..." oninput="renderTable()">
@@ -162,9 +174,7 @@
         data: chartData,
         options: {
           responsive: true,
-          scales: {
-            y: { beginAtZero: true }
-          }
+          scales: { y: { beginAtZero: true } }
         }
       });
     }
