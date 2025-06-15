@@ -1,184 +1,264 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Manage Stock</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Inventory Report</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
-    body { margin:0; font-family:'Inter',sans-serif; background:#0b1c2c; color:#fff; }
-    .container { display:flex; }
-    .sidebar { width:250px; background:#112b44; padding:2rem 1rem; display:flex; flex-direction:column; gap:1.5rem; height:100vh; }
-    .sidebar a { color:#fff; text-decoration:none; padding:.8rem 1rem; border-radius:8px; }
-    .sidebar a:hover, .sidebar a.active { background:#1e3d5e; }
-    .main { flex:1; padding:2rem; }
-    .header { background:#1e3d5e; padding:1rem; text-align:center; font-size:1.25rem; border-radius:12px; }
-    .section { background:#1a2b3e; padding:1.5rem; margin-top:2rem; border-radius:12px; }
-    .controls { margin-bottom:1rem; display:flex; flex-wrap:wrap; align-items:center; gap:1rem; }
-    .controls input, .controls select, .controls button { padding:6px 12px; border-radius:4px; border:none; font-size:1rem; }
-    table { width:100%; border-collapse:collapse; margin-top:1rem; }
-    th, td { padding:10px; text-align:left; border-bottom:1px solid #2a3c4f; }
-    th { background:#112b44; }
-    #stockTable td input[type="number"] { width:60px; padding:4px; }
-    .actions button { margin-right:6px; padding:6px 10px; border-radius:4px; border:none; font-size:.9rem; cursor:pointer; }
-    .btn-add { background:#79e08a; color:#0d1b2a; }
-    .btn-edit { background:#ffdd91; color:#0d1b2a; }
-    .btn-delete { background:#f28b82; color:#0d1b2a; }
-    .btn-add:hover { background:#6cc77e; }
-    .btn-edit:hover { background:#e6c87c; }
-    .btn-delete:hover { background:#e07a73; }
+    body { margin:0; font-family:Inter,sans-serif; background:#0b1c2c; color:#fff; position:relative; }
+    .container { max-width:1200px; margin:0 auto; padding:2rem; }
+    .back-btn { background:#1e3d5e; color:#fff; padding:8px 12px; border-radius:6px; text-decoration:none; display:inline-block; margin-bottom:1rem; }
+    .back-btn:hover { background:#285a87; }
+    h1 { margin-top:0; }
+    .controls { display:flex; gap:1rem; flex-wrap:wrap; align-items:center; margin-bottom:1rem; }
+    .controls select, .controls input { font-size:1rem; padding:8px; border:0; border-radius:6px; background:#fff; color:#000; }
+
+    /* Top-right summary boxes */
+    #summaryContainer { position:absolute; top:1.5rem; right:1.5rem; display:flex; gap:1rem; }
+    .summaryBox { background:#112b44; border:1px solid #1e3d5e; padding:1rem; border-radius:8px; width:160px; }
+    .summary-title { font-weight:bold; margin-bottom:.5rem; font-size:1rem; text-align:left; }
+    .summaryBox table { width:100%; border-collapse:collapse; }
+    .summaryBox td, .summaryBox th { padding:4px 8px; }
+
+    /* Table styling */
+    table { width:100%; border-collapse:collapse; background:#15273a; border-radius:8px; overflow:hidden; }
+    th, td { padding:8px 12px; border-bottom:1px solid #1e3d5e; font-size:.9rem; }
+    th { background:#112b44; text-align:left; }
+    .numeric { text-align:right; }
+    tr.low-stock td:first-child::after { content:" ⚠️"; color:#f9c74f; margin-left:4px; }
+
+    /* Pagination */
+    #paginationControls { text-align:center; margin:1rem 0; }
+    #paginationControls button { margin:0 0.5rem; padding:6px 12px; font-size:1rem; border:none; border-radius:6px; background:#1e3d5e; color:#fff; cursor:pointer; }
+    #paginationControls button:disabled { background:#4a637a; cursor:default; }
+    #paginationControls span { font-size:1rem; }
+
+    /* Chart styling */
+    canvas { margin-top:2rem; background:#fff; border-radius:8px; padding:1rem; }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="sidebar">
-      <h2>MODNA Admin</h2>
-      <a href="dashboard-admin.html">Dashboard</a>
-      <a href="manage-stock.html" class="active">Manage Stock</a>
-      <a href="order-history.html">Order History</a>
-      <a href="report.html">Report</a>
-      <a href="index.html">Logout</a>
-    </div>
-    <div class="main">
-      <div class="header">Manage Stock</div>
+    <a href="dashboard-admin.html" class="back-btn">⬅ Back to Dashboard</a>
+    <h1>Inventory Report</h1>
 
-      <div class="section">
-        <div class="controls">
-          <input type="text" id="searchInput" placeholder="Search by product…" oninput="renderTable()">
-          <select id="sortCategory" onchange="renderTable()">
-            <option value="">All</option>
-            <option>Starter Kit</option>
-            <option>Express Lash</option>
-            <option>Wielokrotnego</option>
-            <option>Bio</option>
-            <option>Ribbon</option>
-            <option>Accessories</option>
-            <option>Make-up</option>
-          </select>
-          <button onclick="exportCSV()">📁 Export CSV</button>
-        </div>
-        <table id="stockTable">
-          <thead>
-            <tr>
-              <th>Product</th><th>Category</th><th>Quantity</th><th>Add Qty</th><th>Actions</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
+    <!-- Top-right summaries -->
+    <div id="summaryContainer">
+      <div class="summaryBox">
+        <div class="summary-title">Stock Value</div>
+        <table>
+          <tr><th>PLN:</th><td id="sumPln">0.00 PLN</td></tr>
+          <tr><th>GBP:</th><td id="sumGbp">£0.00</td></tr>
+          <tr><th>EUR:</th><td id="sumEur">€0.00</td></tr>
         </table>
       </div>
-
-      <div class="section">
-        <h3>Add New Product</h3>
-        <div class="controls">
-          <input type="text" id="productName" placeholder="Product Name">
-          <select id="productCategory">
-            <option value="">Select Category</option>
-            <option>Starter Kit</option>
-            <option>Express Lash</option>
-            <option>Wielokrotnego</option>
-            <option>Bio</option>
-            <option>Ribbon</option>
-            <option>Accessories</option>
-            <option>Make-up</option>
-          </select>
-          <input type="number" id="productQty" placeholder="Quantity" min="0">
-          <input type="number" id="costUsd" placeholder="Purchase Price (USD)" step="0.01">
-          <input type="number" id="sellPln" placeholder="Selling Price (PLN)" step="0.01">
-          <button onclick="addProduct()">Add Product</button>
-        </div>
-        <div id="successMsg" style="color:#7ee2f6;margin-top:10px;"></div>
+      <div class="summaryBox">
+        <div class="summary-title">Total Profit</div>
+        <table>
+          <tr><th>PLN:</th><td id="profitPln">0.00 PLN</td></tr>
+          <tr><th>GBP:</th><td id="profitGbp">£0.00</td></tr>
+          <tr><th>EUR:</th><td id="profitEur">€0.00</td></tr>
+        </table>
       </div>
     </div>
+
+    <!-- Controls: view + search + filter -->
+    <div class="controls">
+      <select id="viewMode">
+        <option value="value">Value</option>
+        <option value="profit">Profit</option>
+        <option value="margin">Margin %</option>
+      </select>
+      <input type="text" id="searchInput" placeholder="Search product…" />
+      <select id="categoryFilter"></select>
+    </div>
+
+    <!-- Data table -->
+    <table id="reportTable">
+      <thead>
+        <tr>
+          <th>Product</th><th>Category</th>
+          <th class="numeric">Qty (Admin)</th><th class="numeric">Qty (PL)</th><th class="numeric">Total Qty</th>
+          <th class="numeric">Cost USD</th><th class="numeric">Cost PLN</th><th class="numeric">Cost GBP</th><th class="numeric">Cost EUR</th>
+          <th class="numeric">Sell PLN</th><th class="numeric">Sell GBP</th><th class="numeric">Sell EUR</th>
+          <th id="colX1" class="numeric">Value PLN</th>
+          <th id="colX2" class="numeric">Value GBP</th>
+          <th id="colX3" class="numeric">Value EUR</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div id="paginationControls">
+      <button id="prevBtn">Prev</button>
+      <span id="pageInfo">Page 1 of 1</span>
+      <button id="nextBtn">Next</button>
+    </div>
+
+    <!-- Chart -->
+    <canvas id="categoryChart" height="80"></canvas>
   </div>
 
   <script>
+    const rowsPerPage=10;
+    let currentPage=0;
+
     const supabase = window.supabase.createClient(
       'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
-    let stockData = [];
 
-    async function fetchStock() {
-      const { data, error } = await supabase.from('stock').select('*').order('id');
-      if (!error) stockData = data || [];
-      renderTable();
+    let adminStock=[], plStock=[], fx={PLN:1,GBP:1,EUR:1};
+
+    const viewMode = document.getElementById('viewMode');
+    const searchInput = document.getElementById('searchInput');
+    const categoryFilter = document.getElementById('categoryFilter');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    viewMode.addEventListener('change',()=>{currentPage=0;render();});
+    searchInput.addEventListener('input',()=>{currentPage=0;render();});
+    prevBtn.addEventListener('click',()=>{currentPage--;render();});
+    nextBtn.addEventListener('click',()=>{currentPage++;render();});
+
+    window.addEventListener('DOMContentLoaded',async()=>{
+      const [a,p] = await Promise.all([
+        supabase.from('stock').select('*'),
+        supabase.from('pl_stock').select('*')
+      ]);
+      adminStock=a.data||[]; plStock=p.data||[];
+      // populate category filter
+      const cats=[...new Set(adminStock.map(r=>r.category))];
+      categoryFilter.innerHTML=`<option value="">All Categories</option>`+cats.map(c=>`<option>${c}</option>`).join('');
+      categoryFilter.addEventListener('change',()=>{currentPage=0;render();});
+      await loadFx();
+    });
+
+    async function loadFx(){
+      try{
+        const res=await fetch('https://open.er-api.com/v6/latest/USD');
+        const json=await res.json();
+        if(json.result==='success'&&json.rates) fx={PLN:json.rates.PLN,GBP:json.rates.GBP,EUR:json.rates.EUR};
+      }catch(e){}
+      render();
     }
 
-    function renderTable() {
-      const tbody = document.querySelector('#stockTable tbody');
-      const s = document.getElementById('searchInput').value.toLowerCase();
-      const c = document.getElementById('sortCategory').value;
-      tbody.innerHTML = '';
-      stockData
-        .filter(x => (x.name||'').toLowerCase().includes(s))
-        .filter(x => !c || x.category === c)
-        .forEach(item => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${item.name}</td>
-            <td>${item.category}</td>
-            <td>${item.qty}</td>
-            <td><input type="number" id="add-${item.id}" value="0" min="0"></td>
-            <td class="actions">
-              <button class="btn-add" onclick="addQty(${item.id},${item.qty})">Add</button>
-              <button class="btn-edit" onclick="editQty(${item.id},${item.qty})">Edit</button>
-              <button class="btn-delete" onclick="deleteProduct(${item.id})">🗑️ Delete</button>
-            </td>`;
-          tbody.appendChild(tr);
-        });
-    }
+    function render(){
+      const mode = viewMode.value;
+      const term=searchInput.value.toLowerCase();
+      const catF=categoryFilter.value;
+      const filtered = adminStock.filter(r=> r.name.toLowerCase().includes(term) && (!catF||r.category===catF));
+      const totalPages = Math.max(1,Math.ceil(filtered.length/rowsPerPage));
+      currentPage = Math.min(Math.max(0,currentPage),totalPages-1);
 
-    async function addProduct() {
-      const name = document.getElementById('productName').value.trim(),
-            category = document.getElementById('productCategory').value,
-            qty   = parseInt(document.getElementById('productQty').value, 10),
-            cost_usd = parseFloat(document.getElementById('costUsd').value),
-            sell_pln = parseFloat(document.getElementById('sellPln').value);
-      if (!name || !category || isNaN(qty) || isNaN(cost_usd) || isNaN(sell_pln)) {
-        return alert('Please fill out all fields correctly.');
+      // update headers
+      if(mode==='value'){
+        colX1.textContent='Value PLN';colX2.textContent='Value GBP';colX3.textContent='Value EUR';
+      } else if(mode==='profit'){
+        colX1.textContent='Profit PLN';colX2.textContent='Profit GBP';colX3.textContent='Profit EUR';
+      } else {
+        colX1.textContent='Margin %';colX2.textContent='';colX3.textContent='';
       }
-      const { error } = await supabase.from('stock').insert([{ name, category, qty, cost_usd, sell_pln }]);
-      if (error) alert(error.message);
-      else {
-        document.getElementById('successMsg').textContent = '✅ Added!';
-        // Clear input fields after adding
-        document.getElementById('productName').value = '';
-        document.getElementById('productCategory').value = '';
-        document.getElementById('productQty').value = '';
-        document.getElementById('costUsd').value = '';
-        document.getElementById('sellPln').value = '';
-        fetchStock();
-      }
-    }
 
-    async function deleteProduct(id) {
-      if (!confirm('Delete this product?')) return;
-      await supabase.from('stock').delete().eq('id', id);
-      fetchStock();
-    }
+      // slice
+      const start=currentPage*rowsPerPage;
+      const items=filtered.slice(start,start+rowsPerPage);
 
-    async function addQty(id, cur) {
-      const toAdd = parseInt(document.querySelector(`#add-${id}`).value, 10);
-      if (isNaN(toAdd)) return alert('Enter a valid number');
-      await supabase.from('stock').update({ qty: cur + toAdd }).eq('id', id);
-      fetchStock();
-    }
+      // compute metrics and summaries
+      const totValue={PLN:0,GBP:0,EUR:0}, totProfit={PLN:0,GBP:0,EUR:0}, catSums={};
+      filtered.forEach(r=>{
+        const pl=plStock.find(x=>x.name===r.name)||{};
+        const qa=+r.qty||0, qp=+pl.qty||0, tq=qa+qp;
+        const cUsd=+r.cost_usd||0;
+        const cost={PLN:cUsd*fx.PLN,GBP:cUsd*fx.GBP,EUR:cUsd*fx.EUR};
+        const sPLN=+r.sell_pln||0, usd=sPLN/fx.PLN;
+        const sell={PLN:sPLN,GBP:usd*fx.GBP,EUR:usd*fx.EUR};
+        const value={PLN:tq*sell.PLN,GBP:tq*sell.GBP,EUR:tq*sell.EUR};
+        const profit={PLN:tq*(sell.PLN-cost.PLN),GBP:tq*(sell.GBP-cost.GBP),EUR:tq*(sell.EUR-cost.EUR)};
+        const marginPct = value.PLN? profit.PLN/value.PLN : 0;
+        // totals
+        ['PLN','GBP','EUR'].forEach(k=>{totValue[k]+=value[k];totProfit[k]+=profit[k];});
+        // category sums for chart
+        catSums[r.category] = catSums[r.category]||{val:0,prof:0};
+        catSums[r.category].val += value.PLN;
+        catSums[r.category].prof += profit.PLN;
+      });
 
-    async function editQty(id, cur) {
-      const v = parseInt(prompt('New qty:', cur), 10);
-      if (!isNaN(v)) await supabase.from('stock').update({ qty: v }).eq('id', id);
-      fetchStock();
-    }
+      // populate table
+      const tbody=reportTable.tBodies[0]; tbody.innerHTML='';
+      items.forEach(r=>{
+        const pl=plStock.find(x=>x.name===r.name)||{};
+        const qa=+r.qty||0, qp=+pl.qty||0, tq=qa+qp;
+        const cUsd=+r.cost_usd||0;
+        const costPln=cUsd*fx.PLN, costGbp=cUsd*fx.GBP, costEur=cUsd*fx.EUR;
+        const sPln=+r.sell_pln||0, usd=sPln/fx.PLN;
+        const sellGbp=usd*fx.GBP, sellEur=usd*fx.EUR;
+        const vPln=tq*sPln, vGbp=tq*sellGbp, vEur=tq*sellEur;
+        const pPln=tq*(sPln-costPln), pGbp=tq*(sellGbp-costGbp), pEur=tq*(sellEur-costEur);
+        const mPct = vPln? (pPln/vPln)*100 : 0;
 
-    function exportCSV() {
-      const header = ['Product','Category','Quantity'];
-      const rows = stockData.map(i => [i.name, i.category, i.qty].join(','));
-      const blob = new Blob([[header.join(',') + '\n' + rows.join('\n')]], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob), a = document.createElement('a');
-      a.href = url; a.download = 'stock.csv'; a.click();
-    }
+        const tr=document.createElement('tr'); if(tq<50) tr.classList.add('low-stock');
+        tr.innerHTML = `
+          <td>${r.name}</td>
+          <td>${r.category}</td>
+          <td class="numeric">${qa}</td>
+          <td class="numeric">${qp}</td>
+          <td class="numeric">${tq}</td>
+          <td class="numeric">${new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(cUsd)}</td>
+          <td class="numeric">${new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(costPln)}</td>
+          <td class="numeric">${new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(costGbp)}</td>
+          <td class="numeric">${new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(costEur)}</td>
+          <td class="numeric">${new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(sPln)}</td>
+          <td class="numeric">${new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(sellGbp)}</td>
+          <td class="numeric">${new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(sellEur)}</td>
+          <td class="numeric">${mode==='margin'
+            ? mPct.toFixed(2) + '%'   
+            : new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(mode==='profit'?pPln:vPln)
+          }</td>
+          <td class="numeric">${mode==='margin'
+            ? ''
+            : new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(mode==='profit'?pGbp:vGbp)
+          }</td>
+          <td class="numeric">${mode==='margin'
+            ? ''
+            : new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(mode==='profit'?pEur:vEur)
+          }</td>
+        `;
+        tbody.appendChild(tr);
+      });
 
-    document.addEventListener('DOMContentLoaded', fetchStock);
+      // top summaries
+      sumPln.textContent    = new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(totValue.PLN);
+      sumGbp.textContent    = new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(totValue.GBP);
+      sumEur.textContent    = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(totValue.EUR);
+      profitPln.textContent = new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(totProfit.PLN);
+      profitGbp.textContent = new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(totProfit.GBP);
+      profitEur.textContent = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(totProfit.EUR);
+
+      // pagination UI
+      pageInfo.textContent = `Page ${currentPage+1} of ${totalPages}`;
+      prevBtn.disabled = currentPage===0;
+      nextBtn.disabled = currentPage>=totalPages-1;
+
+      // chart
+      const labels = Object.keys(catSums);
+      const data = labels.map(cat => {
+        if(mode==='value') return catSums[cat].val;
+        if(mode==='profit') return catSums[cat].prof;
+        // margin percent = prof/val*100
+        return catSums[cat].val ? (catSums[cat].prof/catSums[cat].val)*100 : 0;
+      });
+      const ctx=categoryChart.getContext('2d');
+      if(window.myChart) window.myChart.destroy();
+      window.myChart = new Chart(ctx, {
+        type:'bar',
+        data:{ labels, datasets:[{ label: mode==='margin'?'Margin % by Category':'Amount by Category (PLN)', data }] },
+        options:{ responsive:true, scales:{ y:{ beginAtZero:true, ticks: mode==='margin'?{ callback: v=>v+'%' }:{} } } }
+      });
+    }
   </script>
 </body>
 </html>
