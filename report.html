@@ -20,6 +20,7 @@
     }
     .filters input, .filters select, .filters button {
       padding:8px; border:none; border-radius:6px; font-size:1rem;
+      background:#fff; color:#000;
     }
     table {
       width:100%; border-collapse:collapse; background:#15273a;
@@ -41,7 +42,6 @@
     <h1>Inventory Valuation &amp; Multi-Currency Report</h1>
 
     <div class="filters">
-      <!-- FX Date picker + button fetches live USD→PLN/GBP/EUR rates -->
       <label>FX Date:
         <input type="date" id="fxDate" max="">
       </label>
@@ -68,12 +68,12 @@
         <tr>
           <td colspan="10">Totals:</td>
           <td id="tSellUsd">$0.00</td>
-          <td id="tSellGbp">0.00</td>
-          <td id="tSellEur">0.00</td>
+          <td id="tSellGbp">£0.00</td>
+          <td id="tSellEur">€0.00</td>
           <td id="tValUsd">$0.00</td>
-          <td id="tValPln">0.00</td>
-          <td id="tValGbp">0.00</td>
-          <td id="tValEur">0.00</td>
+          <td id="tValPln">0.00 PLN</td>
+          <td id="tValGbp">£0.00</td>
+          <td id="tValEur">€0.00</td>
         </tr>
       </tfoot>
     </table>
@@ -82,7 +82,6 @@
   </div>
 
   <script>
-    // —– Supabase client with full anon key —–
     const supabase = window.supabase.createClient(
       'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
@@ -90,15 +89,14 @@
 
     let stockData = [], fx = { PLN:1, GBP:1, EUR:1 };
 
-    // date picker max = today
+    // initialize date picker
     const fxDate = document.getElementById('fxDate');
     fxDate.max = new Date().toISOString().slice(0,10);
     fxDate.value = fxDate.max;
 
     document.addEventListener('DOMContentLoaded', init);
     async function init() {
-      // fetch your one stock table
-      const { data, error } = await supabase.from('stock').select('*');
+      const { data } = await supabase.from('stock').select('*');
       stockData = data || [];
       populateCategories();
       await loadFx();
@@ -115,10 +113,10 @@
     }
 
     function populateCategories() {
-      const cats = [...new Set(stockData.map(r=>r.category))];
+      const cats = [...new Set(stockData.map(r => r.category))];
       document.getElementById('categoryFilter').innerHTML =
         `<option value="">All Categories</option>` +
-        cats.map(c=>`<option>${c}</option>`).join('');
+        cats.map(c => `<option>${c}</option>`).join('');
     }
 
     function render() {
@@ -126,7 +124,10 @@
       const c = document.getElementById('categoryFilter').value;
       const tbody = document.querySelector('#reportTable tbody');
       tbody.innerHTML = '';
-      const tot = { sellUsd:0, sellGbp:0, sellEur:0, valUsd:0, valPln:0, valGbp:0, valEur:0 };
+      const tot = {
+        sellUsd:0, sellGbp:0, sellEur:0,
+        valUsd:0,  valPln:0,  valGbp:0,  valEur:0
+      };
 
       stockData
         .filter(r =>
@@ -134,22 +135,19 @@
           (!c || r.category === c)
         )
         .forEach(r => {
-          const qty = r.qty || 0;
-          // costs
-          const costUsd = r.cost_usd||0;
-          const costPln = costUsd * fx.PLN;
-          const costGbp = costUsd * fx.GBP;
-          const costEur = costUsd * fx.EUR;
-          // sells
-          const sellPln = r.sell_pln||0;
-          const sellUsd = sellPln / fx.PLN;
-          const sellGbp = sellUsd * fx.GBP;
-          const sellEur = sellUsd * fx.EUR;
-          // values
-          const valUsd = qty * sellUsd;
-          const valPln = qty * sellPln;
-          const valGbp = qty * sellGbp;
-          const valEur = qty * sellEur;
+          const qty      = r.qty || 0;
+          const costUsd  = r.cost_usd || 0;
+          const costPln  = costUsd * fx.PLN;
+          const costGbp  = costUsd * fx.GBP;
+          const costEur  = costUsd * fx.EUR;
+          const sellPln  = r.sell_pln || 0;
+          const sellUsd  = sellPln / fx.PLN;
+          const sellGbp  = sellUsd * fx.GBP;
+          const sellEur  = sellUsd * fx.EUR;
+          const valUsd   = qty * sellUsd;
+          const valPln   = qty * sellPln;
+          const valGbp   = qty * sellGbp;
+          const valEur   = qty * sellEur;
 
           const tr = document.createElement('tr');
           if (qty <= 50) tr.classList.add('low-stock');
@@ -158,37 +156,36 @@
             <td>${r.name}</td><td>${r.category}</td>
             <td>${qty}</td><td>—</td><td>${qty}</td>
             <td>$${costUsd.toFixed(2)}</td>
-            <td>${costPln.toFixed(2)}</td>
-            <td>${costGbp.toFixed(2)}</td>
-            <td>${costEur.toFixed(2)}</td>
-            <td>${sellPln.toFixed(2)}</td>
+            <td>${costPln.toFixed(2)} PLN</td>
+            <td>£${costGbp.toFixed(2)}</td>
+            <td>€${costEur.toFixed(2)}</td>
+            <td>${sellPln.toFixed(2)} PLN</td>
             <td>$${sellUsd.toFixed(2)}</td>
-            <td>${sellGbp.toFixed(2)}</td>
-            <td>${sellEur.toFixed(2)}</td>
+            <td>£${sellGbp.toFixed(2)}</td>
+            <td>€${sellEur.toFixed(2)}</td>
             <td>$${valUsd.toFixed(2)}</td>
-            <td>${valPln.toFixed(2)}</td>
-            <td>${valGbp.toFixed(2)}</td>
-            <td>${valEur.toFixed(2)}</td>
+            <td>${valPln.toFixed(2)} PLN</td>
+            <td>£${valGbp.toFixed(2)}</td>
+            <td>€${valEur.toFixed(2)}</td>
           `;
           tbody.appendChild(tr);
 
-          tot.sellUsd += sellUsd*qty;
-          tot.sellGbp += sellGbp*qty;
-          tot.sellEur += sellEur*qty;
+          tot.sellUsd += sellUsd * qty;
+          tot.sellGbp += sellGbp * qty;
+          tot.sellEur += sellEur * qty;
           tot.valUsd  += valUsd;
           tot.valPln  += valPln;
           tot.valGbp  += valGbp;
           tot.valEur  += valEur;
         });
 
-      // footer totals
       document.getElementById('tSellUsd').textContent = `$${tot.sellUsd.toFixed(2)}`;
-      document.getElementById('tSellGbp').textContent = tot.sellGbp.toFixed(2);
-      document.getElementById('tSellEur').textContent = tot.sellEur.toFixed(2);
+      document.getElementById('tSellGbp').textContent = `£${tot.sellGbp.toFixed(2)}`;
+      document.getElementById('tSellEur').textContent = `€${tot.sellEur.toFixed(2)}`;
       document.getElementById('tValUsd').textContent  = `$${tot.valUsd.toFixed(2)}`;
-      document.getElementById('tValPln').textContent  = tot.valPln.toFixed(2);
-      document.getElementById('tValGbp').textContent  = tot.valGbp.toFixed(2);
-      document.getElementById('tValEur').textContent  = tot.valEur.toFixed(2);
+      document.getElementById('tValPln').textContent  = `${tot.valPln.toFixed(2)} PLN`;
+      document.getElementById('tValGbp').textContent  = `£${tot.valGbp.toFixed(2)}`;
+      document.getElementById('tValEur').textContent  = `€${tot.valEur.toFixed(2)}`;
 
       drawChart();
     }
