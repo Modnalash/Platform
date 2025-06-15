@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Inventory Valuation & Multi-Currency Report</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body { margin:0; font-family:'Inter',sans-serif; background:#0b1c2c; color:#fff }
+    .container { max-width:1200px; margin:auto; padding:2rem }
+    .back-btn {
+      display:inline-block; margin-bottom:1rem;
+      background:#1e3d5e; color:#fff; padding:8px 12px;
+      border-radius:6px; text-decoration:none;
+    }
+    .back-btn:hover { background:#285a87 }
+    .filters {
+      display:flex; flex-wrap:wrap; gap:1rem; margin-bottom:1rem;
+    }
+    .filters input, .filters select, .filters button {
+      padding:8px; border:none; border-radius:6px; font-size:1rem;
+    }
+    table {
+      width:100%; border-collapse:collapse; background:#15273a;
+      border-radius:8px; overflow:hidden; margin-top:1rem;
+    }
+    th, td {
+      padding:8px 12px; text-align:left; border-bottom:1px solid #1e3d5e;
+      font-size:.9rem;
+    }
+    th { background:#112b44 }
+    tfoot td { background:#112b44; font-weight:bold }
+    tr.low-stock { background:rgba(255,0,0,0.1) }
+    canvas { margin-top:2rem; background:#fff; border-radius:8px; padding:1rem }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="dashboard-admin.html" class="back-btn">⬅ Back to Dashboard</a>
+    <h1>Inventory Valuation &amp; Multi-Currency Report</h1>
+
+    <div class="filters">
+      <!-- FX Date picker + button fetches live USD→PLN/GBP/EUR rates -->
+      <label>FX Date:
+        <input type="date" id="fxDate" max="">
+      </label>
+      <button onclick="loadFx()">Load FX Rates</button>
+
+      <input type="text" id="searchInput" placeholder="Search product…" oninput="render()">
+      <select id="categoryFilter" onchange="render()">
+        <option value="">All Categories</option>
+      </select>
+    </div>
+
+    <table id="reportTable">
+      <thead>
+        <tr>
+          <th>Product</th><th>Category</th>
+          <th>Qty (Admin)</th><th>Qty (PL)</th><th>Total Qty</th>
+          <th>Cost USD</th><th>Cost PLN</th><th>Cost GBP</th><th>Cost EUR</th>
+          <th>Sell PLN</th><th>Sell USD</th><th>Sell GBP</th><th>Sell EUR</th>
+          <th>Value USD</th><th>Value PLN</th><th>Value GBP</th><th>Value EUR</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+      <tfoot>
+        <tr>
+          <td colspan="10">Totals:</td>
+          <td id="tSellUsd">$0.00</td>
+          <td id="tSellGbp">0.00</td>
+          <td id="tSellEur">0.00</td>
+          <td id="tValUsd">$0.00</td>
+          <td id="tValPln">0.00</td>
+          <td id="tValGbp">0.00</td>
+          <td id="tValEur">0.00</td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <canvas id="categoryChart" height="80"></canvas>
+  </div>
+
+  <script>
+    // —– Supabase client with full anon key —–
+    const supabase = window.supabase.createClient(
+      'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
+    );
+
+    let stockData = [], fx = { PLN:1, GBP:1, EUR:1 };
+
+    // date picker max = today
+    const fxDate = document.getElementById('fxDate');
+    fxDate.max = new Date().toISOString().slice(0,10);
+    fxDate.value = fxDate.max;
+
+    document.addEventListener('DOMContentLoaded', init);
+    async function init() {
+      // fetch your one stock table
+      const { data, error } = await supabase.from('stock').select('*');
+      stockData = data || [];
+      populateCategories();
+      await loadFx();
+      render();
+    }
+
+    async function loadFx() {
+      const d = fxDate.value;
+      const res = await fetch(
+        `https://api.exchangerate.host/${d}?base=USD&symbols=PLN,GBP,EUR`
+      );
+      fx = (await res.json()).rates || fx;
+      render();
+    }
+
+    function populateCategories() {
+      const cats = [...new Set(stockData.map(r=>r.category))];
+      document.getElementById('categoryFilter').innerHTML =
+        `<option value="">All Categories</option>` +
+        cats.map(c=>`<option>${c}</option>`).join('');
+    }
+
+    function render() {
+      const s = document.getElementById('searchInput').value.toLowerCase();
+      const c = document.getElementById('categoryFilter').value;
+      const tbody = document.querySelector('#reportTable tbody');
+      tbody.innerHTML = '';
+      const tot = { sellUsd:0, sellGbp:0, sellEur:0, valUsd:0, valPln:0, valGbp:0, valEur:0 };
+
+      stockData
+        .filter(r =>
+          r.name.toLowerCase().includes(s) &&
+          (!c || r.category === c)
+        )
+        .forEach(r => {
+          const qty = r.qty || 0;
+          // costs
+          const costUsd = r.cost_usd||0;
+          const costPln = costUsd * fx.PLN;
+          const costGbp = costUsd * fx.GBP;
+          const costEur = costUsd * fx.EUR;
+          // sells
+          const sellPln = r.sell_pln||0;
+          const sellUsd = sellPln / fx.PLN;
+          const sellGbp = sellUsd * fx.GBP;
+          const sellEur = sellUsd * fx.EUR;
+          // values
+          const valUsd = qty * sellUsd;
+          const valPln = qty * sellPln;
+          const valGbp = qty * sellGbp;
+          const valEur = qty * sellEur;
+
+          const tr = document.createElement('tr');
+          if (qty <= 50) tr.classList.add('low-stock');
+
+          tr.innerHTML = `
+            <td>${r.name}</td><td>${r.category}</td>
+            <td>${qty}</td><td>—</td><td>${qty}</td>
+            <td>$${costUsd.toFixed(2)}</td>
+            <td>${costPln.toFixed(2)}</td>
+            <td>${costGbp.toFixed(2)}</td>
+            <td>${costEur.toFixed(2)}</td>
+            <td>${sellPln.toFixed(2)}</td>
+            <td>$${sellUsd.toFixed(2)}</td>
+            <td>${sellGbp.toFixed(2)}</td>
+            <td>${sellEur.toFixed(2)}</td>
+            <td>$${valUsd.toFixed(2)}</td>
+            <td>${valPln.toFixed(2)}</td>
+            <td>${valGbp.toFixed(2)}</td>
+            <td>${valEur.toFixed(2)}</td>
+          `;
+          tbody.appendChild(tr);
+
+          tot.sellUsd += sellUsd*qty;
+          tot.sellGbp += sellGbp*qty;
+          tot.sellEur += sellEur*qty;
+          tot.valUsd  += valUsd;
+          tot.valPln  += valPln;
+          tot.valGbp  += valGbp;
+          tot.valEur  += valEur;
+        });
+
+      // footer totals
+      document.getElementById('tSellUsd').textContent = `$${tot.sellUsd.toFixed(2)}`;
+      document.getElementById('tSellGbp').textContent = tot.sellGbp.toFixed(2);
+      document.getElementById('tSellEur').textContent = tot.sellEur.toFixed(2);
+      document.getElementById('tValUsd').textContent  = `$${tot.valUsd.toFixed(2)}`;
+      document.getElementById('tValPln').textContent  = tot.valPln.toFixed(2);
+      document.getElementById('tValGbp').textContent  = tot.valGbp.toFixed(2);
+      document.getElementById('tValEur').textContent  = tot.valEur.toFixed(2);
+
+      drawChart();
+    }
+
+    function drawChart() {
+      const sums = {};
+      document.querySelectorAll('#reportTable tbody tr').forEach(tr => {
+        const cat = tr.cells[1].textContent;
+        const val = parseFloat(tr.cells[15].textContent) || 0; // Value PLN
+        sums[cat] = (sums[cat]||0) + val;
+      });
+      const ctx = document.getElementById('categoryChart').getContext('2d');
+      if (window.myChart) window.myChart.destroy();
+      window.myChart = new Chart(ctx, {
+        type:'bar',
+        data:{
+          labels:Object.keys(sums),
+          datasets:[{
+            label:'Value by Category (PLN)',
+            data:Object.values(sums),
+            backgroundColor:'#7ee2f6'
+          }]
+        },
+        options:{ responsive:true, scales:{ y:{ beginAtZero:true } } }
+      });
+    }
+  </script>
+</body>
+</html>
