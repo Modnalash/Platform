@@ -96,7 +96,6 @@
   let stockData = [];
 
   async function fetchStock() {
-    // fetch and order by id to keep original row order consistent
     const { data, error } = await supabase
       .from('stock')
       .select('*')
@@ -113,19 +112,18 @@
     const category = document.getElementById("sortCategory").value;
 
     let filtered = stockData.filter(item => item.name.toLowerCase().includes(search));
-    if (category) {
-      filtered = filtered.filter(item => item.category === category);
-    }
+    if (category) filtered = filtered.filter(item => item.category === category);
 
     tbody.innerHTML = '';
     filtered.forEach(item => {
       const row = `<tr>
         <td>${item.name}</td>
         <td>${item.category}</td>
-        <td>${item.qty}</td>
+        <td id="qty-${item.id}">${item.qty}</td>
         <td><input type='number' value='0' min='0' id='add-${item.id}'/></td>
         <td class='actions'>
           <button onclick='addQty(${item.id}, ${item.qty})'>Add</button>
+          <button onclick='editQty(${item.id}, ${item.qty})'>Edit</button>
           <button onclick='deleteProduct(${item.id})'>🗑️ Delete</button>
         </td>
       </tr>`;
@@ -136,50 +134,38 @@
   async function addProduct() {
     const name = document.getElementById("productName").value.trim();
     const category = document.getElementById("productCategory").value;
-    const qty = parseInt(document.getElementById("productQty").value.trim());
-
-    if (!name || !category || isNaN(qty)) {
-      alert("Please fill out all fields correctly.");
-      return;
-    }
-
-    const { data, error } = await supabase.from('stock').insert([{ name, category, qty }]);
-    if (error) {
-      alert("Error adding product: " + error.message);
-    } else {
-      document.getElementById("successMsg").textContent = "✅ Product added successfully!";
-      fetchStock();
-    }
-
+    const qty = parseInt(document.getElementById("productQty").value.trim(), 10);
+    if (!name || !category || isNaN(qty)) { alert("Please fill out all fields correctly."); return; }
+    const { error } = await supabase.from('stock').insert([{ name, category, qty }]);
+    if (error) alert("Error adding product: " + error.message);
+    else { document.getElementById("successMsg").textContent = "✅ Added!"; fetchStock(); }
     document.getElementById("productName").value = '';
     document.getElementById("productCategory").value = '';
     document.getElementById("productQty").value = '';
   }
 
   async function deleteProduct(id) {
-    const confirmed = confirm("Are you sure you want to delete this product?");
-    if (!confirmed) return;
+    if (!confirm("Are you sure you want to delete this product?")) return;
     const { error } = await supabase.from('stock').delete().eq('id', id);
-    if (error) {
-      alert("Error deleting product: " + error.message);
-    } else {
-      fetchStock();
-    }
+    if (error) alert("Error deleting product: " + error.message);
+    else fetchStock();
   }
 
   async function addQty(id, currentQty) {
-    const toAdd = parseInt(document.getElementById(`add-${id}`).value);
-    if (isNaN(toAdd) || toAdd < 0) {
-      alert("Enter a valid quantity to add.");
-      return;
-    }
+    const toAdd = parseInt(document.getElementById(`add-${id}`).value, 10);
+    if (isNaN(toAdd) || toAdd < 0) { alert("Enter a valid quantity to add."); return; }
     const newQty = currentQty + toAdd;
     const { error } = await supabase.from('stock').update({ qty: newQty }).eq('id', id);
-    if (error) {
-      alert("Error updating quantity: " + error.message);
-    } else {
-      fetchStock();
-    }
+    if (error) alert("Error updating quantity: " + error.message);
+    else fetchStock();
+  }
+
+  async function editQty(id, currentQty) {
+    const newQty = parseInt(prompt("Enter new quantity:", currentQty), 10);
+    if (isNaN(newQty) || newQty < 0) { alert("Invalid quantity"); return; }
+    const { error } = await supabase.from('stock').update({ qty: newQty }).eq('id', id);
+    if (error) alert("Error updating quantity: " + error.message);
+    else fetchStock();
   }
 
   function exportCSV() {
