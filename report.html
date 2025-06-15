@@ -57,7 +57,7 @@
       <label>FX Date:
         <input type="date" id="fxDate" max="">
       </label>
-      <button onclick="loadFx()">Load FX Rates</button>
+      <button id="loadFxBtn">Load FX Rates</button>
       <input type="text" id="searchInput" placeholder="Search product…" oninput="render()">
       <select id="categoryFilter" onchange="render()">
         <option value="">All Categories</option>
@@ -67,21 +67,11 @@
     <table id="reportTable">
       <thead>
         <tr>
-          <th>Product</th>
-          <th>Category</th>
-          <th class="numeric">Qty (Admin)</th>
-          <th class="numeric">Qty (PL)</th>
-          <th class="numeric">Total Qty</th>
-          <th class="numeric">Cost USD</th>
-          <th class="numeric">Cost PLN</th>
-          <th class="numeric">Cost GBP</th>
-          <th class="numeric">Cost EUR</th>
-          <th class="numeric">Sell PLN</th>
-          <th class="numeric">Sell GBP</th>
-          <th class="numeric">Sell EUR</th>
-          <th class="numeric">Value PLN</th>
-          <th class="numeric">Value GBP</th>
-          <th class="numeric">Value EUR</th>
+          <th>Product</th><th>Category</th>
+          <th class="numeric">Qty (Admin)</th><th class="numeric">Qty (PL)</th><th class="numeric">Total Qty</th>
+          <th class="numeric">Cost USD</th><th class="numeric">Cost PLN</th><th class="numeric">Cost GBP</th><th class="numeric">Cost EUR</th>
+          <th class="numeric">Sell PLN</th><th class="numeric">Sell GBP</th><th class="numeric">Sell EUR</th>
+          <th class="numeric">Value PLN</th><th class="numeric">Value GBP</th><th class="numeric">Value EUR</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -102,25 +92,29 @@
   </div>
 
   <script>
-    // Supabase client
+    // — supabase client setup —
     const supabase = window.supabase.createClient(
       'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
 
+    // state
     let adminStock = [], plStock = [];
-    // default to 1:1 until rates load
     let fx = { PLN:1, GBP:1, EUR:1 };
 
-    // Date picker defaults
+    // FX-Date picker defaults
     const fxDate = document.getElementById('fxDate');
-    fxDate.max = new Date().toISOString().slice(0,10);
+    fxDate.max   = new Date().toISOString().slice(0,10);
     fxDate.value = fxDate.max;
+
+    // wire up button
+    document.getElementById('loadFxBtn')
+            .addEventListener('click', () => loadFx().then(render));
 
     window.addEventListener('DOMContentLoaded', init);
 
     async function init() {
-      // load both tables
+      // load your data
       const [a,p] = await Promise.all([
         supabase.from('stock').select('*'),
         supabase.from('pl_stock').select('*')
@@ -129,65 +123,71 @@
       plStock    = p.data || [];
       populateCategories();
 
-      // fetch FX first, then render once
+      // load FX once, then render
       await loadFx();
       render();
     }
 
     async function loadFx() {
       const d = fxDate.value;
-      const url = `https://api.exchangerate.host/historical?date=${d}&base=USD&symbols=PLN,GBP,EUR`;
+      // 1) try timeseries for that date…
+      const tsUrl = `https://api.exchangerate.host/timeseries`
+                  + `?start_date=${d}&end_date=${d}`
+                  + `&base=USD&symbols=PLN,GBP,EUR`;
       try {
-        const resp = await fetch(url, { mode: 'cors' });
-        const json = await resp.json();
-        if (json.success && json.rates) {
-          fx = {
-            PLN: json.rates.PLN,
-            GBP: json.rates.GBP,
-            EUR: json.rates.EUR
-          };
-        } else {
-          console.warn('FX API returned no rates, falling back to 1:1', json);
+        let resp = await fetch(tsUrl);
+        let json = await resp.json();
+        if (json.success && json.rates && json.rates[d]) {
+          fx = json.rates[d];
+          console.log('🟢 FX (timeseries):', fx);
+          return;
         }
-      } catch (err) {
-        console.error('Failed to load FX, using 1:1', err);
+        // 2) fallback to "latest"
+        console.warn('⚠️ timeseries failed, falling back to latest:', json);
+        resp = await fetch(`https://api.exchangerate.host/latest?base=USD&symbols=PLN,GBP,EUR`);
+        json = await resp.json();
+        if (json.rates) {
+          fx = json.rates;
+          console.log('🟢 FX (latest):', fx);
+          return;
+        }
+      } catch(err) {
+        console.error('🔴 FX fetch error, using 1:1:', err);
       }
-      console.log('Loaded FX rates:', fx);
-      // do NOT call render() here
+      // if all else fails, fx remains 1:1
     }
 
     function populateCategories() {
       const cats = [...new Set(adminStock.map(r=>r.category))];
       const sel  = document.getElementById('categoryFilter');
-      sel.innerHTML =
-        `<option value="">All Categories</option>` +
-        cats.map(c => `<option>${c}</option>`).join('');
+      sel.innerHTML = `<option value="">All Categories</option>`
+                    + cats.map(c=>`<option>${c}</option>`).join('');
     }
 
     function render() {
-      const term      = document.getElementById('searchInput').value.toLowerCase();
-      const catFilter = document.getElementById('categoryFilter').value;
-      const tbody     = document.querySelector('#reportTable tbody');
+      const term  = document.getElementById('searchInput').value.toLowerCase();
+      const catF  = document.getElementById('categoryFilter').value;
+      const tbody = document.querySelector('#reportTable tbody');
       tbody.innerHTML = '';
 
-      let tot = { sellPln:0, sellGbp:0, sellEur:0, valPln:0, valGbp:0, valEur:0 };
+      const totals = { sellPln:0, sellGbp:0, sellEur:0, valPln:0, valGbp:0, valEur:0 };
 
       adminStock.forEach(r => {
         if (!r.name.toLowerCase().includes(term)) return;
-        if (catFilter && r.category !== catFilter) return;
+        if (catF && r.category !== catF) return;
 
-        const plRow    = plStock.find(x => x.name === r.name) || {};
+        const plRow    = plStock.find(x=>x.name===r.name) || {};
         const qtyA     = +r.qty || 0;
         const qtyP     = +plRow.qty || 0;
         const totalQty = qtyA + qtyP;
 
-        // cost in USD → others
+        // cost in USD → other currencies
         const costUsd = +r.cost_usd || 0;
         const costPln = costUsd * fx.PLN;
         const costGbp = costUsd * fx.GBP;
         const costEur = costUsd * fx.EUR;
 
-        // sell price in PLN → USD → others
+        // selling is stored in PLN → back to USD → then to GBP/EUR
         const sellPln = +r.sell_pln || 0;
         const sellUsd = sellPln / fx.PLN;
         const sellGbp = sellUsd * fx.GBP;
@@ -196,6 +196,13 @@
         const valPln = totalQty * sellPln;
         const valGbp = totalQty * sellGbp;
         const valEur = totalQty * sellEur;
+
+        totals.sellPln += sellPln;
+        totals.sellGbp += sellGbp;
+        totals.sellEur += sellEur;
+        totals.valPln  += valPln;
+        totals.valGbp  += valGbp;
+        totals.valEur  += valEur;
 
         const tr = document.createElement('tr');
         if (totalQty <= 50) tr.classList.add('low-stock');
@@ -217,22 +224,15 @@
           <td class="numeric">${new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(valEur)}</td>
         `;
         tbody.appendChild(tr);
-
-        tot.sellPln += sellPln * totalQty;
-        tot.sellGbp += sellGbp * totalQty;
-        tot.sellEur += sellEur * totalQty;
-        tot.valPln  += valPln;
-        tot.valGbp  += valGbp;
-        tot.valEur  += valEur;
       });
 
       // footer
-      document.getElementById('tSellPln').textContent = new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(tot.sellPln);
-      document.getElementById('tSellGbp').textContent = new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(tot.sellGbp);
-      document.getElementById('tSellEur').textContent = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(tot.sellEur);
-      document.getElementById('tValPln').textContent  = new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(tot.valPln);
-      document.getElementById('tValGbp').textContent  = new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(tot.valGbp);
-      document.getElementById('tValEur').textContent  = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(tot.valEur);
+      document.getElementById('tSellPln').textContent = new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(totals.sellPln);
+      document.getElementById('tSellGbp').textContent = new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(totals.sellGbp);
+      document.getElementById('tSellEur').textContent = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(totals.sellEur);
+      document.getElementById('tValPln').textContent  = new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(totals.valPln);
+      document.getElementById('tValGbp').textContent  = new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(totals.valGbp);
+      document.getElementById('tValEur').textContent  = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(totals.valEur);
 
       drawChart();
     }
@@ -242,7 +242,7 @@
       document.querySelectorAll('#reportTable tbody tr').forEach(tr => {
         const cat = tr.cells[1].textContent;
         const val = parseFloat(tr.cells[12].textContent.replace(/[^0-9\.-]/g,'')) || 0;
-        sums[cat] = (sums[cat] || 0) + val;
+        sums[cat] = (sums[cat]||0) + val;
       });
       const ctx = document.getElementById('categoryChart').getContext('2d');
       if (window.myChart) window.myChart.destroy();
@@ -250,11 +250,7 @@
         type: 'bar',
         data: {
           labels: Object.keys(sums),
-          datasets: [{
-            label: 'Value by Category (PLN)',
-            data: Object.values(sums),
-            backgroundColor: '#7ee2f6'
-          }]
+          datasets: [{ label: 'Value by Category (PLN)', data: Object.values(sums) }]
         },
         options: { responsive:true, scales:{ y:{ beginAtZero:true } } }
       });
