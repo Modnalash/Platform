@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Inventory Valuation & Multi-Currency Report</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
@@ -81,9 +81,10 @@
   </div>
 
   <script>
-    const supabase = window.supabase.createClient(
+    // Use the same Supabase URL + anon key you have in manage-stock.html
+    const supabase = supabase.createClient(
       'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
-      'YOUR_SUPABASE_ANON_KEY'
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
 
     let adminStock = [], plStock = [], fx = {PLN:1,GBP:1,EUR:1};
@@ -94,12 +95,12 @@
     fxDate.value = fxDate.max;
 
     async function init(){
-      // fetch your two tables (rename if needed)
+      // pull stock tables
       const { data: aData } = await supabase.from('stock').select('*');
       const { data: pData } = await supabase.from('pl_stock').select('*');
       adminStock = aData || [];
       plStock    = pData || [];
-      // fill category dropdown
+      // populate categories
       const cats = [...new Set(adminStock.map(x=>x.category))];
       document.getElementById('categoryFilter').innerHTML =
         `<option value="">All Categories</option>` +
@@ -109,7 +110,6 @@
     }
 
     async function fetchFx(){
-      // pull ECB rates via exchangerate.host
       const d = fxDate.value;
       const res = await fetch(
         `https://api.exchangerate.host/${d}?base=USD&symbols=PLN,GBP,EUR`
@@ -125,13 +125,13 @@
       const c = document.getElementById('categoryFilter').value;
       tbody.innerHTML = '';
 
-      // totals accumulator
+      // accumulate totals
       const tot = {
         sellUsd:0, sellGbp:0, sellEur:0,
         valUsd:0,  valPln:0,  valGbp:0,  valEur:0
       };
 
-      // merge & filter
+      // merge and display
       adminStock
         .map(a => {
           const p = plStock.find(x=>x.name===a.name) || {qty:0};
@@ -186,7 +186,7 @@
           tot.valEur  += r.valEur;
         });
 
-      // footer totals
+      // write totals into footer
       document.getElementById('tSellUsd').textContent = `$${tot.sellUsd.toFixed(2)}`;
       document.getElementById('tSellGbp').textContent = tot.sellGbp.toFixed(2);
       document.getElementById('tSellEur').textContent = tot.sellEur.toFixed(2);
@@ -202,7 +202,7 @@
       const sums = {};
       document.querySelectorAll('#reportTable tbody tr').forEach(tr=>{
         const cat = tr.cells[1].textContent;
-        const val = parseFloat(tr.cells[15].textContent) || 0; // Value PLN column
+        const val = parseFloat(tr.cells[15].textContent)||0;
         sums[cat] = (sums[cat]||0) + val;
       });
       const ctx = document.getElementById('categoryChart').getContext('2d');
