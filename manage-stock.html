@@ -1,3 +1,4 @@
+<!-- updated manage-stock.html with styled bottom form -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,7 +15,7 @@
     .main { flex: 1; padding: 2rem; }
     .header { background-color: #1e3d5e; padding: 1rem; text-align: center; font-size: 1.25rem; border-radius: 12px; }
     .section { background-color: #1a2b3e; padding: 1.5rem; margin-top: 2rem; border-radius: 12px; }
-    .controls { margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem; }
+    .controls { margin-bottom: 1rem; display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
     .controls input,
     .controls select,
     .controls button { padding: 6px 12px; border-radius: 4px; border: none; font-size: 1rem; }
@@ -38,7 +39,7 @@
       <a href="dashboard-admin.html">Dashboard</a>
       <a href="manage-stock.html" class="active">Manage Stock</a>
       <a href="order-history.html">Order History</a>
-      <a href="report.html">Report</a>
+      <a href="inventory-report.html">Report</a>
       <a href="index.html">Logout</a>
     </div>
     <div class="main">
@@ -73,21 +74,23 @@
       </div>
       <div class="section">
         <h3>Add New Product</h3>
-        <input type="text" id="productName" placeholder="Product Name" />
-        <select id="productCategory">
-          <option value="">Select Category</option>
-          <option value="Starter Kit">Starter Kit</option>
-          <option value="Express Lash">Express Lash</option>
-          <option value="Wielokrotnego">Wielokrotnego</option>
-          <option value="Bio">Bio</option>
-          <option value="Ribbon">Ribbon</option>
-          <option value="Accessories">Accessories</option>
-          <option value="Make-up">Make-up</option>
-        </select>
-        <input type="number" id="productQty" placeholder="Quantity" />
-        <input type="number" id="costUsd" placeholder="Purchase Price (USD)" step="0.01" required />
-        <input type="number" id="sellPln" placeholder="Selling Price (PLN)" step="0.01" required />
-        <button onclick="addProduct()">Add Product</button>
+        <div class="controls">
+          <input type="text" id="productName" placeholder="Product Name" />
+          <select id="productCategory">
+            <option value="">Select Category</option>
+            <option value="Starter Kit">Starter Kit</option>
+            <option value="Express Lash">Express Lash</option>
+            <option value="Wielokrotnego">Wielokrotnego</option>
+            <option value="Bio">Bio</option>
+            <option value="Ribbon">Ribbon</option>
+            <option value="Accessories">Accessories</option>
+            <option value="Make-up">Make-up</option>
+          </select>
+          <input type="number" id="productQty" placeholder="Quantity" />
+          <input type="number" id="costUsd" placeholder="Purchase Price (USD)" step="0.01" required />
+          <input type="number" id="sellPln" placeholder="Selling Price (PLN)" step="0.01" required />
+          <button onclick="addProduct()">Add Product</button>
+        </div>
         <div id="successMsg" style="color:#7ee2f6; margin-top:10px;"></div>
       </div>
     </div>
