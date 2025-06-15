@@ -15,6 +15,32 @@
     .filters { display:flex; flex-wrap:wrap; gap:1rem; margin-bottom:1rem; }
     .filters input, .filters select { font-size:1rem; padding:8px; border:0; border-radius:6px; background:#fff; color:#000; }
 
+    /* Summary container top right */
+    #summaryContainer {
+      position:absolute;
+      top:1.5rem;
+      right:1.5rem;
+      display:flex;
+      gap:1rem;
+    }
+    .summaryBox {
+      background:#112b44;
+      border:1px solid #1e3d5e;
+      padding:1rem;
+      border-radius:8px;
+      text-align:right;
+      font-size:.9rem;
+      width:140px;
+    }
+    .summaryBox .summary-title {
+      font-weight:bold;
+      margin-bottom:0.5rem;
+      font-size:1rem;
+      text-align:left;
+    }
+    .summaryBox table { width:100%; border-collapse:collapse; }
+    .summaryBox td, .summaryBox th { padding:4px 8px; }
+
     /* Table styling */
     table { width:100%; border-collapse:collapse; background:#15273a; border-radius:8px; overflow:hidden; }
     th, td { padding:8px 12px; border-bottom:1px solid #1e3d5e; font-size:.9rem; }
@@ -22,9 +48,6 @@
     .numeric { text-align:right; }
     tfoot td { background:#112b44; font-weight:bold; }
     tr.low-stock { background:rgba(255,0,0,0.1); }
-
-    /* Scrollable tbody - disabled for pagination */
-    #reportTable { /*display: block;*/ }
 
     /* Pagination controls */
     #paginationControls { text-align:center; margin:1rem 0; }
@@ -34,12 +57,6 @@
 
     /* Chart styling */
     canvas { margin-top:2rem; background:#fff; border-radius:8px; padding:1rem; }
-
-    /* Summary box in top right */
-    #totalsSummary { position:absolute; top:1.5rem; right:1.5rem; background:#112b44; border:1px solid #1e3d5e; padding:1rem; border-radius:8px; text-align:right; font-size:.9rem; }
-    #totalsSummary .summary-title { font-weight:bold; margin-bottom:0.5rem; font-size:1rem; text-align:left; }
-    #totalsSummary table { border-collapse:collapse; }
-    #totalsSummary td, #totalsSummary th { padding:4px 8px; }
   </style>
 </head>
 <body>
@@ -47,14 +64,24 @@
     <a href="dashboard-admin.html" class="back-btn">⬅ Back to Dashboard</a>
     <h1>Inventory Valuation &amp; Multi-Currency Report</h1>
 
-    <!-- Totals summary box -->
-    <div id="totalsSummary">
-      <div class="summary-title">Stock Value</div>
-      <table>
-        <tr><th>PLN:</th><td id="sumPln">0.00 PLN</td></tr>
-        <tr><th>GBP:</th><td id="sumGbp">£0.00</td></tr>
-        <tr><th>EUR:</th><td id="sumEur">€0.00</td></tr>
-      </table>
+    <!-- Top-right summaries -->
+    <div id="summaryContainer">
+      <div id="stockSummary" class="summaryBox">
+        <div class="summary-title">Stock Value</div>
+        <table>
+          <tr><th>PLN:</th><td id="sumPln">0.00 PLN</td></tr>
+          <tr><th>GBP:</th><td id="sumGbp">£0.00</td></tr>
+          <tr><th>EUR:</th><td id="sumEur">€0.00</td></tr>
+        </table>
+      </div>
+      <div id="profitSummary" class="summaryBox">
+        <div class="summary-title">Total Profit</div>
+        <table>
+          <tr><th>PLN:</th><td id="profitPln">0.00 PLN</td></tr>
+          <tr><th>GBP:</th><td id="profitGbp">£0.00</td></tr>
+          <tr><th>EUR:</th><td id="profitEur">€0.00</td></tr>
+        </table>
+      </div>
     </div>
 
     <div class="filters">
@@ -85,7 +112,6 @@
       </tfoot>
     </table>
 
-    <!-- Pagination controls -->
     <div id="paginationControls">
       <button id="prevBtn">Prev</button>
       <span id="pageInfo">Page 1 of 1</span>
@@ -124,71 +150,41 @@
       try {
         const res = await fetch(url);
         const json = await res.json();
-        if (json.result === 'success' && json.rates) {
-          fx = { PLN: json.rates.PLN, GBP: json.rates.GBP, EUR: json.rates.EUR };
-        }
+        if (json.result === 'success' && json.rates) fx = { PLN: json.rates.PLN, GBP: json.rates.GBP, EUR: json.rates.EUR };
       } catch (e) {}
       render();
     }
 
     function populateCategories() {
       const sel = document.getElementById('categoryFilter');
-      sel.innerHTML = `<option value="">All Categories</option>` +
-                      [...new Set(adminStock.map(r => r.category))]
-                        .map(c => `<option>${c}</option>`).join('');
+      sel.innerHTML = `<option value="">All Categories</option>` + [...new Set(adminStock.map(r => r.category))].map(c => `<option>${c}</option>`).join('');
     }
 
     function render() {
       const term = document.getElementById('searchInput').value.toLowerCase();
       const catF = document.getElementById('categoryFilter').value;
+      const filtered = adminStock.filter(r => r.name.toLowerCase().includes(term) && (!catF || r.category===catF));
+      const totalPages = Math.ceil(filtered.length/rowsPerPage) || 1;
+      currentPage = Math.max(0, Math.min(currentPage, totalPages-1));
+      const start = currentPage*rowsPerPage;
+      const pageItems = filtered.slice(start,start+rowsPerPage);
 
-      const filtered = adminStock.filter(r =>
-        r.name.toLowerCase().includes(term) && (!catF || r.category === catF)
-      );
-      const totalPages = Math.ceil(filtered.length / rowsPerPage);
-      if (currentPage < 0) currentPage = 0;
-      if (currentPage >= totalPages) currentPage = totalPages - 1;
-
-      const start = currentPage * rowsPerPage;
-      const pageItems = filtered.slice(start, start + rowsPerPage);
-
-      const tbody = document.querySelector('#reportTable tbody');
-      tbody.innerHTML = '';
-
-      let totals = { valPln:0, valGbp:0, valEur:0 };
-
-      pageItems.forEach(r => {
-        const pl = plStock.find(x => x.name === r.name) || {};
-        const qtyA = +r.qty || 0;
-        const qtyP = +pl.qty || 0;
-        const totalQty = qtyA + qtyP;
-
-        const costUsd = +r.cost_usd || 0;
-        const costPln = costUsd * fx.PLN;
-        const costGbp = costUsd * fx.GBP;
-        const costEur = costUsd * fx.EUR;
-
-        const sellPln = +r.sell_pln || 0;
-        const sellUsd = sellPln / fx.PLN;
-        const sellGbp = sellUsd * fx.GBP;
-        const sellEur = sellUsd * fx.EUR;
-
-        const valPln = totalQty * sellPln;
-        const valGbp = totalQty * sellGbp;
-        const valEur = totalQty * sellEur;
-
-        totals.valPln += valPln;
-        totals.valGbp += valGbp;
-        totals.valEur += valEur;
-
-        const tr = document.createElement('tr');
-        if (totalQty <= 50) tr.classList.add('low-stock');
-        tr.innerHTML = `
-          <td>${r.name}</td>
-          <td>${r.category}</td>
-          <td class="numeric">${qtyA}</td>
-          <td class="numeric">${qtyP}</td>
-          <td class="numeric">${totalQty}</td>
+      const tbody = document.querySelector('#reportTable tbody'); tbody.innerHTML = '';
+      let totals = { valPln:0,valGbp:0,valEur:0, profitPln:0, profitGbp:0, profitEur:0 };
+      pageItems.forEach(r=>{
+        const pl=plStock.find(x=>x.name===r.name)||{};
+        const qtyA=+r.qty||0, qtyP=+pl.qty||0, totalQty=qtyA+qtyP;
+        const costUsd=+r.cost_usd||0;
+        const costPln=costUsd*fx.PLN, costGbp=costUsd*fx.GBP, costEur=costUsd*fx.EUR;
+        const sellPln=+r.sell_pln||0, sellUsd=sellPln/fx.PLN;
+        const sellGbp=sellUsd*fx.GBP, sellEur=sellUsd*fx.EUR;
+        const valPln=totalQty*sellPln, valGbp=totalQty*sellGbp, valEur=totalQty*sellEur;
+        const prPln=totalQty*(sellPln-costPln), prGbp=totalQty*(sellGbp-costGbp), prEur=totalQty*(sellEur-costEur);
+        totals.valPln+=valPln; totals.valGbp+=valGbp; totals.valEur+=valEur;
+        totals.profitPln+=prPln; totals.profitGbp+=prGbp; totals.profitEur+=prEur;
+        const tr=document.createElement('tr'); if(totalQty<=50)tr.classList.add('low-stock');
+        tr.innerHTML=`<td>${r.name}</td><td>${r.category}</td>
+          <td class="numeric">${qtyA}</td><td class="numeric">${qtyP}</td><td class="numeric">${totalQty}</td>
           <td class="numeric">${new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(costUsd)}</td>
           <td class="numeric">${new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(costPln)}</td>
           <td class="numeric">${new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(costGbp)}</td>
@@ -198,53 +194,33 @@
           <td class="numeric">${new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(sellEur)}</td>
           <td class="numeric">${new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(valPln)}</td>
           <td class="numeric">${new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(valGbp)}</td>
-          <td class="numeric">${new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(valEur)}</td>
-        `;
+          <td class="numeric">${new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(valEur)}</td>`;
         tbody.appendChild(tr);
       });
 
-      // Footer totals reflect full dataset or page? Keep full filtered totals
-      const footerTotals = filtered.reduce((acc,r) => {
-        const pl = plStock.find(x=>x.name===r.name) || {};
-        const qtyA = +r.qty||0, qtyP=+pl.qty||0, totalQty=qtyA+qtyP;
-        const sellPln=+r.sell_pln||0, sellUsd=sellPln/fx.PLN;
-        acc.valPln += totalQty * sellPln;
-        acc.valGbp += totalQty * (sellUsd * fx.GBP);
-        acc.valEur += totalQty * (sellUsd * fx.EUR);
-        return acc;
-      }, {valPln:0,valGbp:0,valEur:0});
-      document.getElementById('tValPln').textContent = new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(footerTotals.valPln);
-      document.getElementById('tValGbp').textContent = new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(footerTotals.valGbp);
-      document.getElementById('tValEur').textContent = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(footerTotals.valEur);
+      // Update summaries
+      document.getElementById('sumPln').textContent=new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(totals.valPln);
+      document.getElementById('sumGbp').textContent=new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(totals.valGbp);
+      document.getElementById('sumEur').textContent=new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(totals.valEur);
+      document.getElementById('profitPln').textContent=new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(totals.profitPln);
+      document.getElementById('profitGbp').textContent=new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(totals.profitGbp);
+      document.getElementById('profitEur').textContent=new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(totals.profitEur);
 
-      // Summary box totals = same as footer totals
-      document.getElementById('sumPln').textContent = new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(footerTotals.valPln);
-      document.getElementById('sumGbp').textContent = new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(footerTotals.valGbp);
-      document.getElementById('sumEur').textContent = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(footerTotals.valEur);
+      // Pagination
+      document.getElementById('pageInfo').textContent=`Page ${currentPage+1} of ${Math.ceil(filtered.length/rowsPerPage)||1}`;
+      document.getElementById('prevBtn').disabled = currentPage===0;
+      document.getElementById('nextBtn').disabled = currentPage>=Math.ceil(filtered.length/rowsPerPage)-1;
 
-      // Update pagination buttons
-      const prevBtn = document.getElementById('prevBtn');
-      const nextBtn = document.getElementById('nextBtn');
-      document.getElementById('pageInfo').textContent = `Page ${currentPage+1} of ${totalPages}`;
-      prevBtn.disabled = currentPage === 0;
-      nextBtn.disabled = currentPage >= totalPages - 1;
-
-      // Chart (full filtered data)
-      const sums = {};
-      filtered.forEach(r => {
-        const pl = plStock.find(x=>x.name===r.name) || {};
-        const qtyA = +r.qty||0, qtyP=+pl.qty||0, totalQty=qtyA+qtyP;
-        const sellPln=+r.sell_pln||0, sellUsd=sellPln/fx.PLN;
-        const value = totalQty * sellPln;
-        sums[r.category] = (sums[r.category]||0) + value;
+      // Chart using filtered data
+      const sums = {}; filtered.forEach(r=>{
+        const pl=plStock.find(x=>x.name===r.name)||{};
+        const qtyA=+r.qty||0, qtyP=+pl.qty||0, totalQty=qtyA+qtyP;
+        const sellPln=+r.sell_pln||0;
+        sums[r.category]=(sums[r.category]||0)+totalQty*sellPln;
       });
-      const ctx = document.getElementById('categoryChart').getContext('2d');
-      if (window.myChart) window.myChart.destroy();
-      window.myChart = new Chart(ctx, {
-        type: 'bar',
-        data: { labels: Object.keys(sums), datasets: [{ label: 'Value by Category (PLN)', data: Object.values(sums) }] },
-        options: { responsive:true, scales:{ y:{ beginAtZero:true } } }
-      });
+      const ctx=document.getElementById('categoryChart').getContext('2d');
+      if(window.myChart)window.myChart.destroy();
+      window.myChart=new Chart(ctx,{type:'bar',data:{labels:Object.keys(sums),datasets:[{label:'Value by Category (PLN)',data:Object.values(sums)}]},options:{responsive:true,scales:{y:{beginAtZero:true}}}});
     }
   </script>
 </body>
