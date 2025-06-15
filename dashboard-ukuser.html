@@ -2,13 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>UK Dashboard</title>
+  <!-- Google Font for Handwriting Style -->
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@supabase/supabase-js"></script>
   <style>
     body { font-family: 'Segoe UI', sans-serif; background-color: #0d1b2a; color: #fff; margin: 0; padding: 0; }
     header { display: flex; justify-content: space-between; align-items: center; padding: 20px; background-color: #112d4e; }
-    header h1 { margin: 0; }
+    header h1 { margin: 0; font-family: 'Dancing Script', cursive; font-size: 2.5rem; }
     .nav-btn, .logout-btn { background: #00a8e8; border: none; color: white; padding: 8px 16px; cursor: pointer; border-radius: 5px; font-size: 1rem; }
     .logout-btn { background: #f44336; }
     .container { padding: 20px; }
@@ -55,7 +57,7 @@
 </head>
 <body>
   <header>
-    <h1>UK Dashboard</h1>
+    <h1>Hello Magda</h1>
     <div>
       <button class="nav-btn" onclick="location.href='dashboard-uk-stock.html'">Live Stock Overview</button>
       <button class="logout-btn" onclick="location.href='index.html'">Logout</button>
@@ -116,17 +118,14 @@
 
     let orderItems = [];
 
-    // Fetch live stock in fixed ID order and populate table
+    // Fetch live stock
     async function fetchStock() {
       const { data, error } = await supabase
         .from('stock')
         .select('*')
         .order('id', { ascending: true });
-      if (error) {
-        console.error(error);
-        return;
-      }
-      const tbody = document.querySelector("#stockTable tbody");
+      if (error) { console.error(error); return; }
+      const tbody = document.querySelector('#stockTable tbody');
       tbody.innerHTML = '';
       data.forEach(item => {
         const row = document.createElement('tr');
@@ -152,20 +151,19 @@
       applyFilter();
     }
 
-    // Filter by search + category
     function applyFilter() {
       const searchTerm = document.getElementById('searchInput').value.toLowerCase();
       const selectedCat = document.getElementById('categoryFilter').value;
       document.querySelectorAll('#stockTable tbody tr').forEach(row => {
         const name = row.cells[0].innerText.toLowerCase();
         const cat = row.cells[1].innerText;
-        const matchSearch = !searchTerm || name.includes(searchTerm);
-        const matchCat = selectedCat === 'All' || cat === selectedCat;
-        row.style.display = (matchSearch && matchCat) ? '' : 'none';
+        row.style.display =
+          ((!searchTerm || name.includes(searchTerm)) &&
+           (selectedCat === 'All' || cat === selectedCat))
+          ? '' : 'none';
       });
     }
 
-    // Add item to order buffer
     function addToOrder(button) {
       const input = button.closest('tr').querySelector('input');
       const qty = parseInt(input.value, 10);
@@ -173,7 +171,7 @@
         orderItems.push({
           product: input.dataset.name,
           category: input.dataset.cat,
-          qty: qty,
+          qty,
           stock_id: input.dataset.id,
           available: +input.dataset.qty
         });
@@ -182,7 +180,6 @@
       }
     }
 
-    // Render order summary
     function updateOrderPreview() {
       const ul = document.getElementById('orderPreview');
       ul.innerHTML = '';
@@ -191,18 +188,17 @@
       });
     }
 
-    // Submit all items as a grouped order
     async function submitOrder() {
       if (!orderItems.length) return alert('❌ No items to submit.');
       const groupId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
       for (const item of orderItems) {
-        const { error } = await supabase.from('orders').insert([{ region: 'UK', product: item.product, qty: item.qty, category: item.category, order_group_id: groupId, status: 'Pending' }]);
-        if (error) {
-          alert('❌ Failed to submit order.'); return;
-        }
+        const { error } = await supabase.from('orders').insert([
+          { region: 'UK', product: item.product, qty: item.qty, category: item.category, order_group_id: groupId, status: 'Pending' }
+        ]);
+        if (error) { alert('❌ Failed to submit order.'); return; }
         await supabase.from('stock').update({ qty: item.available - item.qty }).eq('id', item.stock_id);
       }
-      alert('Order placed!');
+      alert('✅ Order placed!');
       orderItems = [];
       updateOrderPreview();
       fetchStock();
@@ -212,3 +208,4 @@
   </script>
 </body>
 </html>
+
