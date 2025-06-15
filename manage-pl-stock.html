@@ -62,8 +62,8 @@
 
     async function fetchData() {
       const [mainRes, plRes] = await Promise.all([
-        supabase.from('stock').select('*').order('id', { ascending: true }),
-        supabase.from('pl_stock').select('*').order('id', { ascending: true })
+        supabase.from('stock').select('*').order('name', { ascending: true }),
+        supabase.from('pl_stock').select('*').order('name', { ascending: true })
       ]);
       adminStock = mainRes.data || [];
       plStock = plRes.data || [];
@@ -74,7 +74,8 @@
     function populateCategoryFilter() {
       const cats = [...new Set(adminStock.map(r => r.category))];
       const sel = document.getElementById('categoryFilter');
-      sel.innerHTML = `<option value="">All</option>` + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+      sel.innerHTML = `<option value="">All</option>` +
+        cats.map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
     function renderTable() {
@@ -83,7 +84,7 @@
       const cat = document.getElementById('categoryFilter').value;
       tbody.innerHTML = '';
 
-      const merged = adminStock.map(item => {
+      let merged = adminStock.map(item => {
         const pl = plStock.find(x => x.name === item.name) || {};
         return {
           mainId: item.id,
@@ -93,6 +94,9 @@
           qty: pl.qty || 0
         };
       });
+
+      // sort alphabetically by product name
+      merged.sort((a, b) => a.name.localeCompare(b.name));
 
       merged
         .filter(row => {
