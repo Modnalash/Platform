@@ -15,6 +15,7 @@
       border-radius:6px; text-decoration:none;
     }
     .back-btn:hover { background:#285a87 }
+    h1 { margin-bottom:1rem }
     .filters {
       display:flex; flex-wrap:wrap; gap:1rem; margin-bottom:1rem;
     }
@@ -41,14 +42,13 @@
     <h1>Inventory Valuation &amp; Multi-Currency Report</h1>
 
     <div class="filters">
-      <!-- FX Date picker + button fetches live USD→PLN/GBP/EUR rates -->
       <label>FX Date:
         <input type="date" id="fxDate" max="">
       </label>
-      <button onclick="loadFx()">Load FX Rates</button>
+      <button id="btnFx">Load FX Rates</button>
 
-      <input type="text" id="searchInput" placeholder="Search product…" oninput="render()">
-      <select id="categoryFilter" onchange="render()">
+      <input type="text" id="searchInput" placeholder="Search product…" />
+      <select id="categoryFilter">
         <option value="">All Categories</option>
       </select>
     </div>
@@ -82,43 +82,48 @@
   </div>
 
   <script>
-    // —– Supabase client with full anon key —–
+    // — Supabase client with full anon key — 
     const supabase = window.supabase.createClient(
       'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
 
     let stockData = [], fx = { PLN:1, GBP:1, EUR:1 };
-
-    // date picker max = today
     const fxDate = document.getElementById('fxDate');
     fxDate.max = new Date().toISOString().slice(0,10);
     fxDate.value = fxDate.max;
 
-    document.addEventListener('DOMContentLoaded', init);
+    document.getElementById('btnFx').addEventListener('click', loadFx);
+    document.getElementById('searchInput').addEventListener('input', render);
+    document.getElementById('categoryFilter').addEventListener('change', render);
+
     async function init() {
-      // fetch your one stock table
       const { data, error } = await supabase.from('stock').select('*');
-      stockData = data || [];
+      if (error) return alert(error.message);
+      stockData = data;
       populateCategories();
       await loadFx();
-      render();
     }
 
     async function loadFx() {
-      const d = fxDate.value;
-      const res = await fetch(
-        `https://api.exchangerate.host/${d}?base=USD&symbols=PLN,GBP,EUR`
-      );
-      fx = (await res.json()).rates || fx;
+      try {
+        const d = fxDate.value;
+        const res = await fetch(
+          `https://api.exchangerate.host/${d}?base=USD&symbols=PLN,GBP,EUR`
+        );
+        const json = await res.json();
+        fx = json.rates || fx;
+      } catch(e){
+        console.warn('FX load failed, using 1:1');
+      }
       render();
     }
 
     function populateCategories() {
-      const cats = [...new Set(stockData.map(r=>r.category))];
+      const cats = Array.from(new Set(stockData.map(r=>r.category))).sort();
       document.getElementById('categoryFilter').innerHTML =
         `<option value="">All Categories</option>` +
-        cats.map(c=>`<option>${c}</option>`).join('');
+        cats.map(c=>`<option value="${c}">${c}</option>`).join('');
     }
 
     function render() {
@@ -126,21 +131,19 @@
       const c = document.getElementById('categoryFilter').value;
       const tbody = document.querySelector('#reportTable tbody');
       tbody.innerHTML = '';
+
       const tot = { sellUsd:0, sellGbp:0, sellEur:0, valUsd:0, valPln:0, valGbp:0, valEur:0 };
 
       stockData
-        .filter(r =>
-          r.name.toLowerCase().includes(s) &&
-          (!c || r.category === c)
-        )
+        .filter(r => r.name.toLowerCase().includes(s) && (!c||r.category===c))
         .forEach(r => {
           const qty = r.qty || 0;
-          // costs
+          // cost in USD → others
           const costUsd = r.cost_usd||0;
           const costPln = costUsd * fx.PLN;
           const costGbp = costUsd * fx.GBP;
           const costEur = costUsd * fx.EUR;
-          // sells
+          // sell in PLN → USD base → others
           const sellPln = r.sell_pln||0;
           const sellUsd = sellPln / fx.PLN;
           const sellGbp = sellUsd * fx.GBP;
@@ -153,10 +156,12 @@
 
           const tr = document.createElement('tr');
           if (qty <= 50) tr.classList.add('low-stock');
-
           tr.innerHTML = `
-            <td>${r.name}</td><td>${r.category}</td>
-            <td>${qty}</td><td>—</td><td>${qty}</td>
+            <td>${r.name}</td>
+            <td>${r.category}</td>
+            <td>${qty}</td>
+            <td>—</td>
+            <td>${qty}</td>
             <td>$${costUsd.toFixed(2)}</td>
             <td>${costPln.toFixed(2)}</td>
             <td>${costGbp.toFixed(2)}</td>
@@ -172,16 +177,16 @@
           `;
           tbody.appendChild(tr);
 
-          tot.sellUsd += sellUsd*qty;
-          tot.sellGbp += sellGbp*qty;
-          tot.sellEur += sellEur*qty;
+          tot.sellUsd += valUsd;
+          tot.sellGbp += valGbp;
+          tot.sellEur += valEur;
           tot.valUsd  += valUsd;
           tot.valPln  += valPln;
           tot.valGbp  += valGbp;
           tot.valEur  += valEur;
         });
 
-      // footer totals
+      // footer
       document.getElementById('tSellUsd').textContent = `$${tot.sellUsd.toFixed(2)}`;
       document.getElementById('tSellGbp').textContent = tot.sellGbp.toFixed(2);
       document.getElementById('tSellEur').textContent = tot.sellEur.toFixed(2);
@@ -201,20 +206,23 @@
         sums[cat] = (sums[cat]||0) + val;
       });
       const ctx = document.getElementById('categoryChart').getContext('2d');
-      if (window.myChart) window.myChart.destroy();
-      window.myChart = new Chart(ctx, {
+      if (window.chart) window.chart.destroy();
+      window.chart = new Chart(ctx, {
         type:'bar',
         data:{
-          labels:Object.keys(sums),
+          labels: Object.keys(sums),
           datasets:[{
             label:'Value by Category (PLN)',
-            data:Object.values(sums),
+            data: Object.values(sums),
             backgroundColor:'#7ee2f6'
           }]
         },
         options:{ responsive:true, scales:{ y:{ beginAtZero:true } } }
       });
     }
+
+    // kick off
+    document.addEventListener('DOMContentLoaded', init);
   </script>
 </body>
 </html>
