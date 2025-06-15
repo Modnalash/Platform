@@ -55,7 +55,7 @@
       <a href="#" class="active">Dashboard</a>
       <a href="manage-stock.html">Manage Stock</a>
       <a href="order-history.html">Order History</a>
-      <a href="report.html">Report</a>
+      <a href="inventory-report.html">Report</a>
       <a href="index.html">Logout</a>
     </div>
     <div class="main">
@@ -76,7 +76,6 @@
     );
 
     async function loadDashboardData() {
-      // 1) Total stock
       const { data: stocks, error: stockErr } = await supabase
         .from('stock')
         .select('qty');
@@ -88,7 +87,6 @@
         document.getElementById('stockCount').textContent = '💼 —';
       }
 
-      // 2) New orders by GROUP
       const weekAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString();
       const { data: orders, error: orderErr } = await supabase
         .from('orders')
@@ -97,7 +95,6 @@
         .gte('created_at', weekAgo);
 
       if (!orderErr && Array.isArray(orders)) {
-        // build a Set of distinct group IDs (or fallback to id if group_id is null)
         const groups = new Set(
           orders.map(o => o.order_group_id || String(o.id))
         );
@@ -108,7 +105,6 @@
       }
     }
 
-    // initial + auto-refresh every minute
     loadDashboardData();
     setInterval(loadDashboardData, 60000);
   </script>
