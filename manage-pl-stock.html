@@ -2,22 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PL Local Stock</n  >
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PL Local Stock</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
-    body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #0d1b2a; color: white; }
-    header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; background: #112d4e; }
-    header h1 { margin: 0; font-size: 1.5rem; }
-    .back-btn, .logout-btn { background: #f44336; border: none; color: white; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer; }
-    .container { padding: 2rem; }
-    .controls { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
-    .controls input, .controls select { padding: 0.5rem 1rem; border-radius: 4px; border: none; font-size: 1rem; }
-    table { width: 100%; border-collapse: collapse; background: #1b263b; margin-bottom: 1.5rem; }
-    th, td { padding: 0.75rem 1rem; border: 1px solid #2b3a50; text-align: left; }
-    th { background: #112d4e; }
-    .actions button { background: #3fbc5f; border: none; color: #0d1b2a; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; }
-    .actions button:hover { background: #2c9e4c; }
+    body { margin:0; font-family:Segoe UI,sans-serif; background:#0d1b2a; color:#fff; }
+    header { display:flex; justify-content:space-between; align-items:center; padding:1rem 2rem; background:#112d4e; }
+    header h1 { margin:0; font-size:1.5rem; }
+    .back-btn, .logout-btn { background:#f44336; border:none; color:#fff; padding:0.5rem 1rem; border-radius:5px; cursor:pointer; }
+    .container { padding:2rem; }
+    .controls { display:flex; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem; }
+    .controls input, .controls select { padding:0.5rem 1rem; border:none; border-radius:4px; font-size:1rem; }
+    table { width:100%; border-collapse:collapse; background:#1b263b; margin-bottom:1.5rem; }
+    th, td { padding:0.75rem 1rem; border:1px solid #2b3a50; text-align:left; }
+    th { background:#112d4e; }
+    .actions button { background:#3fbc5f; border:none; color:#0d1b2a; padding:0.5rem 1rem; border-radius:4px; cursor:pointer; }
+    .actions button:hover { background:#2c9e4c; }
   </style>
 </head>
 <body>
@@ -26,11 +26,13 @@
     <h1>PL Local Stock</h1>
     <button class="logout-btn" onclick="location.href='index.html'">Logout</button>
   </header>
+
   <div class="container">
     <div class="controls">
-      <input type="text" id="searchInput" placeholder="Search by product..." />
+      <input type="text" id="searchInput" placeholder="Search by product…" />
       <select id="categoryFilter"></select>
     </div>
+
     <table id="localStockTable">
       <thead>
         <tr>
@@ -46,94 +48,115 @@
   </div>
 
   <script>
+    // --- INITIAL SETUP ---
     const supabase = window.supabase.createClient(
       'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
-
-    let adminStock = [];
-    let plStock = [];
-
-    async function fetchData() {
-      const [mainRes, plRes] = await Promise.all([
-        supabase.from('stock').select('*').order('id', { ascending: true }),
-        supabase.from('pl_stock').select('*').order('id', { ascending: true })
-      ]);
-      adminStock = mainRes.data || [];
-      plStock = plRes.data || [];
-      populateCategoryFilter();
-      renderTable();
-    }
-
-    function populateCategoryFilter() {
-      const cats = [...new Set(adminStock.map(r => r.category))];
-      const sel = document.getElementById('categoryFilter');
-      sel.innerHTML = `<option value="">All</option>` +
-        cats.map(c => `<option value="${c}">${c}</option>`).join('');
-    }
-
-    function renderTable() {
-      const search = document.getElementById('searchInput').value.toLowerCase();
-      const cat = document.getElementById('categoryFilter').value;
-      const tbody = document.querySelector('#localStockTable tbody');
-      tbody.innerHTML = '';
-
-      const merged = adminStock.map(item => {
-        const pl = plStock.find(x => x.name === item.name);
-        return {
-          mainId: item.id,
-          name: item.name,
-          category: item.category,
-          plId: pl ? pl.id : null,
-          qty: pl ? pl.qty : 0
-        };
-      });
-
-      merged
-        .filter(item => {
-          const matchSearch = !search || item.name.toLowerCase().includes(search);
-          const matchCat = !cat || item.category === cat;
-          return matchSearch && matchCat;
-        })
-        .forEach(item => {
-          const safeName = item.name.replace(/\s+/g,'_');
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${item.name}</td>
-            <td>${item.category}</td>
-            <td class="qty-cell">${item.qty}</td>
-            <td><input type="number" id="adj-${safeName}" value="${item.qty}" min="0"></td>
-            <td class="actions"><button onclick="updateLocal('${safeName}', ${item.mainId}, ${item.plId})">Update</button></td>
-          `;
-          tbody.appendChild(tr);
-        });
-    }
-
-    async function updateLocal(safeName, mainId, plId) {
-      const newQty = parseInt(document.getElementById(`adj-${safeName}`).value, 10);
-      if (isNaN(newQty)) return alert('Enter a valid number');
-      // Find main record for category/name
-      const main = adminStock.find(r => r.id === mainId);
-      if (plId) {
-        // Update existing pl_stock
-        const { error } = await supabase.from('pl_stock')
-          .update({ qty: newQty })
-          .eq('id', plId);
-        if (error) return alert(error.message);
-      } else {
-        // Insert new pl_stock record
-        const { error } = await supabase.from('pl_stock')
-          .insert([{ name: main.name, category: main.category, qty: newQty }]);
-        if (error) return alert(error.message);
-      }
-      fetchData();
-    }
+    let adminStock = [], plStock = [];
 
     document.getElementById('searchInput').addEventListener('input', renderTable);
     document.getElementById('categoryFilter').addEventListener('change', renderTable);
 
-    document.addEventListener('DOMContentLoaded', fetchData);
+    window.addEventListener('DOMContentLoaded', fetchData);
+
+    // --- FETCH BOTH TABLES ---
+    async function fetchData() {
+      const [mainRes, plRes] = await Promise.all([
+        supabase.from('stock').select('*').order('id'),
+        supabase.from('pl_stock').select('*').order('id')
+      ]);
+      adminStock = mainRes.data || [];
+      plStock    = plRes.data    || [];
+      populateCategoryFilter();
+      renderTable();
+    }
+
+    // --- POPULATE CATEGORY DROPDOWN FROM ADMIN STOCK ---
+    function populateCategoryFilter() {
+      const cats = [...new Set(adminStock.map(r=>r.category))];
+      const sel  = document.getElementById('categoryFilter');
+      sel.innerHTML = `<option value="">All</option>` 
+                    + cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+    }
+
+    // --- RENDER Table ---
+    function renderTable() {
+      const tbody  = document.querySelector('#localStockTable tbody');
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const cat    = document.getElementById('categoryFilter').value;
+      tbody.innerHTML = '';
+
+      // merge adminStock + plStock
+      const merged = adminStock.map(item=>{
+        const pl = plStock.find(x=>x.name===item.name) || {};
+        return {
+          mainId: item.id,
+          plId:   pl.id ?? null,
+          name:   item.name,
+          category: item.category,
+          qty:    pl.qty ?? 0
+        };
+      });
+
+      merged
+        .filter(row=>{
+          const okSearch = !search || row.name.toLowerCase().includes(search);
+          const okCat    = !cat    || row.category===cat;
+          return okSearch && okCat;
+        })
+        .forEach(row=>{
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${row.name}</td>
+            <td>${row.category}</td>
+            <td>${row.qty}</td>
+            <td><input type="number" id="adj-${row.mainId}" value="${row.qty}" min="0"></td>
+            <td class="actions">
+              <button onclick="updateLocal(${row.mainId}, ${row.plId})">
+                Update
+              </button>
+            </td>`;
+          tbody.appendChild(tr);
+        });
+    }
+
+    // --- UPDATE OR INSERT INTO pl_stock ---
+    async function updateLocal(mainId, plId) {
+      const input = document.getElementById(`adj-${mainId}`);
+      const newQty = parseInt(input.value,10);
+      if (isNaN(newQty)) {
+        return alert('Please enter a valid number.');
+      }
+
+      // find the admin record to copy name/category
+      const mainRec = adminStock.find(r=>r.id===mainId);
+      if (!mainRec) {
+        return alert('Admin item not found.');
+      }
+
+      if (plId) {
+        // existing: UPDATE by plStock.id
+        const { error } = await supabase
+          .from('pl_stock')
+          .update({ qty: newQty })
+          .eq('id', plId);
+        if (error) return alert(error.message);
+      } else {
+        // new: INSERT
+        const { error } = await supabase
+          .from('pl_stock')
+          .insert([{
+            name: mainRec.name,
+            category: mainRec.category,
+            qty: newQty
+          }]);
+        if (error) return alert(error.message);
+      }
+
+      // refresh both tables
+      await fetchData();
+    }
   </script>
 </body>
 </html>
-
