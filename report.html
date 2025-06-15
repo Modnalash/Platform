@@ -1,37 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Inventory Valuation & Multi-FX Report</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-<style>
-  body { margin:0; font-family:'Inter',sans-serif; background:#0b1c2c; color:#fff }
-  .container { max-width:1200px; margin:auto; padding:2rem }
-  .back-btn { display:inline-block; margin-bottom:1rem; background:#1e3d5e; color:#fff; padding:8px 12px; border-radius:6px; text-decoration:none }
-  .back-btn:hover { background:#285a87 }
-  .filters { display:flex; flex-wrap:wrap; gap:1rem; margin-bottom:1rem; }
-  .filters input, .filters select, .filters button { padding:8px; border-radius:6px; border:none; font-size:1rem }
-  table { width:100%; border-collapse:collapse; background:#15273a; border-radius:8px; overflow:hidden }
-  th, td { padding:8px 12px; border-bottom:1px solid #1e3d5e; text-align:left; font-size:0.9rem }
-  th { background:#112b44 }
-  tfoot td { background:#112b44; font-weight:bold }
-  tr.low-stock { background:rgba(255,0,0,0.1) }
-  canvas { margin-top:2rem; background:#fff; border-radius:8px; padding:1rem }
-</style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Inventory Valuation & Multi-Currency Report</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body {margin:0;font-family:'Inter',sans-serif;background:#0b1c2c;color:#fff}
+    .container{max-width:1200px;margin:auto;padding:2rem}
+    .back-btn{
+      display:inline-block;margin-bottom:1rem;
+      background:#1e3d5e;color:#fff;padding:8px 12px;
+      border-radius:6px;text-decoration:none;
+    }
+    .back-btn:hover{background:#285a87}
+    .filters{
+      display:flex;flex-wrap:wrap;gap:1rem;margin-bottom:1rem;
+    }
+    .filters input,
+    .filters select,
+    .filters button{
+      padding:8px;border:none;border-radius:6px;font-size:1rem;
+    }
+    table{
+      width:100%;border-collapse:collapse;background:#15273a;
+      border-radius:8px;overflow:hidden;
+    }
+    th,td{
+      padding:8px 12px;border-bottom:1px solid #1e3d5e;
+      text-align:left;font-size:.9rem;
+    }
+    th{background:#112b44}
+    tfoot td{background:#112b44;font-weight:bold}
+    tr.low-stock{background:rgba(255,0,0,0.1)}
+    canvas{margin-top:2rem;background:#fff;border-radius:8px;padding:1rem}
+  </style>
 </head>
 <body>
   <div class="container">
     <a href="dashboard-admin.html" class="back-btn">⬅ Back to Dashboard</a>
     <h1>Inventory Valuation & Multi-Currency Report</h1>
-
     <div class="filters">
-      <label>FX Date:
+      <label>
+        FX Date:
         <input type="date" id="fxDate" max="">
       </label>
       <button onclick="fetchFx()">Load FX Rates</button>
-      <input type="text" id="searchInput" placeholder="Search product..." oninput="render()">
+      <input type="text" id="searchInput" placeholder="Search product…" oninput="render()">
       <select id="categoryFilter" onchange="render()">
         <option value="">All Categories</option>
       </select>
@@ -66,60 +82,54 @@
   </div>
 
   <script>
-    // ---- Supabase init ----
+    // Supabase init
     const supabase = window.supabase.createClient(
       'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
 
-    let adminStock = [], plStock = [], fx = { PLN:1, GBP:1, EUR:1 };
+    let adminStock = [], plStock = [], fx = {PLN:1,GBP:1,EUR:1};
 
-    // set max FX date to today
+    // set FX date picker
     const fxDate = document.getElementById('fxDate');
     fxDate.max = new Date().toISOString().slice(0,10);
     fxDate.value = fxDate.max;
 
-    // fetch stock + FX at startup
     async function init(){
-      [ {data:admin}, {data:pl} ] = await Promise.all([
-        supabase.from('stock').select('*'),
-        supabase.from('pl_stock').select('*')
-      ]);
-      adminStock = admin||[];
-      plStock    = pl||[];
-      fillCategories();
+      // fetch both tables
+      const { data: aData } = await supabase.from('stock').select('*');
+      const { data: pData } = await supabase.from('pl_stock').select('*');
+      adminStock = aData||[];
+      plStock    = pData||[];
+      // populate categories
+      const cats = [...new Set(adminStock.map(x=>x.category))];
+      document.getElementById('categoryFilter').innerHTML =
+        `<option value="">All Categories</option>`+
+        cats.map(c=>`<option>${c}</option>`).join('');
       await fetchFx();
       render();
     }
 
-    // load FX for USD→PLN,GBP,EUR via exchangerate.host
+    // fetch FX from exchangerate.host
     async function fetchFx(){
       const d = fxDate.value;
-      const res = await fetch(`https://api.exchangerate.host/${d}?base=USD&symbols=PLN,GBP,EUR`);
-      const j = await res.json();
-      fx = j.rates;
+      const res = await fetch(
+        `https://api.exchangerate.host/${d}?base=USD&symbols=PLN,GBP,EUR`
+      );
+      const json = await res.json();
+      fx = json.rates;
       render();
     }
 
-    // populate category dropdown
-    function fillCategories(){
-      const cats = [...new Set(adminStock.map(x=>x.category))];
-      const sel = document.getElementById('categoryFilter');
-      sel.innerHTML = `<option value="">All Categories</option>` +
-        cats.map(c=>`<option value="${c}">${c}</option>`).join('');
-    }
-
-    // main render
     function render(){
-      const tb = document.querySelector('#reportTable tbody');
-      const s  = document.getElementById('searchInput').value.toLowerCase();
-      const c  = document.getElementById('categoryFilter').value;
-      tb.innerHTML='';
+      const tbody = document.querySelector('#reportTable tbody');
+      const s = document.getElementById('searchInput').value.toLowerCase();
+      const c = document.getElementById('categoryFilter').value;
+      tbody.innerHTML = '';
+      // running totals
+      const tot = {sellUsd:0,sellGbp:0,sellEur:0,valUsd:0,valPln:0,valGbp:0,valEur:0};
 
-      // accumulate totals
-      let tsum = { sellUsd:0, sellGbp:0, sellEur:0, valUsd:0, valPln:0, valGbp:0, valEur:0 };
-
-      // merge
+      // merge each admin row
       const rows = adminStock.map(a=>{
         const p = plStock.find(x=>x.name===a.name) || {qty:0};
         const tQty = a.qty + p.qty;
@@ -129,78 +139,72 @@
         const costEur = costUsd * fx.EUR;
         const sellPln = a.sell_pln||0;
         const sellUsd = sellPln / fx.PLN;
-        const sellGbp = sellPln / fx.PLN * fx.GBP;
-        const sellEur = sellPln / fx.PLN * fx.EUR;
+        const sellGbp = sellUsd * fx.GBP;
+        const sellEur = sellUsd * fx.EUR;
         const valUsd = tQty * sellUsd;
         const valPln = tQty * sellPln;
         const valGbp = tQty * sellGbp;
         const valEur = tQty * sellEur;
-        return { name:a.name,category:a.category, qtyA:a.qty, qtyP:p.qty, tQty,
-                 costUsd,costPln,costGbp,costEur,
-                 sellPln,sellUsd,sellGbp,sellEur,
-                 valUsd,valPln,valGbp,valEur };
+        return {name:a.name,category:a.category,qtyA:a.qty,qtyP:p.qty,tQty,
+                costUsd,costPln,costGbp,costEur,
+                sellPln,sellUsd,sellGbp,sellEur,
+                valUsd,valPln,valGbp,valEur};
       })
-      .filter(r=> r.name.toLowerCase().includes(s) && (!c||r.category===c));
+      .filter(r=>
+        r.name.toLowerCase().includes(s) &&
+        (!c||r.category===c)
+      );
 
-      // build table
-      for(const r of rows){
-        const tr=document.createElement('tr');
+      // populate rows
+      rows.forEach(r=>{
+        const tr = document.createElement('tr');
         if(r.tQty<=50) tr.classList.add('low-stock');
         tr.innerHTML=`
-          <td>${r.name}</td>
-          <td>${r.category}</td>
-          <td>${r.qtyA}</td>
-          <td>${r.qtyP}</td>
-          <td>${r.tQty}</td>
-          <td>$${r.costUsd.toFixed(2)}</td>
-          <td>${r.costPln.toFixed(2)}</td>
-          <td>${r.costGbp.toFixed(2)}</td>
-          <td>${r.costEur.toFixed(2)}</td>
-          <td>${r.sellPln.toFixed(2)}</td>
-          <td>$${r.sellUsd.toFixed(2)}</td>
-          <td>${r.sellGbp.toFixed(2)}</td>
-          <td>${r.sellEur.toFixed(2)}</td>
-          <td>$${r.valUsd.toFixed(2)}</td>
-          <td>${r.valPln.toFixed(2)}</td>
-          <td>${r.valGbp.toFixed(2)}</td>
-          <td>${r.valEur.toFixed(2)}</td>`;
-        tb.appendChild(tr);
-        // totals
-        tsum.sellUsd += r.sellUsd * r.tQty;
-        tsum.sellGbp += r.sellGbp * r.tQty;
-        tsum.sellEur += r.sellEur * r.tQty;
-        tsum.valUsd  += r.valUsd;
-        tsum.valPln  += r.valPln;
-        tsum.valGbp  += r.valGbp;
-        tsum.valEur  += r.valEur;
-      }
+          <td>${r.name}</td><td>${r.category}</td>
+          <td>${r.qtyA}</td><td>${r.qtyP}</td><td>${r.tQty}</td>
+          <td>$${r.costUsd.toFixed(2)}</td><td>${r.costPln.toFixed(2)}</td><td>${r.costGbp.toFixed(2)}</td><td>${r.costEur.toFixed(2)}</td>
+          <td>${r.sellPln.toFixed(2)}</td><td>$${r.sellUsd.toFixed(2)}</td><td>${r.sellGbp.toFixed(2)}</td><td>${r.sellEur.toFixed(2)}</td>
+          <td>$${r.valUsd.toFixed(2)}</td><td>${r.valPln.toFixed(2)}</td><td>${r.valGbp.toFixed(2)}</td><td>${r.valEur.toFixed(2)}</td>`;
+        tbody.appendChild(tr);
+        // accumulate
+        tot.sellUsd += r.sellUsd * r.tQty;
+        tot.sellGbp += r.sellGbp * r.tQty;
+        tot.sellEur += r.sellEur * r.tQty;
+        tot.valUsd  += r.valUsd;
+        tot.valPln  += r.valPln;
+        tot.valGbp  += r.valGbp;
+        tot.valEur  += r.valEur;
+      });
 
-      // write totals
-      document.getElementById('tSellUsd').textContent = `$${tsum.sellUsd.toFixed(2)}`;
-      document.getElementById('tSellGbp').textContent = tsum.sellGbp.toFixed(2);
-      document.getElementById('tSellEur').textContent = tsum.sellEur.toFixed(2);
-      document.getElementById('tValUsd').textContent  = `$${tsum.valUsd.toFixed(2)}`;
-      document.getElementById('tValPln').textContent  = tsum.valPln.toFixed(2);
-      document.getElementById('tValGbp').textContent  = tsum.valGbp.toFixed(2);
-      document.getElementById('tValEur').textContent  = tsum.valEur.toFixed(2);
+      // write footer
+      document.getElementById('tSellUsd').textContent = `$${tot.sellUsd.toFixed(2)}`;
+      document.getElementById('tSellGbp').textContent = tot.sellGbp.toFixed(2);
+      document.getElementById('tSellEur').textContent = tot.sellEur.toFixed(2);
+      document.getElementById('tValUsd').textContent  = `$${tot.valUsd.toFixed(2)}`;
+      document.getElementById('tValPln').textContent  = tot.valPln.toFixed(2);
+      document.getElementById('tValGbp').textContent  = tot.valGbp.toFixed(2);
+      document.getElementById('tValEur').textContent  = tot.valEur.toFixed(2);
 
+      // draw chart
       drawChart(rows);
     }
 
-    // bar chart in PLN
     function drawChart(rows){
-      const sums={};
+      const sums = {};
       rows.forEach(r=> sums[r.category] = (sums[r.category]||0) + r.valPln);
       const ctx = document.getElementById('categoryChart').getContext('2d');
       if(window.myChart) window.myChart.destroy();
       window.myChart = new Chart(ctx,{
         type:'bar',
-        data:{ labels:Object.keys(sums), datasets:[{ label:'Value by Category (PLN)', data:Object.values(sums), backgroundColor:'#7ee2f6' }]},
-        options:{ responsive:true, scales:{ y:{ beginAtZero:true } } }
+        data:{
+          labels: Object.keys(sums),
+          datasets:[{label:'Value by Category (PLN)',data:Object.values(sums),backgroundColor:'#7ee2f6'}]
+        },
+        options:{responsive:true,scales:{y:{beginAtZero:true}}}
       });
     }
 
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded',init);
   </script>
 </body>
 </html>
