@@ -6,43 +6,78 @@
   <title>Manage Stock</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
-    body { margin: 0; font-family: 'Inter', sans-serif; background-color: #0b1c2c; color: white; }
+    body { margin: 0; font-family: 'Inter', sans-serif; background-color: #0b1c2c; color: #fff; }
     .container { display: flex; }
     .sidebar { width: 250px; background-color: #112b44; padding: 2rem 1rem; display: flex; flex-direction: column; gap: 1.5rem; height: 100vh; }
-    .sidebar a { color: white; text-decoration: none; padding: 0.8rem 1rem; border-radius: 8px; }
+    .sidebar a { color: #fff; text-decoration: none; padding: 0.8rem 1rem; border-radius: 8px; }
     .sidebar a:hover, .sidebar a.active { background-color: #1e3d5e; }
     .main { flex: 1; padding: 2rem; }
     .header { background-color: #1e3d5e; padding: 1rem; text-align: center; font-size: 1.25rem; border-radius: 12px; }
     .section { background-color: #1a2b3e; padding: 1.5rem; margin-top: 2rem; border-radius: 12px; }
+    .controls { margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem; }
+    .controls input,
+    .controls select,
+    .controls button { padding: 6px 12px; border-radius: 4px; border: none; font-size: 1rem; }
     table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
     th, td { padding: 10px; text-align: left; border-bottom: 1px solid #2a3c4f; }
-    th { background-color: #112b44; cursor: pointer; }
-    input, select { padding: 6px; border-radius: 4px; border: none; margin-right: 10px; }
-    button { background-color: #00a8e8; color: white; padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; }
-    button:hover { background-color: #008dbb; }
-    .actions button { margin-right: 5px; }
-    .controls { margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem; }
+    th { background-color: #112b44; }
+    /* narrow add-qty input */
+    #stockTable td input[type="number"] { width: 60px; padding: 4px; }
+    /* button styles */
+    .actions button { margin-right: 6px; padding: 6px 10px; border-radius: 4px; border: none; font-size: 0.9rem; cursor: pointer; }
+    .btn-add { background-color: #79e08a; color: #0d1b2a; }
+    .btn-add:hover { background-color: #6cc77e; }
+    .btn-edit { background-color: #ffdd91; color: #0d1b2a; }
+    .btn-edit:hover { background-color: #e6c87c; }
+    .btn-delete { background-color: #f28b82; color: #0d1b2a; }
+    .btn-delete:hover { background-color: #e07a73; }
   </style>
 </head>
 <body>
-<div class="container">
-  <div class="sidebar">
-    <h2>MODNA Admin</h2>
-    <a href="dashboard-admin.html">Dashboard</a>
-    <a href="manage-stock.html" class="active">Manage Stock</a>
-    <a href="order-history.html">Order History</a>
-    <a href="report.html">Report</a>
-    <a href="index.html">Logout</a>
-  </div>
-
-  <div class="main">
-    <div class="header">Manage Stock</div>
-
-    <div class="section">
-      <div class="controls">
-        <input type="text" id="searchInput" placeholder="Search by product..." oninput="renderTable()" />
-        <select id="sortCategory" onchange="renderTable()">
-          <option value="">All</option>
+  <div class="container">
+    <div class="sidebar">
+      <h2>MODNA Admin</h2>
+      <a href="dashboard-admin.html">Dashboard</a>
+      <a href="manage-stock.html" class="active">Manage Stock</a>
+      <a href="order-history.html">Order History</a>
+      <a href="report.html">Report</a>
+      <a href="index.html">Logout</a>
+    </div>
+    <div class="main">
+      <div class="header">Manage Stock</div>
+      <div class="section">
+        <div class="controls">
+          <input type="text" id="searchInput" placeholder="Search by product..." oninput="renderTable()" />
+          <select id="sortCategory" onchange="renderTable()">
+            <option value="">All</option>
+            <option value="Starter Kit">Starter Kit</option>
+            <option value="Express Lash">Express Lash</option>
+            <option value="Wielokrotnego">Wielokrotnego</option>
+            <option value="Bio">Bio</option>
+            <option value="Ribbon">Ribbon</option>
+            <option value="Accessories">Accessories</option>
+            <option value="Make-up">Make-up</option>
+          </select>
+          <button onclick="exportCSV()">📁 Export CSV</button>
+        </div>
+        <table id="stockTable">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Category</th>
+              <th>Quantity</th>
+              <th>Add Qty</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="section">
+        <h3>Add New Product</h3>
+        <input type="text" id="productName" placeholder="Product Name" />
+        <select id="productCategory">
+          <option value="">Select Category</option>
           <option value="Starter Kit">Starter Kit</option>
           <option value="Express Lash">Express Lash</option>
           <option value="Wielokrotnego">Wielokrotnego</option>
@@ -51,135 +86,106 @@
           <option value="Accessories">Accessories</option>
           <option value="Make-up">Make-up</option>
         </select>
-        <button onclick="exportCSV()">📁 Export CSV</button>
+        <input type="number" id="productQty" placeholder="Quantity" />
+        <button onclick="addProduct()">Add Product</button>
+        <div id="successMsg" style="color:#7ee2f6; margin-top:10px;"></div>
       </div>
-      <table id="stockTable">
-        <thead>
-          <tr>
-            <th>Product</th>
-            <th>Category</th>
-            <th>Quantity</th>
-            <th>Add Qty</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-
-    <div class="section">
-      <h3>Add New Product</h3>
-      <input type="text" id="productName" placeholder="Product Name" />
-      <select id="productCategory">
-        <option value="">Select Category</option>
-        <option value="Starter Kit">Starter Kit</option>
-        <option value="Express Lash">Express Lash</option>
-        <option value="Wielokrotnego">Wielokrotnego</option>
-        <option value="Bio">Bio</option>
-        <option value="Ribbon">Ribbon</option>
-        <option value="Accessories">Accessories</option>
-        <option value="Make-up">Make-up</option>
-      </select>
-      <input type="number" id="productQty" placeholder="Quantity" />
-      <button onclick="addProduct()">Add Product</button>
-      <div id="successMsg" style="color:#7ee2f6; margin-top:10px;"></div>
     </div>
   </div>
-</div>
 
-<script>
-  const supabase = window.supabase.createClient(
-    'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
-  );
+  <script>
+    const supabase = window.supabase.createClient(
+      'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
+    );
 
-  let stockData = [];
+    let stockData = [];
 
-  async function fetchStock() {
-    const { data, error } = await supabase
-      .from('stock')
-      .select('*')
-      .order('id', { ascending: true });
-    if (!error && Array.isArray(data)) {
-      stockData = data;
-      renderTable();
+    async function fetchStock() {
+      const { data, error } = await supabase
+        .from('stock')
+        .select('*')
+        .order('id', { ascending: true });
+      if (!error && Array.isArray(data)) {
+        stockData = data;
+        renderTable();
+      }
     }
-  }
 
-  function renderTable() {
-    const tbody = document.querySelector("#stockTable tbody");
-    const search = document.getElementById("searchInput").value.toLowerCase();
-    const category = document.getElementById("sortCategory").value;
+    function renderTable() {
+      const tbody = document.querySelector('#stockTable tbody');
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const category = document.getElementById('sortCategory').value;
 
-    let filtered = stockData.filter(item => item.name.toLowerCase().includes(search));
-    if (category) filtered = filtered.filter(item => item.category === category);
+      let filtered = stockData.filter(item => item.name.toLowerCase().includes(search));
+      if (category) filtered = filtered.filter(item => item.category === category);
 
-    tbody.innerHTML = '';
-    filtered.forEach(item => {
-      const row = `<tr>
-        <td>${item.name}</td>
-        <td>${item.category}</td>
-        <td id="qty-${item.id}">${item.qty}</td>
-        <td><input type='number' value='0' min='0' id='add-${item.id}'/></td>
-        <td class='actions'>
-          <button onclick='addQty(${item.id}, ${item.qty})'>Add</button>
-          <button onclick='editQty(${item.id}, ${item.qty})'>Edit</button>
-          <button onclick='deleteProduct(${item.id})'>🗑️ Delete</button>
-        </td>
-      </tr>`;
-      tbody.innerHTML += row;
-    });
-  }
+      tbody.innerHTML = '';
+      filtered.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${item.name}</td>
+          <td>${item.category}</td>
+          <td id="qty-${item.id}">${item.qty}</td>
+          <td><input type="number" value="0" min="0" id="add-${item.id}"/></td>
+          <td class="actions">
+            <button class="btn-add" onclick="addQty(${item.id}, ${item.qty})">Add</button>
+            <button class="btn-edit" onclick="editQty(${item.id}, ${item.qty})">Edit</button>
+            <button class="btn-delete" onclick="deleteProduct(${item.id})">🗑️ Delete</button>
+          </td>`;
+        tbody.appendChild(row);
+      });
+    }
 
-  async function addProduct() {
-    const name = document.getElementById("productName").value.trim();
-    const category = document.getElementById("productCategory").value;
-    const qty = parseInt(document.getElementById("productQty").value.trim(), 10);
-    if (!name || !category || isNaN(qty)) { alert("Please fill out all fields correctly."); return; }
-    const { error } = await supabase.from('stock').insert([{ name, category, qty }]);
-    if (error) alert("Error adding product: " + error.message);
-    else { document.getElementById("successMsg").textContent = "✅ Added!"; fetchStock(); }
-    document.getElementById("productName").value = '';
-    document.getElementById("productCategory").value = '';
-    document.getElementById("productQty").value = '';
-  }
+    async function addProduct() {
+      const name = document.getElementById('productName').value.trim();
+      const category = document.getElementById('productCategory').value;
+      const qty = parseInt(document.getElementById('productQty').value.trim(), 10);
+      if (!name || !category || isNaN(qty)) { alert('Please fill out all fields correctly.'); return; }
+      const { error } = await supabase.from('stock').insert([{ name, category, qty }]);
+      if (error) alert('Error adding product: ' + error.message);
+      else { document.getElementById('successMsg').textContent = '✅ Added!'; fetchStock(); }
+      document.getElementById('productName').value = '';
+      document.getElementById('productCategory').value = '';
+      document.getElementById('productQty').value = '';
+    }
 
-  async function deleteProduct(id) {
-    if (!confirm("Are you sure you want to delete this product?")) return;
-    const { error } = await supabase.from('stock').delete().eq('id', id);
-    if (error) alert("Error deleting product: " + error.message);
-    else fetchStock();
-  }
+    async function deleteProduct(id) {
+      if (!confirm('Are you sure you want to delete this product?')) return;
+      const { error } = await supabase.from('stock').delete().eq('id', id);
+      if (error) alert('Error deleting product: ' + error.message);
+      else fetchStock();
+    }
 
-  async function addQty(id, currentQty) {
-    const toAdd = parseInt(document.getElementById(`add-${id}`).value, 10);
-    if (isNaN(toAdd) || toAdd < 0) { alert("Enter a valid quantity to add."); return; }
-    const newQty = currentQty + toAdd;
-    const { error } = await supabase.from('stock').update({ qty: newQty }).eq('id', id);
-    if (error) alert("Error updating quantity: " + error.message);
-    else fetchStock();
-  }
+    async function addQty(id, currentQty) {
+      const toAdd = parseInt(document.getElementById(`add-${id}`).value, 10);
+      if (isNaN(toAdd) || toAdd < 0) { alert('Enter a valid quantity to add.'); return; }
+      const newQty = currentQty + toAdd;
+      const { error } = await supabase.from('stock').update({ qty: newQty }).eq('id', id);
+      if (error) alert('Error updating quantity: ' + error.message);
+      else fetchStock();
+    }
 
-  async function editQty(id, currentQty) {
-    const newQty = parseInt(prompt("Enter new quantity:", currentQty), 10);
-    if (isNaN(newQty) || newQty < 0) { alert("Invalid quantity"); return; }
-    const { error } = await supabase.from('stock').update({ qty: newQty }).eq('id', id);
-    if (error) alert("Error updating quantity: " + error.message);
-    else fetchStock();
-  }
+    async function editQty(id, currentQty) {
+      const newQty = parseInt(prompt('Enter new quantity:', currentQty), 10);
+      if (isNaN(newQty) || newQty < 0) { alert('Invalid quantity'); return; }
+      const { error } = await supabase.from('stock').update({ qty: newQty }).eq('id', id);
+      if (error) alert('Error updating quantity: ' + error.message);
+      else fetchStock();
+    }
 
-  function exportCSV() {
-    const headers = ["Product", "Category", "Quantity"];
-    const rows = stockData.map(item => [item.name, item.category, item.qty]);
-    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "stock.csv";
-    link.click();
-  }
+    function exportCSV() {
+      const headers = ['Product', 'Category', 'Quantity'];
+      const rows = stockData.map(item => [item.name, item.category, item.qty]);
+      const csvContent = [headers, ...rows].map(e => e.join(',')).join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'stock.csv';
+      link.click();
+    }
 
-  document.addEventListener("DOMContentLoaded", fetchStock);
-</script>
+    document.addEventListener('DOMContentLoaded', fetchStock);
+  </script>
 </body>
 </html>
