@@ -14,29 +14,32 @@
     h1 { margin-top:0; }
     .filters { display:flex; flex-wrap:wrap; gap:1rem; margin-bottom:1rem; }
     .filters input, .filters select { font-size:1rem; padding:8px; border:0; border-radius:6px; background:#fff; color:#000; }
+
+    /* Table styling */
     table { width:100%; border-collapse:collapse; background:#15273a; border-radius:8px; overflow:hidden; }
     th, td { padding:8px 12px; border-bottom:1px solid #1e3d5e; font-size:.9rem; }
     th { background:#112b44; text-align:left; }
     .numeric { text-align:right; }
     tfoot td { background:#112b44; font-weight:bold; }
     tr.low-stock { background:rgba(255,0,0,0.1); }
+
+    /* Scrollable tbody - disabled for pagination */
+    #reportTable { /*display: block;*/ }
+
+    /* Pagination controls */
+    #paginationControls { text-align:center; margin:1rem 0; }
+    #paginationControls button { margin:0 0.5rem; padding:6px 12px; font-size:1rem; border:none; border-radius:6px; background:#1e3d5e; color:#fff; cursor:pointer; }
+    #paginationControls button:disabled { background:#4a637a; cursor:default; }
+    #paginationControls span { font-size:1rem; }
+
+    /* Chart styling */
     canvas { margin-top:2rem; background:#fff; border-radius:8px; padding:1rem; }
 
     /* Summary box in top right */
-    #totalsSummary {
-      position:absolute;
-      top:1.5rem;
-      right:1.5rem;
-      background:#112b44;
-      border:1px solid #1e3d5e;
-      padding:1rem;
-      border-radius:8px;
-      text-align:right;
-      font-size:.9rem;
-    }
+    #totalsSummary { position:absolute; top:1.5rem; right:1.5rem; background:#112b44; border:1px solid #1e3d5e; padding:1rem; border-radius:8px; text-align:right; font-size:.9rem; }
+    #totalsSummary .summary-title { font-weight:bold; margin-bottom:0.5rem; font-size:1rem; text-align:left; }
     #totalsSummary table { border-collapse:collapse; }
-    #totalsSummary td { padding:4px 8px; }
-    #totalsSummary th { padding:4px 8px; text-align:left; }
+    #totalsSummary td, #totalsSummary th { padding:4px 8px; }
   </style>
 </head>
 <body>
@@ -46,10 +49,11 @@
 
     <!-- Totals summary box -->
     <div id="totalsSummary">
+      <div class="summary-title">Stock Value</div>
       <table>
-        <tr><th>Total PLN:</th><td id="sumPln">0.00 PLN</td></tr>
-        <tr><th>Total GBP:</th><td id="sumGbp">£0.00</td></tr>
-        <tr><th>Total EUR:</th><td id="sumEur">€0.00</td></tr>
+        <tr><th>PLN:</th><td id="sumPln">0.00 PLN</td></tr>
+        <tr><th>GBP:</th><td id="sumGbp">£0.00</td></tr>
+        <tr><th>EUR:</th><td id="sumEur">€0.00</td></tr>
       </table>
     </div>
 
@@ -81,16 +85,28 @@
       </tfoot>
     </table>
 
+    <!-- Pagination controls -->
+    <div id="paginationControls">
+      <button id="prevBtn">Prev</button>
+      <span id="pageInfo">Page 1 of 1</span>
+      <button id="nextBtn">Next</button>
+    </div>
+
     <canvas id="categoryChart" height="80"></canvas>
   </div>
 
   <script>
+    const rowsPerPage = 10;
+    let currentPage = 0;
+
     const supabase = window.supabase.createClient(
       'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
-
     let adminStock = [], plStock = [], fx = { PLN:1, GBP:1, EUR:1 };
+
+    document.getElementById('prevBtn').onclick = () => { currentPage--; render(); };
+    document.getElementById('nextBtn').onclick = () => { currentPage++; render(); };
 
     window.addEventListener('DOMContentLoaded', async () => {
       const [a,p] = await Promise.all([
@@ -108,16 +124,10 @@
       try {
         const res = await fetch(url);
         const json = await res.json();
-        console.log('FX API response:', json);
         if (json.result === 'success' && json.rates) {
           fx = { PLN: json.rates.PLN, GBP: json.rates.GBP, EUR: json.rates.EUR };
-          console.log('✔️ FX loaded:', fx);
-        } else {
-          console.warn('⚠️ FX lookup failed; keeping 1:1');
         }
-      } catch (e) {
-        console.error('❗ FX fetch error; keeping 1:1', e);
-      }
+      } catch (e) {}
       render();
     }
 
@@ -131,14 +141,23 @@
     function render() {
       const term = document.getElementById('searchInput').value.toLowerCase();
       const catF = document.getElementById('categoryFilter').value;
+
+      const filtered = adminStock.filter(r =>
+        r.name.toLowerCase().includes(term) && (!catF || r.category === catF)
+      );
+      const totalPages = Math.ceil(filtered.length / rowsPerPage);
+      if (currentPage < 0) currentPage = 0;
+      if (currentPage >= totalPages) currentPage = totalPages - 1;
+
+      const start = currentPage * rowsPerPage;
+      const pageItems = filtered.slice(start, start + rowsPerPage);
+
       const tbody = document.querySelector('#reportTable tbody');
       tbody.innerHTML = '';
 
       let totals = { valPln:0, valGbp:0, valEur:0 };
 
-      adminStock.forEach(r => {
-        if (!r.name.toLowerCase().includes(term) || (catF && r.category !== catF)) return;
-
+      pageItems.forEach(r => {
         const pl = plStock.find(x => x.name === r.name) || {};
         const qtyA = +r.qty || 0;
         const qtyP = +pl.qty || 0;
@@ -184,21 +203,40 @@
         tbody.appendChild(tr);
       });
 
-      document.getElementById('tValPln').textContent = new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(totals.valPln);
-      document.getElementById('tValGbp').textContent = new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(totals.valGbp);
-      document.getElementById('tValEur').textContent = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(totals.valEur);
+      // Footer totals reflect full dataset or page? Keep full filtered totals
+      const footerTotals = filtered.reduce((acc,r) => {
+        const pl = plStock.find(x=>x.name===r.name) || {};
+        const qtyA = +r.qty||0, qtyP=+pl.qty||0, totalQty=qtyA+qtyP;
+        const sellPln=+r.sell_pln||0, sellUsd=sellPln/fx.PLN;
+        acc.valPln += totalQty * sellPln;
+        acc.valGbp += totalQty * (sellUsd * fx.GBP);
+        acc.valEur += totalQty * (sellUsd * fx.EUR);
+        return acc;
+      }, {valPln:0,valGbp:0,valEur:0});
+      document.getElementById('tValPln').textContent = new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(footerTotals.valPln);
+      document.getElementById('tValGbp').textContent = new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(footerTotals.valGbp);
+      document.getElementById('tValEur').textContent = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(footerTotals.valEur);
 
-      // Update top-right summary
-      document.getElementById('sumPln').textContent = new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(totals.valPln);
-      document.getElementById('sumGbp').textContent = new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(totals.valGbp);
-      document.getElementById('sumEur').textContent = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(totals.valEur);
+      // Summary box totals = same as footer totals
+      document.getElementById('sumPln').textContent = new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(footerTotals.valPln);
+      document.getElementById('sumGbp').textContent = new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(footerTotals.valGbp);
+      document.getElementById('sumEur').textContent = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(footerTotals.valEur);
 
-      // Chart
+      // Update pagination buttons
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      document.getElementById('pageInfo').textContent = `Page ${currentPage+1} of ${totalPages}`;
+      prevBtn.disabled = currentPage === 0;
+      nextBtn.disabled = currentPage >= totalPages - 1;
+
+      // Chart (full filtered data)
       const sums = {};
-      document.querySelectorAll('#reportTable tbody tr').forEach(tr => {
-        const cat = tr.cells[1].textContent;
-        const val = parseFloat(tr.cells[12].textContent.replace(/[^0-9.-]/g,'')) || 0;
-        sums[cat] = (sums[cat] || 0) + val;
+      filtered.forEach(r => {
+        const pl = plStock.find(x=>x.name===r.name) || {};
+        const qtyA = +r.qty||0, qtyP=+pl.qty||0, totalQty=qtyA+qtyP;
+        const sellPln=+r.sell_pln||0, sellUsd=sellPln/fx.PLN;
+        const value = totalQty * sellPln;
+        sums[r.category] = (sums[r.category]||0) + value;
       });
       const ctx = document.getElementById('categoryChart').getContext('2d');
       if (window.myChart) window.myChart.destroy();
