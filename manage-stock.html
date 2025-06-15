@@ -20,7 +20,6 @@
     th, td { padding:10px; text-align:left; border-bottom:1px solid #2a3c4f; }
     th { background:#112b44; }
     #stockTable td input[type="number"] { width:60px; padding:4px; }
-    tr.low-stock { background:rgba(255,0,0,0.1); }
     .actions button { margin-right:6px; padding:6px 10px; border-radius:4px; border:none; font-size:.9rem; cursor:pointer; }
     .btn-add { background:#79e08a; color:#0d1b2a; }
     .btn-edit { background:#ffdd91; color:#0d1b2a; }
@@ -28,6 +27,15 @@
     .btn-add:hover { background:#6cc77e; }
     .btn-edit:hover { background:#e6c87c; }
     .btn-delete:hover { background:#e07a73; }
+    /* Modal styles */
+    .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; }
+    .modal.active { display:flex; }
+    .modal-content { background:#fff; color:#000; padding:1.5rem; border-radius:8px; width:320px; }
+    .modal-content h2 { margin-top:0; }
+    .modal-content label { display:block; margin:0.5rem 0 0.2rem; font-weight:bold; }
+    .modal-content input, .modal-content select { width:100%; padding:6px; margin-bottom:1rem; border:1px solid #ccc; border-radius:4px; }
+    .modal-actions { text-align:right; }
+    .modal-actions button { margin-left:0.5rem; }
   </style>
 </head>
 <body>
@@ -45,8 +53,10 @@
 
       <div class="section">
         <div class="controls">
-          <input type="text" id="searchInput" placeholder="Search by product…" />
-          <select id="sortCategory"></select>
+          <input type="text" id="searchInput" placeholder="Search by product…" oninput="renderTable()">
+          <select id="sortCategory" onchange="renderTable()">
+            <option value="">All</option>
+          </select>
           <button onclick="exportCSV()">📁 Export CSV</button>
         </div>
         <table id="stockTable">
@@ -67,9 +77,26 @@
           <input type="number" id="productQty" placeholder="Quantity" min="0" />
           <input type="number" id="costUsd" placeholder="Purchase Price (USD)" step="0.01" />
           <input type="number" id="sellPln" placeholder="Selling Price (PLN)" step="0.01" />
-          <button onclick="addProduct()">Add Product</button>
+          <button class="btn-add" onclick="addProduct()">Add Product</button>
         </div>
         <div id="successMsg" style="color:#7ee2f6;margin-top:10px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <h2>Edit Product</h2>
+      <label for="editName">Name</label>
+      <input type="text" id="editName" />
+      <label for="editCategory">Category</label>
+      <select id="editCategory"></select>
+      <label for="editQty">Quantity</label>
+      <input type="number" id="editQty" min="0" />
+      <div class="modal-actions">
+        <button onclick="closeModal()">Cancel</button>
+        <button onclick="saveEdit()">Save</button>
       </div>
     </div>
   </div>
@@ -80,38 +107,40 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
     let stockData = [];
+    let categories = [];
+    let editId = null;
 
     document.getElementById('searchInput').addEventListener('input', renderTable);
     document.getElementById('sortCategory').addEventListener('change', renderTable);
 
-    window.addEventListener('DOMContentLoaded', async () => {
+    async function fetchStock() {
       const { data } = await supabase.from('stock').select('*').order('id');
       stockData = data || [];
-
-      // populate category select
-      const cats = [...new Set(stockData.map(r => r.category))];
-      const catSel = document.getElementById('sortCategory');
-      catSel.innerHTML = `<option value="">All</option>` + cats.map(c=>`<option>${c}</option>`).join('');
-
-      // populate add-product category
-      const addCat = document.getElementById('productCategory');
-      addCat.innerHTML = `<option value="">Select Category</option>` + cats.map(c=>`<option>${c}</option>`).join('');
-
+      categories = [...new Set(stockData.map(r=>r.category))];
+      populateCategorySelectors();
       renderTable();
-    });
+    }
+
+    function populateCategorySelectors() {
+      const sortSel = document.getElementById('sortCategory');
+      const prodSel = document.getElementById('productCategory');
+      const editSel = document.getElementById('editCategory');
+      const opts = `<option value="">All</option>` + categories.map(c=>`<option>${c}</option>`).join('');
+      sortSel.innerHTML = opts;
+      prodSel.innerHTML = `<option value="">Select Category</option>` + categories.map(c=>`<option>${c}</option>`).join('');
+      editSel.innerHTML = categories.map(c=>`<option>${c}</option>`).join('');
+    }
 
     function renderTable() {
       const tbody = document.querySelector('#stockTable tbody');
       const s = document.getElementById('searchInput').value.toLowerCase();
       const c = document.getElementById('sortCategory').value;
       tbody.innerHTML = '';
-
       stockData
         .filter(x => x.name.toLowerCase().includes(s))
-        .filter(x => !c || x.category === c)
+        .filter(x => !c || x.category===c)
         .forEach(item => {
           const tr = document.createElement('tr');
-          if (item.qty <= 30) tr.classList.add('low-stock');
           tr.innerHTML = `
             <td>${item.name}</td>
             <td>${item.category}</td>
@@ -119,7 +148,7 @@
             <td><input type="number" id="add-${item.id}" value="0" min="0"></td>
             <td class="actions">
               <button class="btn-add" onclick="addQty(${item.id})">Add</button>
-              <button class="btn-edit" onclick="editItem(${item.id})">Edit</button>
+              <button class="btn-edit" onclick="openModal(${item.id})">Edit</button>
               <button class="btn-delete" onclick="deleteProduct(${item.id})">🗑️ Delete</button>
             </td>
           `;
@@ -127,61 +156,64 @@
         });
     }
 
+    async function addProduct() {
+      const name = document.getElementById('productName').value.trim();
+      const category = document.getElementById('productCategory').value;
+      const qty = parseInt(document.getElementById('productQty').value,10);
+      const cost_usd = parseFloat(document.getElementById('costUsd').value);
+      const sell_pln = parseFloat(document.getElementById('sellPln').value);
+      if (!name||!category||isNaN(qty)||isNaN(cost_usd)||isNaN(sell_pln)) {
+        return alert('Please fill out all fields correctly.');
+      }
+      await supabase.from('stock').insert([{ name, category, qty, cost_usd, sell_pln }]);
+      fetchStock();
+    }
+
     async function addQty(id) {
-      const input = document.getElementById(`add-${id}`);
-      const toAdd = parseInt(input.value, 10);
+      const toAdd = parseInt(document.getElementById(`add-${id}`).value,10);
       if (isNaN(toAdd)) return alert('Enter a valid number');
       const item = stockData.find(x=>x.id===id);
       await supabase.from('stock').update({ qty: item.qty + toAdd }).eq('id', id);
-      await refresh();
+      fetchStock();
     }
 
-    async function editItem(id) {
+    function openModal(id) {
+      editId = id;
       const item = stockData.find(x=>x.id===id);
-      const newName = prompt('New product name:', item.name);
-      if (newName === null) return;
-      const newCat  = prompt('New category:', item.category);
-      if (newCat === null) return;
-      const newQty  = parseInt(prompt('New quantity:', item.qty), 10);
-      if (isNaN(newQty)) return alert('Quantity must be a number');
+      document.getElementById('editName').value = item.name;
+      document.getElementById('editCategory').value = item.category;
+      document.getElementById('editQty').value = item.qty;
+      document.getElementById('editModal').classList.add('active');
+    }
 
-      const { error } = await supabase.from('stock')
-        .update({ name: newName.trim(), category: newCat.trim(), qty: newQty })
-        .eq('id', id);
-      if (error) return alert(error.message);
-      await refresh();
+    function closeModal() {
+      document.getElementById('editModal').classList.remove('active');
+    }
+
+    async function saveEdit() {
+      const newName = document.getElementById('editName').value.trim();
+      const newCat = document.getElementById('editCategory').value;
+      const newQty = parseInt(document.getElementById('editQty').value,10);
+      if (!newName||!newCat||isNaN(newQty)) return alert('Please fill out all fields correctly.');
+      await supabase.from('stock').update({ name:newName, category:newCat, qty:newQty }).eq('id', editId);
+      closeModal();
+      fetchStock();
     }
 
     async function deleteProduct(id) {
       if (!confirm('Delete this product?')) return;
-      await supabase.from('stock').delete().eq('id', id);
-      await refresh();
+      await supabase.from('stock').delete().eq('id',id);
+      fetchStock();
     }
 
-    async function addProduct() {
-      const name = document.getElementById('productName').value.trim();
-      const category = document.getElementById('productCategory').value;
-      const qty = parseInt(document.getElementById('productQty').value, 10);
-      const cost_usd = parseFloat(document.getElementById('costUsd').value);
-      const sell_pln = parseFloat(document.getElementById('sellPln').value);
-      if (!name || !category || isNaN(qty)||isNaN(cost_usd)||isNaN(sell_pln)) {
-        return alert('Please fill out all fields correctly.');
-      }
-      const { error } = await supabase.from('stock')
-        .insert([{ name, category, qty, cost_usd, sell_pln }]);
-      if (error) return alert(error.message);
-      document.getElementById('successMsg').textContent='✅ Added!';
-      await refresh();
+    function exportCSV() {
+      const header = ['Product','Category','Quantity'];
+      const rows = stockData.map(i => [i.name,i.category,i.qty].join(','));
+      const blob = new Blob([[header.join(',')+'\n'+rows.join('\n')]], {type:'text/csv'});
+      const url = URL.createObjectURL(blob), a=document.createElement('a'); a.href=url; a.download='stock.csv'; a.click();
     }
 
-    async function deleteProduct(id) {/* ... */}
-    async function refresh() {
-      const { data } = await supabase.from('stock').select('*').order('id');
-      stockData = data||[];
-      renderTable();
-    }
-
-    function exportCSV() {/* ... */}
+    document.addEventListener('DOMContentLoaded', fetchStock);
   </script>
 </body>
 </html>
