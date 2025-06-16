@@ -110,8 +110,19 @@
             <td>${row.name}</td>
             <td>${row.category}</td>
             <td>${row.qty}</td>
-            <td><input type="number" id="adj-${row.mainId}" value="${row.qty}" min="0"></td>
-            <td class="actions"><button onclick="updateLocal(${row.mainId}, ${row.plId})">Update</button></td>
+            <td>
+              <input
+                type="number"
+                id="adj-${row.mainId}"
+                value="${row.qty}"
+                min="0"
+              >
+            </td>
+            <td class="actions">
+              <button onclick="updateLocal(${row.mainId}, ${row.plId})">
+                Update
+              </button>
+            </td>
           `;
           tbody.appendChild(tr);
         });
@@ -125,6 +136,7 @@
       const mainRec = adminStock.find(r => r.id === mainId);
       if (!mainRec) return alert('Admin item not found.');
 
+      // upsert into pl_stock
       if (plId) {
         const { error } = await supabase
           .from('pl_stock')
@@ -138,10 +150,11 @@
         if (error) return alert(error.message);
       }
 
-      // re-fetch & re-render, then clear just-updated Adjust field
+      // re-fetch & re-render
       await fetchData();
+      // reset just-updated Adjust field to 0
       const justUpdated = document.getElementById(`adj-${mainId}`);
-      if (justUpdated) justUpdated.value = '';
+      if (justUpdated) justUpdated.value = 0;
     }
   </script>
 </body>
