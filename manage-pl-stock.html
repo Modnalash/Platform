@@ -56,8 +56,16 @@
     );
 
     let adminStock = [], plStock = [];
-    // remember whatever's in each Adjust input between rerenders:
-    const adjustValues = {};
+
+    // We persist across reloads here:
+    const STORAGE_KEY = 'plAdjustValues';
+    let adjustValues = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+
+    // Helper to set & save:
+    function setAdjust(id, val) {
+      adjustValues[id] = val;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(adjustValues));
+    }
 
     document.getElementById('searchInput').addEventListener('input', renderTable);
     document.getElementById('categoryFilter').addEventListener('change', renderTable);
@@ -87,7 +95,6 @@
       const cat    = document.getElementById('categoryFilter').value;
       tbody.innerHTML = '';
 
-      // merge admin vs PL quantities
       const merged = adminStock.map(item => {
         const pl = plStock.find(x => x.name === item.name) || {};
         return {
@@ -109,8 +116,8 @@
         const tr = document.createElement('tr');
         if (row.qty <= 20) tr.classList.add('low-stock');
 
-        // decide what value to show:
-        const val = (adjustValues[row.mainId] !== undefined)
+        // choose between saved adjust or default qty
+        const val = adjustValues[row.mainId] !== undefined
                     ? adjustValues[row.mainId]
                     : row.qty;
 
@@ -124,7 +131,7 @@
               id="adj-${row.mainId}"
               min="0"
               value="${val}"
-              oninput="adjustValues[${row.mainId}] = parseInt(this.value,10)"
+              oninput="setAdjust(${row.mainId}, parseInt(this.value,10))"
             >
           </td>
           <td class="actions">
@@ -144,7 +151,7 @@
       const mainRec = adminStock.find(r => r.id === mainId);
       if (!mainRec) return alert('Admin item not found.');
 
-      // upsert into pl_stock
+      // upsert
       if (plId) {
         const { error } = await supabase
           .from('pl_stock')
@@ -158,12 +165,12 @@
         if (error) return alert(error.message);
       }
 
-      // now force this row's Adjust field to stay at 0:
-      adjustValues[mainId] = 0;
+      // reset this one to 0 and save
+      setAdjust(mainId, 0);
 
-      // re-fetch & re-render (which will pick up adjustValues[...] === 0)
       await fetchData();
     }
   </script>
 </body>
 </html>
+
