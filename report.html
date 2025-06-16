@@ -62,6 +62,14 @@
           <tr><th>EUR:</th><td id="profitEur">€0.00</td></tr>
         </table>
       </div>
+      <div class="summaryBox">
+        <div class="summary-title">Total Cost</div>
+        <table>
+          <tr><th>PLN:</th><td id="costPln">0.00 PLN</td></tr>
+          <tr><th>GBP:</th><td id="costGbp">£0.00</td></tr>
+          <tr><th>EUR:</th><td id="costEur">€0.00</td></tr>
+        </table>
+      </div>
     </div>
 
     <!-- Controls: view + search + filter -->
@@ -113,11 +121,11 @@
 
     let adminStock = [], plStock = [], fx = { PLN:1, GBP:1, EUR:1 };
 
-    const viewMode = document.getElementById('viewMode');
-    const searchInput = document.getElementById('searchInput');
+    const viewMode       = document.getElementById('viewMode');
+    const searchInput    = document.getElementById('searchInput');
     const categoryFilter = document.getElementById('categoryFilter');
-    const prevBtn = document.getElementById('prevBtn');
-    const nextBtn = document.getElementById('nextBtn');
+    const prevBtn        = document.getElementById('prevBtn');
+    const nextBtn        = document.getElementById('nextBtn');
 
     viewMode.addEventListener('change', () => { currentPage = 0; render(); });
     searchInput.addEventListener('input', () => { currentPage = 0; render(); });
@@ -130,10 +138,12 @@
         supabase.from('pl_stock').select('*')
       ]);
       adminStock = a.data || [];
-      plStock = p.data || [];
+      plStock    = p.data || [];
 
       const cats = [...new Set(adminStock.map(r => r.category))];
-      categoryFilter.innerHTML = `<option value="">All Categories</option>` + cats.map(c => `<option>${c}</option>`).join('');
+      categoryFilter.innerHTML =
+        `<option value="">All Categories</option>` +
+        cats.map(c => `<option>${c}</option>`).join('');
       categoryFilter.addEventListener('change', () => { currentPage = 0; render(); });
 
       await loadFx();
@@ -141,7 +151,7 @@
 
     async function loadFx() {
       try {
-        const res = await fetch('https://open.er-api.com/v6/latest/USD');
+        const res  = await fetch('https://open.er-api.com/v6/latest/USD');
         const json = await res.json();
         if (json.result === 'success' && json.rates) {
           fx = { PLN: json.rates.PLN, GBP: json.rates.GBP, EUR: json.rates.EUR };
@@ -154,12 +164,16 @@
       const mode = viewMode.value;
       const term = searchInput.value.toLowerCase();
       const catF = categoryFilter.value;
+
       const filtered = adminStock.filter(r =>
-        r.name.toLowerCase().includes(term) && (!catF || r.category === catF)
+        r.name.toLowerCase().includes(term) &&
+        (!catF || r.category === catF)
       );
+
       const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
       currentPage = Math.min(Math.max(0, currentPage), totalPages - 1);
 
+      // Adjust column headers
       if (mode === 'value') {
         colX1.textContent = 'Value PLN';
         colX2.textContent = 'Value GBP';
@@ -174,19 +188,18 @@
         colX3.textContent = '';
       }
 
-      const start = currentPage * rowsPerPage;
-      const items = filtered.slice(start, start + rowsPerPage);
-
-      const totValue = { PLN: 0, GBP: 0, EUR: 0 };
-      const totProfit = { PLN: 0, GBP: 0, EUR: 0 };
-      const catSums = {};
+      // Prepare totals
+      const totValue  = { PLN:0, GBP:0, EUR:0 };
+      const totProfit = { PLN:0, GBP:0, EUR:0 };
+      const totCost   = { PLN:0, GBP:0, EUR:0 };
+      const catSums   = {};
 
       filtered.forEach(r => {
-        const pl = plStock.find(x => x.name === r.name) || {};
-        const qa = +r.qty || 0;
-        const qp = +pl.qty || 0;
-        const tq = qa + qp;
-        const cUsd = +r.cost_usd || 0;
+        const pl    = plStock.find(x => x.name === r.name) || {};
+        const qa    = +r.qty    || 0;
+        const qp    = +pl.qty    || 0;
+        const tq    = qa + qp;
+        const cUsd  = +r.cost_usd || 0;
         const costPLN = cUsd * fx.PLN;
         const costGBP = cUsd * fx.GBP;
         const costEUR = cUsd * fx.EUR;
@@ -194,34 +207,42 @@
         const sellUSD = sellPLN / fx.PLN;
         const sellGBP = sellUSD * fx.GBP;
         const sellEUR = sellUSD * fx.EUR;
-        const valuePLN = tq * sellPLN;
-        const valueGBP = tq * sellGBP;
-        const valueEUR = tq * sellEUR;
+
+        const valuePLN  = tq * sellPLN;
+        const valueGBP  = tq * sellGBP;
+        const valueEUR  = tq * sellEUR;
         const profitPLN = tq * (sellPLN - costPLN);
         const profitGBP = tq * (sellGBP - costGBP);
         const profitEUR = tq * (sellEUR - costEUR);
 
-        totValue.PLN += valuePLN;
-        totValue.GBP += valueGBP;
-        totValue.EUR += valueEUR;
+        // accumulate totals
+        totValue.PLN  += valuePLN;
+        totValue.GBP  += valueGBP;
+        totValue.EUR  += valueEUR;
         totProfit.PLN += profitPLN;
         totProfit.GBP += profitGBP;
         totProfit.EUR += profitEUR;
+        totCost.PLN   += costPLN * tq;
+        totCost.GBP   += costGBP * tq;
+        totCost.EUR   += costEUR * tq;
 
-        if (!catSums[r.category]) catSums[r.category] = { val: 0, prof: 0 };
-        catSums[r.category].val += valuePLN;
+        if (!catSums[r.category]) catSums[r.category] = { val:0, prof:0 };
+        catSums[r.category].val  += valuePLN;
         catSums[r.category].prof += profitPLN;
       });
 
+      // Render table rows (pagination)
+      const start = currentPage * rowsPerPage;
+      const items = filtered.slice(start, start + rowsPerPage);
       const tbody = reportTable.tBodies[0];
       tbody.innerHTML = '';
 
       items.forEach(r => {
         const pl = plStock.find(x => x.name === r.name) || {};
-        const qa = +r.qty || 0;
-        const qp = +pl.qty || 0;
-        const tq = qa + qp;
-        const cUsd = +r.cost_usd || 0;
+        const qa    = +r.qty    || 0;
+        const qp    = +pl.qty    || 0;
+        const tq    = qa + qp;
+        const cUsd  = +r.cost_usd || 0;
         const costPLN = cUsd * fx.PLN;
         const costGBP = cUsd * fx.GBP;
         const costEUR = cUsd * fx.EUR;
@@ -229,9 +250,9 @@
         const sellUSD = sellPLN / fx.PLN;
         const sellGBP = sellUSD * fx.GBP;
         const sellEUR = sellUSD * fx.EUR;
-        const valuePLN = tq * sellPLN;
-        const valueGBP = tq * sellGBP;
-        const valueEUR = tq * sellEUR;
+        const valuePLN  = tq * sellPLN;
+        const valueGBP  = tq * sellGBP;
+        const valueEUR  = tq * sellEUR;
         const profitPLN = tq * (sellPLN - costPLN);
         const profitGBP = tq * (sellGBP - costGBP);
         const profitEUR = tq * (sellEUR - costEUR);
@@ -259,35 +280,38 @@
         tbody.appendChild(tr);
       });
 
-      sumPln.textContent = new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(totValue.PLN);
-      sumGbp.textContent = new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(totValue.GBP);
-      sumEur.textContent = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(totValue.EUR);
+      // Update summaries
+      sumPln.textContent    = new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(totValue.PLN);
+      sumGbp.textContent    = new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(totValue.GBP);
+      sumEur.textContent    = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(totValue.EUR);
       profitPln.textContent = new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(totProfit.PLN);
       profitGbp.textContent = new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(totProfit.GBP);
       profitEur.textContent = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(totProfit.EUR);
+      costPln.textContent   = new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN'}).format(totCost.PLN);
+      costGbp.textContent   = new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(totCost.GBP);
+      costEur.textContent   = new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'}).format(totCost.EUR);
 
+      // Pagination controls
       pageInfo.textContent = `Page ${currentPage+1} of ${totalPages}`;
-      prevBtn.disabled = currentPage===0;
-      nextBtn.disabled = currentPage >= totalPages-1;
+      prevBtn.disabled     = currentPage === 0;
+      nextBtn.disabled     = currentPage >= totalPages - 1;
 
-      // Bar colors array
+      // Draw chart
+      const labels = Object.keys(catSums);
+      const data   = labels.map(cat =>
+        mode==='value'
+          ? catSums[cat].val
+          : mode==='profit'
+          ? catSums[cat].prof
+          : (catSums[cat].prof / catSums[cat].val) * 100
+      );
+
       const barColors = [
-        'rgba(75, 192, 192, 0.6)',
-        'rgba(255, 159, 64, 0.6)',
-        'rgba(255, 99, 132, 0.6)',
-        'rgba(54, 162, 235, 0.6)',
-        'rgba(153, 102, 255, 0.6)',
-        'rgba(255, 206, 86, 0.6)'
+        'rgba(75,192,192,0.6)','rgba(255,159,64,0.6)',
+        'rgba(255,99,132,0.6)','rgba(54,162,235,0.6)',
+        'rgba(153,102,255,0.6)','rgba(255,206,86,0.6)'
       ];
 
-      // Draw chart with per-bar colors
-      const labels = Object.keys(catSums);
-      const data = labels.map(cat => mode==='value'
-        ? catSums[cat].val
-        : mode==='profit'
-        ? catSums[cat].prof
-        : (catSums[cat].prof/catSums[cat].val)*100
-      );
       const ctx = categoryChart.getContext('2d');
       if (window.myChart) window.myChart.destroy();
       window.myChart = new Chart(ctx, {
@@ -298,8 +322,8 @@
             label: mode==='margin' ? 'Margin % by Category' : 'Amount by Category (PLN)',
             data,
             backgroundColor: labels.map((_,i)=>barColors[i % barColors.length]),
-            borderColor: labels.map((_,i)=>barColors[i % barColors.length].replace('0.6','1')),
-            borderWidth: 1
+            borderColor:     labels.map((_,i)=>barColors[i % barColors.length].replace('0.6','1')),
+            borderWidth:1
           }]
         },
         options: {
@@ -307,7 +331,7 @@
           scales: {
             y: {
               beginAtZero: true,
-              ticks: mode==='margin' ? { callback: v => v+'%' } : {}
+              ticks: mode==='margin' ? { callback: v=>v+'%' } : {}
             }
           }
         }
