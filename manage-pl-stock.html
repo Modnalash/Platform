@@ -16,7 +16,7 @@
     table { width:100%; border-collapse:collapse; background:#1b263b; margin-bottom:1.5rem; }
     th, td { padding:0.75rem 1rem; border:1px solid #2b3a50; text-align:left; }
     th { background:#112d4e; }
-    /* highlight low-stock rows (<=30) with light red */
+    /* highlight low-stock rows (<=20) with light red */
     tr.low-stock { background: rgba(255, 0, 0, 0.1); }
     .actions button { background:#3fbc5f; border:none; color:#0d1b2a; padding:0.5rem 1rem; border-radius:4px; cursor:pointer; }
     .actions button:hover { background:#2c9e4c; }
@@ -95,7 +95,6 @@
         };
       });
 
-      // sort alphabetically by product name
       merged.sort((a, b) => a.name.localeCompare(b.name));
 
       merged
@@ -106,7 +105,7 @@
         })
         .forEach(row => {
           const tr = document.createElement('tr');
-          if (row.qty <= 30) tr.classList.add('low-stock');
+          if (row.qty <= 20) tr.classList.add('low-stock');
           tr.innerHTML = `
             <td>${row.name}</td>
             <td>${row.category}</td>
@@ -127,14 +126,22 @@
       if (!mainRec) return alert('Admin item not found.');
 
       if (plId) {
-        const { error } = await supabase.from('pl_stock').update({ qty: newQty }).eq('id', plId);
+        const { error } = await supabase
+          .from('pl_stock')
+          .update({ qty: newQty })
+          .eq('id', plId);
         if (error) return alert(error.message);
       } else {
-        const { error } = await supabase.from('pl_stock').insert([{ name: mainRec.name, category: mainRec.category, qty: newQty }]);
+        const { error } = await supabase
+          .from('pl_stock')
+          .insert([{ name: mainRec.name, category: mainRec.category, qty: newQty }]);
         if (error) return alert(error.message);
       }
 
-      fetchData();
+      // re-fetch & re-render, then clear just-updated Adjust field
+      await fetchData();
+      const justUpdated = document.getElementById(`adj-${mainId}`);
+      if (justUpdated) justUpdated.value = '';
     }
   </script>
 </body>
