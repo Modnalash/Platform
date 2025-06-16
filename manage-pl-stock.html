@@ -54,7 +54,10 @@
       'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
+
     let adminStock = [], plStock = [];
+    // remember whatever's in each Adjust input between rerenders:
+    const adjustValues = {};
 
     document.getElementById('searchInput').addEventListener('input', renderTable);
     document.getElementById('categoryFilter').addEventListener('change', renderTable);
@@ -66,7 +69,7 @@
         supabase.from('pl_stock').select('*').order('name', { ascending: true })
       ]);
       adminStock = mainRes.data || [];
-      plStock = plRes.data || [];
+      plStock    = plRes.data   || [];
       populateCategoryFilter();
       renderTable();
     }
@@ -79,58 +82,63 @@
     }
 
     function renderTable() {
-      const tbody = document.querySelector('#localStockTable tbody');
+      const tbody  = document.querySelector('#localStockTable tbody');
       const search = document.getElementById('searchInput').value.toLowerCase();
-      const cat = document.getElementById('categoryFilter').value;
+      const cat    = document.getElementById('categoryFilter').value;
       tbody.innerHTML = '';
 
-      let merged = adminStock.map(item => {
+      // merge admin vs PL quantities
+      const merged = adminStock.map(item => {
         const pl = plStock.find(x => x.name === item.name) || {};
         return {
-          mainId: item.id,
-          plId: pl.id || null,
-          name: item.name,
+          mainId:   item.id,
+          plId:     pl.id   || null,
+          name:     item.name,
           category: item.category,
-          qty: pl.qty || 0
+          qty:      pl.qty  || 0
         };
+      })
+      .sort((a,b) => a.name.localeCompare(b.name))
+      .filter(row => {
+        const okSearch = !search || row.name.toLowerCase().includes(search);
+        const okCat    = !cat    || row.category === cat;
+        return okSearch && okCat;
       });
 
-      merged.sort((a, b) => a.name.localeCompare(b.name));
+      merged.forEach(row => {
+        const tr = document.createElement('tr');
+        if (row.qty <= 20) tr.classList.add('low-stock');
 
-      merged
-        .filter(row => {
-          const matchSearch = !search || row.name.toLowerCase().includes(search);
-          const matchCat = !cat || row.category === cat;
-          return matchSearch && matchCat;
-        })
-        .forEach(row => {
-          const tr = document.createElement('tr');
-          if (row.qty <= 20) tr.classList.add('low-stock');
-          tr.innerHTML = `
-            <td>${row.name}</td>
-            <td>${row.category}</td>
-            <td>${row.qty}</td>
-            <td>
-              <input
-                type="number"
-                id="adj-${row.mainId}"
-                value="${row.qty}"
-                min="0"
-              >
-            </td>
-            <td class="actions">
-              <button onclick="updateLocal(${row.mainId}, ${row.plId})">
-                Update
-              </button>
-            </td>
-          `;
-          tbody.appendChild(tr);
-        });
+        // decide what value to show:
+        const val = (adjustValues[row.mainId] !== undefined)
+                    ? adjustValues[row.mainId]
+                    : row.qty;
+
+        tr.innerHTML = `
+          <td>${row.name}</td>
+          <td>${row.category}</td>
+          <td>${row.qty}</td>
+          <td>
+            <input
+              type="number"
+              id="adj-${row.mainId}"
+              min="0"
+              value="${val}"
+              oninput="adjustValues[${row.mainId}] = parseInt(this.value,10)"
+            >
+          </td>
+          <td class="actions">
+            <button onclick="updateLocal(${row.mainId}, ${row.plId})">
+              Update
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
     }
 
     async function updateLocal(mainId, plId) {
-      const input = document.getElementById(`adj-${mainId}`);
-      const newQty = parseInt(input.value, 10);
+      const newQty = parseInt(adjustValues[mainId], 10);
       if (isNaN(newQty)) return alert('Enter a valid number.');
 
       const mainRec = adminStock.find(r => r.id === mainId);
@@ -150,11 +158,11 @@
         if (error) return alert(error.message);
       }
 
-      // re-fetch & re-render
+      // now force this row's Adjust field to stay at 0:
+      adjustValues[mainId] = 0;
+
+      // re-fetch & re-render (which will pick up adjustValues[...] === 0)
       await fetchData();
-      // reset just-updated Adjust field to 0
-      const justUpdated = document.getElementById(`adj-${mainId}`);
-      if (justUpdated) justUpdated.value = 0;
     }
   </script>
 </body>
