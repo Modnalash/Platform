@@ -157,10 +157,12 @@
     btn.textContent = isHidden ? 'Hide Full Order' : 'View Full Order';
   }
 
+  // ─── Load only non-archived orders ────────────────────────────────────
   async function loadOrders() {
     const { data: rows, error } = await supabase
       .from('orders')
       .select('order_group_id,region,product,category,qty,status,created_at')
+      .eq('archived', false)            // filter out archived
       .order('created_at', { ascending: false });
 
     const container = document.getElementById('ordersContainer');
@@ -263,16 +265,16 @@
     printWindow.print();
   }
 
-  // ─── Updated deleteGroup ───────────────────────────────────────────────
+  // ─── Soft-delete (archive) instead of hard-delete ────────────────────
   async function deleteGroup(gid) {
-    if (!confirm('Are you sure you want to delete this order?')) return;
+    if (!confirm('Archive this order? It will be hidden permanently.')) return;
     const { error } = await supabase
       .from('orders')
-      .delete()
+      .update({ archived: true })   // mark as archived
       .eq('order_group_id', gid);
 
     if (error) {
-      alert('❌ Delete failed: ' + error.message);
+      alert('❌ Archive failed: ' + error.message);
       console.error(error);
     } else {
       // Remove only the matching block from the page
