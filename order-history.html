@@ -141,19 +141,21 @@
 </div>
 
 <script>
+  // full Supabase credentials
   const SUPABASE_URL = 'https://rwmwsaxlqblvnhfyuuqg.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y';
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // Toggle between preview and full order
+  // Toggle preview/full rows
   function toggleFull(btn) {
-    const table = btn.previousElementSibling;
+    const table   = btn.previousElementSibling;
     const fullTbody = table.querySelector('tbody.full');
-    const isHidden = fullTbody.style.display === 'none';
+    const isHidden  = fullTbody.style.display === 'none';
     fullTbody.style.display = isHidden ? '' : 'none';
     btn.textContent = isHidden ? 'Hide Full Order' : 'View Full Order';
   }
 
+  // Load & render all orders, grouped with 5-item previews
   async function loadOrders() {
     const { data: rows, error } = await supabase
       .from('orders')
@@ -165,7 +167,7 @@
 
     if (error) {
       container.innerHTML = `<p style="color:#f66">Error loading orders</p>`;
-      console.error(error);
+      console.error('Fetch error:', error);
       return;
     }
     if (!rows.length) {
@@ -173,14 +175,14 @@
       return;
     }
 
-    // Group by order_group_id
+    // group by order_group_id
     const groups = {};
     rows.forEach(o => {
       if (!o.order_group_id) return;
       (groups[o.order_group_id] ||= []).push(o);
     });
 
-    // Render each group with preview & full
+    // render each group
     for (const [gid, items] of Object.entries(groups)) {
       const allFulfilled = items.every(i => i.status === 'Fulfilled');
       const date = new Date(Math.min(...items.map(i => new Date(i.created_at))));
@@ -189,11 +191,10 @@
       const block = document.createElement('div');
       block.className = 'order-block' + (allFulfilled ? ' fulfilled' : '');
 
-      // Split items into preview (first 5) and full (rest)
+      // split into preview & full
       const previewItems = items.slice(0, 5);
-      const fullItems = items.slice(5);
+      const fullItems    = items.slice(5);
 
-      // Build HTML
       let html = `
         <h3>Order #${gid.slice(0,8)}${allFulfilled ? ' - ✅ Fulfilled' : ''}</h3>
         <small><em>${dateStr}</em></small>
@@ -230,12 +231,10 @@
 
       html += `</table>`;
 
-      // Toggle button if more than 5 items
       if (fullItems.length) {
         html += `<button class="btn-view" onclick="toggleFull(this)">View Full Order</button>`;
       }
 
-      // Actions unchanged
       html += `
         <div class="actions">
           <button class="btn-fulfill" ${allFulfilled ? 'disabled' : ''}
@@ -253,22 +252,73 @@
     }
   }
 
+  /**
+   * Fulfill and update PL stock:
+   * 1) mark all orders in group as Fulfilled
+   * 2) fetch each item's qty
+   * 3) upsert into pl_stock (increment existing or insert new)
+   * 4) reload the list
+   */
   async function fulfillGroup(gid) {
-    const { error } = await supabase
+    // 1) mark fulfilled
+    const { error: err1 } = await supabase
       .from('orders')
       .update({ status: 'Fulfilled' })
       .eq('order_group_id', gid);
 
-    if (error) {
-      alert('❌ Update failed: ' + (error.message || JSON.stringify(error)));
-      console.error(error);
-    } else {
-      loadOrders();
+    if (err1) {
+      alert('❌ Update failed: ' + err1.message);
+      console.error('Update error:', err1);
+      return;
     }
+
+    // 2) fetch items
+    const { data: items, error: err2 } = await supabase
+      .from('orders')
+      .select('product,category,qty')
+      .eq('order_group_id', gid);
+
+    if (err2) {
+      console.error('Fetch for stock update error:', err2);
+      loadOrders();
+      return;
+    }
+
+    // 3) upsert each into pl_stock
+    for (const { product, category, qty } of items) {
+      // check existing
+      const { data: existing, error: err3 } = await supabase
+        .from('pl_stock')
+        .select('id,qty')
+        .eq('name', product)
+        .single();
+
+      if (err3 && err3.code !== 'PGRST116') {
+        console.error('Error checking pl_stock:', product, err3);
+        continue;
+      }
+
+      if (existing) {
+        const { error: err4 } = await supabase
+          .from('pl_stock')
+          .update({ qty: existing.qty + qty })
+          .eq('id', existing.id);
+        if (err4) console.error('Error updating pl_stock:', product, err4);
+      } else {
+        const { error: err5 } = await supabase
+          .from('pl_stock')
+          .insert([{ name: product, category, qty }]);
+        if (err5) console.error('Error inserting pl_stock:', product, err5);
+      }
+    }
+
+    // 4) reload UI
+    loadOrders();
   }
 
+  // open a print window for a single order
   function printGroup(gid) {
-    const block = [...document.querySelectorAll('.order-block')]
+    const block = Array.from(document.querySelectorAll('.order-block'))
       .find(b => b.querySelector('h3').innerText.includes(gid.slice(0,8)));
     if (!block) return;
     const printWindow = window.open('', '_blank');
