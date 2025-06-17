@@ -104,6 +104,16 @@
       background: #48cae4;
       color: #0b1c2c;
     }
+    /* View toggle button style */
+    .btn-view {
+      background: #48cae4;
+      color: #0b1c2c;
+      border: none;
+      border-radius: 4px;
+      padding: .5rem .75rem;
+      cursor: pointer;
+      margin-top: .5rem;
+    }
 
     /* Print styles */
     @media print {
@@ -151,6 +161,15 @@
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y';
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+  // Toggle full order view
+  function toggleFull(btn) {
+    const table = btn.previousElementSibling;
+    const fullTbody = table.querySelector('tbody.full');
+    const isHidden = fullTbody.style.display === 'none';
+    fullTbody.style.display = isHidden ? '' : 'none';
+    btn.textContent = isHidden ? 'Hide Full Order' : 'View Full Order';
+  }
+
   async function loadOrders() {
     const { data: rows, error } = await supabase
       .from('orders')
@@ -170,54 +189,52 @@
       return;
     }
 
-    // Group by order_group_id
     const groups = {};
     rows.forEach(o => {
       if (!o.order_group_id) return;
       (groups[o.order_group_id] ||= []).push(o);
     });
 
-    // Render each group
     for (const [gid, items] of Object.entries(groups)) {
       const allFulfilled = items.every(i => i.status === 'Fulfilled');
-      const block = document.createElement('div');
-      block.className = 'order-block' + (allFulfilled ? ' fulfilled' : '');
-
-      // Earliest timestamp for group
       const date = new Date(Math.min(...items.map(i => new Date(i.created_at))));
       const dateStr = date.toLocaleString();
 
-      // Build table rows
-      const rowsHtml = items.map(i =>
-        `<tr>
-           <td>${i.product}</td>
-           <td>${i.category}</td>
-           <td>${i.qty}</td>
-           <td>${i.region}</td>
-           <td>${i.status}</td>
-         </tr>`
-      ).join('');
-
-      block.innerHTML = `
+      const block = document.createElement('div');
+      block.className = 'order-block' + (allFulfilled ? ' fulfilled' : '');
+      let html = `
         <h3>Order #${gid.slice(0,8)}${allFulfilled ? ' - ✅ Fulfilled' : ''}</h3>
         <small><em>${dateStr}</em></small>
         <table>
           <thead>
-            <tr>
-              <th>Product</th>
-              <th>Category</th>
-              <th>Qty</th>
-              <th>Region</th>
-              <th>Status</th>
-            </tr>
+            <tr><th>Product</th><th>Category</th><th>Qty</th><th>Region</th><th>Status</th></tr>
           </thead>
-          <tbody>
-            ${rowsHtml}
+          <tbody class="preview">
+      `;
+      // Preview rows
+      items.slice(0,5).forEach(i => {
+        html += `<tr><td>${i.product}</td><td>${i.category}</td><td>${i.qty}</td><td>${i.region}</td><td>${i.status}</td></tr>`;
+      });
+      html += `
+          </tbody>
+          <tbody class="full" style="display:none">
+      `;
+      // Full rows beyond preview
+      items.slice(5).forEach(i => {
+        html += `<tr><td>${i.product}</td><td>${i.category}</td><td>${i.qty}</td><td>${i.region}</td><td>${i.status}</td></tr>`;
+      });
+      html += `
           </tbody>
         </table>
+      `;
+      // Toggle button
+      if (items.length > 5) {
+        html += `<button class="btn-view" onclick="toggleFull(this)">View Full Order</button>`;
+      }
+      // Actions (preserved)
+      html += `
         <div class="actions">
-          <button class="btn-fulfill" ${allFulfilled ? 'disabled' : ''}
-                  onclick="fulfillGroup('${gid}')">
+          <button class="btn-fulfill" ${allFulfilled ? 'disabled' : ''} onclick="fulfillGroup('${gid}')">
             ✔ ${allFulfilled ? 'Done' : 'Fulfill'}
           </button>
           <button class="btn-print" onclick="printGroup('${gid}')">
@@ -225,6 +242,8 @@
           </button>
         </div>
       `;
+
+      block.innerHTML = html;
       container.appendChild(block);
     }
   }
