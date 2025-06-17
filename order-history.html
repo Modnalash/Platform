@@ -108,7 +108,6 @@
       background: #e63946;
       color: #fff;
     }
-    /* View toggle button style */
     .btn-view {
       background: #48cae4;
       color: #0b1c2c;
@@ -118,27 +117,12 @@
       cursor: pointer;
       margin-top: .5rem;
     }
-
-    /* Print styles */
     @media print {
-      body {
-        background: #fff;
-        color: #000;
-      }
-      .container, .sidebar, .actions button, .header {
-        display: none !important;
-      }
-      .order-block {
-        border: none;
-        page-break-inside: avoid;
-      }
-      .order-block h3, .order-block small {
-        color: #000;
-      }
-      table, th, td {
-        border: 1px solid #000;
-        color: #000;
-      }
+      body { background: #fff; color: #000; }
+      .container, .sidebar, .actions button, .header { display: none !important; }
+      .order-block { border: none; page-break-inside: avoid; }
+      .order-block h3, .order-block small { color: #000; }
+      table, th, td { border: 1px solid #000; color: #000; }
     }
   </style>
 </head>
@@ -163,9 +147,11 @@
 <script>
   const SUPABASE_URL = 'https://rwmwsaxlqblvnhfyuuqg.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y';
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // Toggle full order view
+  // --- Initialize Supabase client from the global 'supabase' object ---
+  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // Toggle preview/full order
   function toggleFull(btn) {
     const table = btn.previousElementSibling;
     const fullTbody = table.querySelector('tbody.full');
@@ -174,6 +160,7 @@
     btn.textContent = isHidden ? 'Hide Full Order' : 'View Full Order';
   }
 
+  // Load and render all orders
   async function loadOrders() {
     const { data: rows, error } = await supabase
       .from('orders')
@@ -185,7 +172,7 @@
 
     if (error) {
       container.innerHTML = `<p style="color:#f66">Error loading orders</p>`;
-      console.error(error);
+      console.error('Supabase fetch error:', error);
       return;
     }
     if (!rows.length) {
@@ -193,6 +180,7 @@
       return;
     }
 
+    // Group by order_group_id
     const groups = {};
     rows.forEach(o => {
       if (!o.order_group_id) return;
@@ -204,8 +192,12 @@
       const date = new Date(Math.min(...items.map(i => new Date(i.created_at))));
       const dateStr = date.toLocaleString();
 
+      // Create block with data-group-id for targeting
       const block = document.createElement('div');
       block.className = 'order-block' + (allFulfilled ? ' fulfilled' : '');
+      block.setAttribute('data-group-id', gid);
+
+      // Build HTML
       let html = `
         <h3>Order #${gid.slice(0,8)}${allFulfilled ? ' - ✅ Fulfilled' : ''}</h3>
         <small><em>${dateStr}</em></small>
@@ -215,27 +207,21 @@
           </thead>
           <tbody class="preview">
       `;
-      // Preview rows
       items.slice(0,5).forEach(i => {
         html += `<tr><td>${i.product}</td><td>${i.category}</td><td>${i.qty}</td><td>${i.region}</td><td>${i.status}</td></tr>`;
       });
-      html += `
-          </tbody>
-          <tbody class="full" style="display:none">
-      `;
-      // Full rows beyond preview
+      html += `</tbody><tbody class="full" style="display:none">`;
       items.slice(5).forEach(i => {
         html += `<tr><td>${i.product}</td><td>${i.category}</td><td>${i.qty}</td><td>${i.region}</td><td>${i.status}</td></tr>`;
       });
-      html += `
-          </tbody>
-        </table>
-      `;
-      // Toggle button
+      html += `</tbody></table>`;
+
+      // View toggle
       if (items.length > 5) {
         html += `<button class="btn-view" onclick="toggleFull(this)">View Full Order</button>`;
       }
-      // Actions (preserved) + Delete button
+
+      // Actions + Delete
       html += `
         <div class="actions">
           <button class="btn-fulfill" ${allFulfilled ? 'disabled' : ''} onclick="fulfillGroup('${gid}')">
@@ -255,56 +241,59 @@
     }
   }
 
+  // Fulfill action unchanged
   async function fulfillGroup(gid) {
     const { error } = await supabase
       .from('orders')
       .update({ status: 'Fulfilled' })
       .eq('order_group_id', gid);
-
     if (error) {
-      alert('❌ Update failed: ' + error.message);
-      console.error(error);
+      alert('❌ Update failed: ' + (error.message || JSON.stringify(error)));
+      console.error('Supabase update error:', error);
     } else {
       loadOrders();
     }
   }
 
+  // Print action unchanged
   function printGroup(gid) {
     const block = [...document.querySelectorAll('.order-block')]
       .find(b => b.querySelector('h3').innerText.includes(gid.slice(0,8)));
     if (!block) return;
-
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
-      <html>
-        <head>
-          <title>Print Order</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 2rem; }
-            h3 { margin-top: 0; }
-            table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-            th, td { border: 1px solid #000; padding: .5rem; text-align: left; }
-            th { background: #eee; }
-          </style>
-        </head>
-        <body>${block.innerHTML}</body>
+      <html><head><title>Print Order</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 2rem; }
+          h3 { margin-top: 0; }
+          table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+          th, td { border: 1px solid #000; padding: .5rem; text-align: left; }
+          th { background: #eee; }
+        </style>
+      </head>
+      <body>${block.innerHTML}</body>
       </html>`);
     printWindow.document.close();
     printWindow.print();
   }
 
+  // --- Improved delete: log full error, remove only that block on success ---
   async function deleteGroup(gid) {
     if (!confirm('Are you sure you want to delete this order?')) return;
     const { error } = await supabase
       .from('orders')
       .delete()
       .eq('order_group_id', gid);
+
     if (error) {
-      alert('❌ Delete failed: ' + error.message);
-      console.error(error);
-    } else {
-      loadOrders();
+      const msg = error.message || error.details || JSON.stringify(error);
+      alert(`❌ Delete failed: ${msg}`);
+      console.error('Supabase delete error:', error);
+      return;
     }
+    // Remove this order-block from the DOM
+    const block = document.querySelector(`.order-block[data-group-id="${gid}"]`);
+    if (block) block.remove();
   }
 
   document.addEventListener('DOMContentLoaded', loadOrders);
