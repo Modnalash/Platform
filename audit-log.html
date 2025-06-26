@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@0.285.0/font/lucide.css">
   <style>
+    /* ...[your same styles, unchanged]... */
     body {
       margin: 0;
       font-family: 'Inter', sans-serif;
@@ -37,55 +38,244 @@
       letter-spacing: 1px;
       font-family: 'Playfair Display', serif;
       font-weight: 700;
-      background: linear-gradient(90deg, #78<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Audit Log | Super Admin</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@0.285.0/font/lucide.css">
-  <style>
-    /* ... ALL YOUR EXISTING CSS ... (from previous code) ... */
-    /* Paste your previous CSS here unchanged, or leave as-is if already in place */
-    body {margin:0;font-family:'Inter',sans-serif;background:linear-gradient(120deg,#181F2F 0%,#153448 100%);color:#fff;min-height:100vh;}
-    .container {display:flex;min-height:100vh;}
-    .sidebar {width:260px;background:rgba(12,23,36,0.92);backdrop-filter:blur(4px);border-right:1.5px solid #263857;padding:2.8rem 1.1rem 1.8rem 1.5rem;display:flex;flex-direction:column;gap:2rem;min-height:100vh;box-shadow:3px 0 32px #001f3f24;}
-    .sidebar h2 {margin-bottom:2.6rem;font-size:2rem;color:#51f2d6;letter-spacing:1px;font-family:'Playfair Display',serif;font-weight:700;background:linear-gradient(90deg,#78ffd6 0%,#31c3f6 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-    .sidebar-menu {flex:1;display:flex;flex-direction:column;gap:0.2rem;}
-    .sidebar a,.sidebar button {color:#fff;text-decoration:none;padding:0.98rem 1.2rem 0.98rem 1.0rem;border-radius:11px;background:none;border:none;text-align:left;cursor:pointer;font-family:inherit;font-size:1.13rem;font-weight:500;transition:background 0.19s,color 0.13s;margin-bottom:4px;display:flex;align-items:center;gap:0.85rem;letter-spacing:0.5px;outline:none;}
-    .sidebar a:hover,.sidebar a.active,.sidebar button.logout-btn:hover {background:linear-gradient(90deg,#23a6d5 0%,#23d5ab 100%);color:#101e2a;}
-    .sidebar i {font-size:1.25em;opacity:0.74;}
-    .main {flex:1;padding:2.8rem 4vw 2.2rem 4vw;background:none;min-width:0;}
-    .header {background:rgba(17,36,60,0.89);padding:1.5rem 2.2rem 1.2rem 2.2rem;font-size:1.7rem;border-radius:20px;margin-bottom:2.1rem;display:flex;align-items:flex-start;justify-content:flex-start;box-shadow:0 4px 24px #04183729;min-height:58px;}
-    .hello-owner {font-family:'Playfair Display',serif;font-size:2rem;color:#f8fff4;font-weight:700;letter-spacing:1.5px;background:linear-gradient(90deg,#f1fff2 0%,#b3ecf7 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-    .subtext {font-size:1.14rem;color:#8ee8e4;margin-top:1.7rem;margin-bottom:1.6rem;}
-    .diagnostic {background:rgba(16,37,60,0.9);color:#e7ffe7;padding:1.3rem 1.8rem;border-radius:12px;margin:2rem 0 1.3rem 0;font-size:1.09rem;font-family:'Inter',sans-serif;box-shadow:0 3px 12px #11223620;display:none;}
-    .search-row {display:flex;align-items:center;gap:1.3rem;margin-bottom:1.3rem;flex-wrap:wrap;}
-    .search-row input {background:rgba(255,255,255,0.13);color:#fff;border:1px solid #23a6d580;border-radius:9px;padding:0.65rem 1rem;font-size:1rem;font-family:inherit;outline:none;transition:border 0.14s;margin-right:0.6rem;min-width:240px;max-width:320px;}
-    .search-row input:focus {border:1.5px solid #00e9cc;background:rgba(255,255,255,0.20);}
-    .log-table-container {background:rgba(255,255,255,0.12);border-radius:20px;box-shadow:0 4px 32px #21cfc340;padding:0.5rem 1.1rem 1.1rem 1.1rem;overflow-x:auto;border:1.5px solid rgba(55,155,255,0.09);min-height:380px;margin-top:1rem;}
-    table.audit-log-table {width:100%;border-collapse:collapse;font-size:0.98rem;font-family:'Inter',sans-serif;color:#fff;}
-    table.audit-log-table thead th {background:rgba(10,70,120,0.14);color:#72ffe2;font-size:0.93rem;padding:0.58rem 0.5rem;text-align:left;border-bottom:2px solid #24d8d999;font-weight:700;letter-spacing:1px;}
-    table.audit-log-table tbody tr {background:rgba(255,255,255,0.04);transition:background 0.13s;}
-    table.audit-log-table tbody tr:hover {background:rgba(80,240,220,0.13);}
-    table.audit-log-table td {padding:0.25rem 0.5rem;border-bottom:1px solid #218b9344;vertical-align:top;font-size:0.97rem;letter-spacing:0.2px;line-height:1.28;}
-    .log-icon {font-size:1.15rem;color:#23a6d5;vertical-align:middle;margin-right:4px;}
-    .audit-empty {color:#a2dfff;text-align:center;font-size:1.07rem;margin:1.2rem 0 1.4rem 0;opacity:0.84;}
-    .pagination-row {display:flex;justify-content:flex-end;align-items:center;gap:1.3rem;margin-top:1.6rem;margin-bottom:0.3rem;}
-    .pagination-btn {background:linear-gradient(90deg,#23a6d5 0%,#23d5ab 100%);color:#101e2a;font-family:'Inter',sans-serif;font-weight:600;font-size:1rem;border:none;border-radius:7px;padding:0.41rem 1.1rem;cursor:pointer;margin:0 0.23rem;opacity:0.93;transition:background 0.13s, color 0.1s;box-shadow:0 1px 6px #21cfc320;}
-    .pagination-btn:disabled {opacity:0.53;filter:grayscale(0.5);cursor:default;}
-    .page-num-label {font-size:1rem;color:#89e4ff;margin:0 0.3rem;}
-    .details-preview { cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:260px; display:inline-block; vertical-align:top; }
-    .details-full { display:none; white-space:pre-line; word-break:break-all; margin-top:0.4rem; background:rgba(8,25,35,0.92); border-radius:9px; padding:0.7rem 0.8rem; font-size:0.95rem; color:#e3fff7; border:1px solid #14a8e9; box-shadow:0 2px 10px #1bded444; }
-    .expand-link { color:#3cf5db; font-size:0.94em; cursor:pointer; text-decoration:underline; margin-left:6px; }
-    .expanded-row {background:rgba(50,255,200,0.08)!important;}
+      background: linear-gradient(90deg, #78ffd6 0%, #31c3f6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .sidebar-menu {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .sidebar a, .sidebar button {
+      color: #fff;
+      text-decoration: none;
+      padding: 0.98rem 1.2rem 0.98rem 1.0rem;
+      border-radius: 11px;
+      background: none;
+      border: none;
+      text-align: left;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 1.13rem;
+      font-weight: 500;
+      transition: background 0.19s, color 0.13s;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      letter-spacing: 0.5px;
+      outline: none;
+    }
+    .sidebar a:hover, .sidebar a.active, .sidebar button.logout-btn:hover {
+      background: linear-gradient(90deg,#23a6d5 0%, #23d5ab 100%);
+      color: #101e2a;
+    }
+    .sidebar i {
+      font-size: 1.25em;
+      opacity: 0.74;
+    }
+    .main {
+      flex: 1;
+      padding: 2.8rem 4vw 2.2rem 4vw;
+      background: none;
+      min-width: 0;
+    }
+    .header {
+      background: rgba(17,36,60, 0.89);
+      padding: 1.5rem 2.2rem 1.2rem 2.2rem;
+      font-size: 1.7rem;
+      border-radius: 20px;
+      margin-bottom: 2.1rem;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      box-shadow: 0 4px 24px #04183729;
+      min-height: 58px;
+    }
+    .hello-owner {
+      font-family: 'Playfair Display', serif;
+      font-size: 2rem;
+      color: #f8fff4;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      background: linear-gradient(90deg, #f1fff2 0%, #b3ecf7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subtext {
+      font-size:1.14rem;
+      color:#8ee8e4;
+      margin-top:1.7rem;
+      margin-bottom:1.6rem;
+    }
+    .diagnostic {
+      background: rgba(16,37,60, 0.9);
+      color: #e7ffe7;
+      padding: 1.3rem 1.8rem;
+      border-radius: 12px;
+      margin: 2rem 0 1.3rem 0;
+      font-size: 1.09rem;
+      font-family: 'Inter',sans-serif;
+      box-shadow: 0 3px 12px #11223620;
+      display:none;
+    }
+    .search-row {
+      display: flex;
+      align-items: center;
+      gap: 1.3rem;
+      margin-bottom: 1.3rem;
+      flex-wrap: wrap;
+    }
+    .search-row input {
+      background: rgba(255,255,255,0.13);
+      color: #fff;
+      border: 1px solid #23a6d580;
+      border-radius: 9px;
+      padding: 0.65rem 1rem;
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+      transition: border 0.14s;
+      margin-right: 0.6rem;
+      min-width: 240px;
+      max-width: 320px;
+    }
+    .search-row input:focus {
+      border: 1.5px solid #00e9cc;
+      background: rgba(255,255,255,0.20);
+    }
+    .log-table-container {
+      background: rgba(255,255,255,0.12);
+      border-radius: 20px;
+      box-shadow: 0 4px 32px #21cfc340;
+      padding: 0.5rem 1.1rem 1.1rem 1.1rem;
+      overflow-x: auto;
+      border: 1.5px solid rgba(55,155,255,0.09);
+      min-height: 380px;
+      margin-top: 1rem;
+    }
+    table.audit-log-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.98rem;
+      font-family: 'Inter', sans-serif;
+      color: #fff;
+    }
+    table.audit-log-table thead th {
+      background: rgba(10,70,120,0.14);
+      color: #72ffe2;
+      font-size: 0.93rem;
+      padding: 0.58rem 0.5rem;
+      text-align: left;
+      border-bottom: 2px solid #24d8d999;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+    table.audit-log-table tbody tr {
+      background: rgba(255,255,255,0.04);
+      transition: background 0.13s;
+    }
+    table.audit-log-table tbody tr:hover {
+      background: rgba(80,240,220,0.13);
+    }
+    table.audit-log-table td {
+      padding: 0.42rem 0.5rem;
+      border-bottom: 1px solid #218b9344;
+      vertical-align: top;
+      font-size: 0.97rem;
+      letter-spacing: 0.2px;
+      line-height: 1.3;
+    }
+    .log-icon {
+      font-size: 1.15rem;
+      color: #23a6d5;
+      vertical-align: middle;
+      margin-right: 4px;
+    }
+    .details-preview {
+      cursor: pointer;
+      color: #c8f3ff;
+      font-family: 'Inter', monospace;
+      white-space: pre;
+    }
+    .expand-link {
+      color: #72ffe2;
+      margin-left: 10px;
+      cursor: pointer;
+      font-size: 0.97em;
+      text-decoration: underline;
+      background: none;
+      border: none;
+      padding: 0;
+      font-family: inherit;
+    }
+    .details-full {
+      display: none;
+      margin-top: 3px;
+      padding: 0.4em 0.5em;
+      background: rgba(32,60,90,0.94);
+      border-radius: 7px;
+      font-size: 0.95em;
+      color: #d8fff0;
+      word-break: break-all;
+      white-space: pre-line;
+      max-width: 480px;
+      box-shadow: 0 2px 6px #18e6b126;
+    }
+    .expanded-row {
+      background: rgba(40,210,230,0.09) !important;
+    }
+    .audit-empty {
+      color: #a2dfff;
+      text-align: center;
+      font-size: 1.07rem;
+      margin: 1.2rem 0 1.4rem 0;
+      opacity: 0.84;
+    }
+    .pagination-row {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 1.3rem;
+      margin-top: 1.6rem;
+      margin-bottom: 0.3rem;
+    }
+    .pagination-btn {
+      background: linear-gradient(90deg,#23a6d5 0%, #23d5ab 100%);
+      color: #101e2a;
+      font-family: 'Inter',sans-serif;
+      font-weight: 600;
+      font-size: 1rem;
+      border: none;
+      border-radius: 7px;
+      padding: 0.41rem 1.1rem;
+      cursor: pointer;
+      margin: 0 0.23rem;
+      opacity: 0.93;
+      transition: background 0.13s, color 0.1s;
+      box-shadow: 0 1px 6px #21cfc320;
+    }
+    .pagination-btn:disabled {
+      opacity: 0.53;
+      filter: grayscale(0.5);
+      cursor: default;
+    }
+    .page-num-label {
+      font-size: 1rem;
+      color: #89e4ff;
+      margin: 0 0.3rem;
+    }
     @media (max-width: 800px) {
       .main {padding:1.4rem 0.2rem;}
       .header {font-size:1.3rem;}
       .sidebar {width:66px;padding:1.2rem 2px;}
       .sidebar h2 {font-size:1.3rem;letter-spacing:0;}
       .sidebar-menu a span {display:none;}
+      .dashboard-cards { gap:1.1rem;}
     }
   </style>
 </head>
@@ -149,6 +339,7 @@
 
     async function checkSuperadminAccessAndLoadLog() {
       const diag = document.getElementById("diagnostic");
+      // 1. Get current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
         diag.style.display = "block";
@@ -156,6 +347,7 @@
         setTimeout(() => window.location.href = "index.html", 1200);
         return;
       }
+      // 2. Get profile and role
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role')
@@ -233,24 +425,14 @@
         default: return `<i class="lucide lucide-info log-icon"></i>`;
       }
     }
-    function previewDetails(details, maxLen = 38) {
-      let str = "";
-      if (!details) return "-";
-      if (typeof details === "object") {
-        try { str = JSON.stringify(details); } catch { return "-"; }
-      } else {
-        try { str = JSON.stringify(JSON.parse(details)); } catch { str = String(details); }
-      }
-      if (str.length <= maxLen) return str;
-      return str.substring(0, maxLen) + "...";
-    }
     function formatDetails(details) {
       if (!details) return "-";
       if (typeof details === "object") {
-        try { return JSON.stringify(details, null, 2); } catch { return "-"; }
+        try { return JSON.stringify(details); } catch { return "-"; }
       }
-      try { return JSON.stringify(JSON.parse(details), null, 2); } catch { return details; }
+      try { return JSON.stringify(JSON.parse(details)); } catch { return details; }
     }
+    // ----------- DETAILS PREVIEW/EXPAND FUNCTIONALITY -----------
     function renderAuditLog() {
       const tbody = document.getElementById("audit-log-tbody");
       const pag = document.getElementById("pagination-row");
@@ -265,46 +447,46 @@
       let endIdx = Math.min(startIdx + PAGE_SIZE, total);
       for (let i = startIdx; i < endIdx; i++) {
         const log = filteredLogs[i];
-        const preview = previewDetails(log.details, 38);
-        const full = formatDetails(log.details);
-        const hasLong = (preview.endsWith("..."));
-        const previewId = `details-preview-${i}`;
-        const fullId = `details-full-${i}`;
-        tbody.innerHTML += `<tr id="log-row-${i}">
+        const fullDetails = formatDetails(log.details);
+        let preview = fullDetails;
+        let isLong = false;
+        if (fullDetails.length > 40) {
+          preview = fullDetails.substring(0, 40) + "...";
+          isLong = true;
+        }
+        tbody.innerHTML += `
+        <tr data-row="${i}">
           <td>${formatDate(log.timestamp)}</td>
           <td>${log.user_email || "-"}</td>
           <td>${actionIcon(log.action)}${log.action || "-"}</td>
           <td>
-            <span class="details-preview" id="${previewId}">${preview}</span>
-            ${hasLong ? `<span class="expand-link" id="expand-link-${i}">Show</span>` : ""}
-            <div class="details-full" id="${fullId}">${full.replace(/\n/g, "<br>")}</div>
+            <span class="details-preview" id="preview-${i}">${preview}</span>
+            ${isLong ? `<button class="expand-link" id="expand-${i}" onclick="expandDetails(${i})">Show</button>` : ""}
+            <div class="details-full" id="full-${i}">${fullDetails}</div>
           </td>
         </tr>`;
       }
-      // Add expand/collapse events
-      for (let i = startIdx; i < endIdx; i++) {
-        const hasLong = previewDetails(filteredLogs[i].details, 38).endsWith("...");
-        if (hasLong) {
-          document.getElementById(`expand-link-${i}`).onclick = function() {
-            const fullDiv = document.getElementById(`details-full-${i}`);
-            const row = document.getElementById(`log-row-${i}`);
-            if (fullDiv.style.display === "block") {
-              fullDiv.style.display = "none";
-              this.textContent = "Show";
-              row.classList.remove("expanded-row");
-            } else {
-              fullDiv.style.display = "block";
-              this.textContent = "Hide";
-              row.classList.add("expanded-row");
-            }
-          };
-        }
-      }
-      // Pagination
       pag.style.display = total > PAGE_SIZE ? "flex" : "none";
       document.getElementById("page-num-label").textContent = `Page ${currentPage} of ${Math.ceil(total / PAGE_SIZE)}`;
       document.getElementById("prev-page-btn").disabled = currentPage === 1;
       document.getElementById("next-page-btn").disabled = currentPage === Math.ceil(total / PAGE_SIZE);
+    }
+
+    // Expands/collapses the details cell
+    window.expandDetails = function(idx) {
+      const fullDiv = document.getElementById(`full-${idx}`);
+      const expandBtn = document.getElementById(`expand-${idx}`);
+      const row = document.querySelector(`[data-row="${idx}"]`);
+      if (!fullDiv || !expandBtn) return;
+      if (fullDiv.style.display === "block") {
+        fullDiv.style.display = "none";
+        expandBtn.textContent = "Show";
+        if(row) row.classList.remove("expanded-row");
+      } else {
+        fullDiv.style.display = "block";
+        expandBtn.textContent = "Hide";
+        if(row) row.classList.add("expanded-row");
+      }
     }
 
     document.getElementById("prev-page-btn").onclick = function() {
