@@ -31,7 +31,6 @@
     .dash-card-label { color: #63e2ff; font-size: 1.09rem; margin-bottom: 0.7rem; letter-spacing: 1px; }
     .dash-card-value { font-size: 2.4rem; font-family: 'Playfair Display', serif; font-weight: 700; color: #fffbe6; }
     .dash-card-sub { font-size: 0.99rem; color: #bee0ff; margin-top: 0.5rem; }
-    .dash-card-loader { font-size: 1.6rem; color: #b7e4ef; margin-top: 0.8rem;}
     @media (max-width: 850px) {
       .dashboard-cards { grid-template-columns: 1fr; gap: 1.3rem;}
     }
@@ -120,11 +119,11 @@
       const usersRes = await supabase.from('profiles').select('*', { count: 'exact', head: true });
       document.getElementById("stat-users").textContent = usersRes.count ?? '0';
 
-      // Pending Orders
+      // Pending Orders (capital P)
       const pendingOrdersRes = await supabase
         .from('orders')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
+        .eq('status', 'Pending'); // <-- Capital P here!
       document.getElementById("stat-pending-orders").textContent =
         typeof pendingOrdersRes.count === "number" ? pendingOrdersRes.count : '0';
 
