@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Audit Log | Super Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@0.285.0/font/lucide.css">
+  <style>
+    /* ...styles remain unchanged from previous version... */
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(120deg, #181F2F 0%, #153448 100%);
+      color: #fff;
+      min-height: 100vh;
+    }
+    .container {
+      display: flex;
+      min-height: 100vh;
+    }
+    .sidebar {
+      width: 260px;
+      background: rgba(12, 23, 36, 0.92);
+      backdrop-filter: blur(4px);
+      border-right: 1.5px solid #263857;
+      padding: 2.8rem 1.1rem 1.8rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      min-height: 100vh;
+      box-shadow: 3px 0 32px #001f3f24;
+    }
+    .sidebar h2 {
+      margin-bottom: 2.6rem;
+      font-size: 2rem;
+      color: #51f2d6;
+      letter-spacing: 1px;
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      background: linear-gradient(90deg, #78ffd6 0%, #31c3f6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .sidebar-menu {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .sidebar a, .sidebar button {
+      color: #fff;
+      text-decoration: none;
+      padding: 0.98rem 1.2rem 0.98rem 1.0rem;
+      border-radius: 11px;
+      background: none;
+      border: none;
+      text-align: left;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 1.13rem;
+      font-weight: 500;
+      transition: background 0.19s, color 0.13s;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      letter-spacing: 0.5px;
+      outline: none;
+    }
+    .sidebar a:hover, .sidebar a.active, .sidebar button.logout-btn:hover {
+      background: linear-gradient(90deg,#23a6d5 0%, #23d5ab 100%);
+      color: #101e2a;
+    }
+    .sidebar i {
+      font-size: 1.25em;
+      opacity: 0.74;
+    }
+    .main {
+      flex: 1;
+      padding: 2.8rem 4vw 2.2rem 4vw;
+      background: none;
+      min-width: 0;
+    }
+    .header {
+      background: rgba(17,36,60, 0.89);
+      padding: 1.5rem 2.2rem 1.2rem 2.2rem;
+      font-size: 1.7rem;
+      border-radius: 20px;
+      margin-bottom: 2.1rem;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      box-shadow: 0 4px 24px #04183729;
+      min-height: 58px;
+    }
+    .hello-owner {
+      font-family: 'Playfair Display', serif;
+      font-size: 2rem;
+      color: #f8fff4;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      background: linear-gradient(90deg, #f1fff2 0%, #b3ecf7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subtext {
+      font-size:1.14rem;
+      color:#8ee8e4;
+      margin-top:1.7rem;
+      margin-bottom:1.6rem;
+    }
+    .diagnostic {
+      background: rgba(16,37,60, 0.9);
+      color: #e7ffe7;
+      padding: 1.3rem 1.8rem;
+      border-radius: 12px;
+      margin: 2rem 0 1.3rem 0;
+      font-size: 1.09rem;
+      font-family: 'Inter',sans-serif;
+      box-shadow: 0 3px 12px #11223620;
+      display:none;
+    }
+    .search-row {
+      display: flex;
+      align-items: center;
+      gap: 1.3rem;
+      margin-bottom: 1.7rem;
+      flex-wrap: wrap;
+    }
+    .search-row input,
+    .search-row select {
+      background: rgba(255,255,255,0.13);
+      color: #fff;
+      border: 1px solid #23a6d580;
+      border-radius: 9px;
+      padding: 0.7rem 1rem;
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+      transition: border 0.14s;
+      margin-right: 0.6rem;
+    }
+    .search-row input:focus,
+    .search-row select:focus {
+      border: 1.5px solid #00e9cc;
+      background: rgba(255,255,255,0.20);
+    }
+    .log-table-container {
+      background: rgba(255,255,255,0.12);
+      border-radius: 20px;
+      box-shadow: 0 4px 32px #21cfc340;
+      padding: 0.5rem 1.1rem 1.1rem 1.1rem;
+      overflow-x: auto;
+      border: 1.5px solid rgba(55,155,255,0.09);
+      min-height: 380px;
+      margin-top: 1rem;
+    }
+    table.audit-log-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 1.01rem;
+      font-family: 'Inter', sans-serif;
+      color: #fff;
+    }
+    table.audit-log-table thead th {
+      background: rgba(10,70,120,0.17);
+      color: #72ffe2;
+      font-size: 0.96rem;
+      padding: 1.06rem 0.75rem;
+      text-align: left;
+      border-bottom: 2px solid #24d8d999;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+    table.audit-log-table tbody tr {
+      background: rgba(255,255,255,0.07);
+      transition: background 0.13s;
+    }
+    table.audit-log-table tbody tr:hover {
+      background: rgba(80,240,220,0.13);
+    }
+    table.audit-log-table td {
+      padding: 0.76rem 0.8rem;
+      border-bottom: 1px solid #218b9344;
+      vertical-align: top;
+      font-size: 1.03rem;
+      letter-spacing: 0.5px;
+    }
+    .log-icon {
+      font-size: 1.15rem;
+      color: #23a6d5;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    .audit-empty {
+      color: #a2dfff;
+      text-align: center;
+      font-size: 1.18rem;
+      margin: 2.2rem 0 2.6rem 0;
+      opacity: 0.84;
+    }
+    @media (max-width: 800px) {
+      .main {padding:1.4rem 0.2rem;}
+      .header {font-size:1.3rem;}
+      .sidebar {width:66px;padding:1.2rem 2px;}
+      .sidebar h2 {font-size:1.3rem;letter-spacing:0;}
+      .sidebar-menu a span {display:none;}
+      .dashboard-cards { gap:1.1rem;}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <nav class="sidebar">
+      <h2>Super Admin</h2>
+      <div class="sidebar-menu">
+        <a href="superadmin-dashboard.html"><i class="lucide lucide-pie-chart"></i><span>Dashboard</span></a>
+        <a href="#" class="active"><i class="lucide lucide-list-checks"></i><span>Audit Log</span></a>
+        <a href="#"><i class="lucide lucide-users"></i><span>User Management</span></a>
+        <a href="#"><i class="lucide lucide-receipt"></i><span>All Orders</span></a>
+        <a href="#"><i class="lucide lucide-warehouse"></i><span>All Stock</span></a>
+        <a href="#"><i class="lucide lucide-sliders"></i><span>Platform Settings</span></a>
+      </div>
+      <button class="logout-btn" onclick="logout()"><i class="lucide lucide-log-out"></i> Logout</button>
+    </nav>
+    <main class="main">
+      <div class="header">
+        <span class="hello-owner">Audit Log</span>
+      </div>
+      <div class="subtext">
+        View every important action, update, and change across the platform.
+      </div>
+      <div class="diagnostic" id="diagnostic">Checking access...</div>
+      <div class="search-row">
+        <input type="text" id="log-search" placeholder="Search log entries...">
+        <select id="log-action-type">
+          <option value="">All Actions</option>
+          <option value="login">Login</option>
+          <option value="order_created">Order Created</option>
+          <option value="order_updated">Order Updated</option>
+          <option value="stock_change">Stock Change</option>
+        </select>
+      </div>
+      <div class="log-table-container" id="log-table-container">
+        <table class="audit-log-table" id="audit-log-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>User</th>
+              <th>Action</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody id="audit-log-tbody">
+            <tr><td colspan="4" class="audit-empty">Loading audit log...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script>
+    const supabase = window.supabase.createClient(
+      'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
+    );
+
+    async function checkSuperadminAccessAndLoadLog() {
+      const diag = document.getElementById("diagnostic");
+      // 1. Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        diag.style.display = "block";
+        diag.innerHTML = "Not logged in. Redirecting to login...";
+        setTimeout(() => window.location.href = "index.html", 1200);
+        return;
+      }
+      // 2. Get profile and role
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile) {
+        diag.style.display = "block";
+        diag.innerHTML = "No profile found. Logging out for security...";
+        setTimeout(() => { logout(); }, 1500);
+        return;
+      }
+      if (profile.role !== "superadmin") {
+        diag.style.display = "block";
+        diag.innerHTML = "Access denied: you are not a superadmin. Logging out...";
+        setTimeout(() => { logout(); }, 1500);
+        return;
+      }
+      diag.style.display = "none";
+      await loadAuditLog();
+    }
+
+    // Fetch and display the audit log
+    async function loadAuditLog() {
+      const tbody = document.getElementById("audit-log-tbody");
+      tbody.innerHTML = `<tr><td colspan="4" class="audit-empty">Loading audit log...</td></tr>`;
+
+      let { data: logs, error } = await supabase
+        .from('audit_log')
+        .select('*')
+        .order('timestamp', { ascending: false })
+        .limit(100);
+
+      if (error) {
+        tbody.innerHTML = `<tr><td colspan="4" class="audit-empty" style="color:#ff9eae">Error loading log: ${error.message}</td></tr>`;
+        return;
+      }
+      if (!logs || logs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="audit-empty">No audit log entries found.</td></tr>`;
+        return;
+      }
+      renderAuditLog(logs);
+    }
+
+    function renderAuditLog(logs) {
+      const tbody = document.getElementById("audit-log-tbody");
+      const searchInput = document.getElementById("log-search");
+      const actionFilter = document.getElementById("log-action-type");
+
+      // Helper: Format Date
+      const formatDate = (iso) => {
+        const d = new Date(iso);
+        return d.toLocaleString([], { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+      };
+
+      // Helper: Action icon
+      const actionIcon = (action) => {
+        switch(action) {
+          case "login": return `<i class="lucide lucide-log-in log-icon"></i>`;
+          case "order_created": return `<i class="lucide lucide-file-plus log-icon"></i>`;
+          case "order_updated": return `<i class="lucide lucide-pencil log-icon"></i>`;
+          case "stock_change": return `<i class="lucide lucide-package-search log-icon"></i>`;
+          default: return `<i class="lucide lucide-info log-icon"></i>`;
+        }
+      };
+
+      function formatDetails(details) {
+        if (!details) return "-";
+        if (typeof details === "object") return JSON.stringify(details);
+        try { return JSON.stringify(JSON.parse(details)); } catch { return details; }
+      }
+
+      function filterLogs() {
+        let q = searchInput.value.toLowerCase();
+        let action = actionFilter.value;
+        let filtered = logs.filter(log =>
+          (!action || log.action === action) &&
+          (
+            (log.user_email?.toLowerCase().includes(q)) ||
+            (formatDetails(log.details).toLowerCase().includes(q)) ||
+            (log.action?.toLowerCase().includes(q))
+          )
+        );
+        tbody.innerHTML = "";
+        if (filtered.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" class="audit-empty">No log entries found for your search/filter.</td></tr>`;
+          return;
+        }
+        filtered.forEach(log => {
+          tbody.innerHTML += `
+            <tr>
+              <td>${formatDate(log.timestamp)}</td>
+              <td>${log.user_email || '-'}</td>
+              <td>${actionIcon(log.action)}${log.action}</td>
+              <td>${formatDetails(log.details)}</td>
+            </tr>`;
+        });
+      }
+
+      searchInput.oninput = filterLogs;
+      actionFilter.onchange = filterLogs;
+      filterLogs();
+    }
+
+    checkSuperadminAccessAndLoadLog();
+
+    function logout() {
+      supabase.auth.signOut().then(() => {
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.href = "index.html";
+      });
+    }
+  </script>
+</body>
+</html>
