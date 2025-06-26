@@ -67,6 +67,12 @@
     .order-block small {
       color: #bbb;
     }
+    .fulfilled-at {
+      color: #8ef8c7;
+      font-size: .98rem;
+      font-weight: 600;
+      margin-left: 1.5rem;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -119,6 +125,7 @@
       .order-block { border: none; page-break-inside: avoid; }
       .order-block h3, .order-block small { color: #000; }
       table, th, td { border: 1px solid #000; color: #000; }
+      .fulfilled-at { color: #19712f; }
     }
   </style>
 </head>
@@ -141,12 +148,32 @@
 </div>
 
 <script>
-  // full Supabase credentials
+  // Supabase credentials
   const SUPABASE_URL = 'https://rwmwsaxlqblvnhfyuuqg.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y';
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // Toggle preview/full rows
+  let currentUser = null;
+
+  // Get current user for logging
+  supabase.auth.getUser().then(({ data: { user } }) => {
+    currentUser = user;
+    loadOrders();
+  });
+
+  // Audit log helper
+  async function logAction(action, details) {
+    if (!currentUser) return;
+    await supabase.from('audit_log').insert([
+      {
+        user_id: currentUser.id,
+        user_email: currentUser.email,
+        action,
+        details
+      }
+    ]);
+  }
+
   function toggleFull(btn) {
     const table   = btn.previousElementSibling;
     const fullTbody = table.querySelector('tbody.full');
@@ -155,12 +182,27 @@
     btn.textContent = isHidden ? 'Hide Full Order' : 'View Full Order';
   }
 
-  // Load & render all orders, grouped with 5-item previews
+  // Load & render all orders, grouped, and show fulfilled time if present
   async function loadOrders() {
+    // 1. Fetch all orders and audit logs related to fulfillment
     const { data: rows, error } = await supabase
       .from('orders')
       .select('order_group_id,region,product,category,qty,status,created_at')
       .order('created_at', { ascending: false });
+
+    const { data: logs } = await supabase
+      .from('audit_log')
+      .select('details,timestamp')
+      .eq('action', 'Fulfill Order Group');
+
+    const fulfilledTimes = {};
+    if (Array.isArray(logs)) {
+      logs.forEach(log => {
+        if (log.details && log.details.gid) {
+          fulfilledTimes[log.details.gid] = log.timestamp;
+        }
+      });
+    }
 
     const container = document.getElementById('ordersContainer');
     container.innerHTML = '';
@@ -182,22 +224,28 @@
       (groups[o.order_group_id] ||= []).push(o);
     });
 
-    // render each group
     for (const [gid, items] of Object.entries(groups)) {
       const allFulfilled = items.every(i => i.status === 'Fulfilled');
       const date = new Date(Math.min(...items.map(i => new Date(i.created_at))));
       const dateStr = date.toLocaleString();
 
+      // When fulfilled?
+      let fulfilledAt = '';
+      if (allFulfilled && fulfilledTimes[gid]) {
+        fulfilledAt = new Date(fulfilledTimes[gid]).toLocaleString();
+      }
+
       const block = document.createElement('div');
       block.className = 'order-block' + (allFulfilled ? ' fulfilled' : '');
 
-      // split into preview & full
+      // preview/full split
       const previewItems = items.slice(0, 5);
       const fullItems    = items.slice(5);
 
       let html = `
         <h3>Order #${gid.slice(0,8)}${allFulfilled ? ' - ✅ Fulfilled' : ''}</h3>
         <small><em>${dateStr}</em></small>
+        ${fulfilledAt ? `<span class="fulfilled-at">Fulfilled at: ${fulfilledAt}</span>` : ''}
         <table>
           <thead>
             <tr><th>Product</th><th>Category</th><th>Qty</th><th>Region</th><th>Status</th></tr>
@@ -252,13 +300,7 @@
     }
   }
 
-  /**
-   * Fulfill and update PL stock:
-   * 1) mark all orders in group as Fulfilled
-   * 2) fetch each item's qty
-   * 3) upsert into pl_stock (increment existing or insert new)
-   * 4) reload the list
-   */
+  // Fulfill and update PL stock, and log
   async function fulfillGroup(gid) {
     // 1) mark fulfilled
     const { error: err1 } = await supabase
@@ -312,15 +354,21 @@
       }
     }
 
-    // 4) reload UI
+    // AUDIT LOG
+    await logAction('Fulfill Order Group', { gid, items });
+
+    // reload UI
     loadOrders();
   }
 
-  // open a print window for a single order
-  function printGroup(gid) {
+  // Print and audit log
+  async function printGroup(gid) {
     const block = Array.from(document.querySelectorAll('.order-block'))
       .find(b => b.querySelector('h3').innerText.includes(gid.slice(0,8)));
     if (!block) return;
+    // AUDIT LOG
+    await logAction('Print Order Group', { gid });
+
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
       <html><head><title>Print Order</title>
@@ -336,7 +384,9 @@
     printWindow.print();
   }
 
-  document.addEventListener('DOMContentLoaded', loadOrders);
+  document.addEventListener('DOMContentLoaded', () => {
+    // loadOrders now runs only after getting user (for audit log)
+  });
 </script>
 
 </body>
