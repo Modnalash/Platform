@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PL Dashboard</title>
-  <!-- Google Font for Handwriting Style -->
   <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@supabase/supabase-js"></script>
   <style>
@@ -31,11 +30,8 @@
   </header>
 
   <div class="container">
-    <!-- Manage Local Stock button -->
     <button class="list-btn" onclick="location.href='manage-pl-stock.html'">🔧 Manage Local Stock</button>
-    <!-- Order History button -->
     <button class="list-btn" onclick="location.href='order-history-pl.html'">📜 Order History</button>
-
     <h2>Place an Order</h2>
 
     <div class="filter-row">
@@ -79,6 +75,19 @@
     const supabaseUrl = 'https://rwmwsaxlqblvnhfyuuqg.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y';
     const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+    // Role protection: Only "pl" role can access this page
+    supabaseClient.auth.getUser().then(async ({ data: { user } }) => {
+      if(!user) { window.location.href = "index.html"; return; }
+      const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      if(!profile || profile.role !== 'pl') {
+        window.location.href = "index.html";
+      }
+    });
 
     let orderItems = [];
 
