@@ -117,24 +117,27 @@
 
     async function loadDashboardStats() {
       // All Users
-      const { count: usersCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
-      document.getElementById("stat-users").textContent = usersCount ?? '0';
+      const usersRes = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+      console.log('Users Query:', usersRes);
+      document.getElementById("stat-users").textContent = usersRes.count ?? '0';
 
       // Pending Orders
-      let pendingOrders = 0;
-      const { count: pendingOrdersCount, error: orderError } = await supabase
+      const pendingOrdersRes = await supabase
         .from('orders')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'pending');
-      if (!orderError && typeof pendingOrdersCount === 'number') pendingOrders = pendingOrdersCount;
-      document.getElementById("stat-pending-orders").textContent = pendingOrders;
+      console.log('Pending Orders Query:', pendingOrdersRes);
+      document.getElementById("stat-pending-orders").textContent =
+        typeof pendingOrdersRes.count === "number" ? pendingOrdersRes.count : '0';
 
-      // Total Stock (sum stock.quantity + pl_stock.quantity)
+      // Total Stock
       let totalStock = 0;
-      const { data: stock, error: stockError } = await supabase.from('stock').select('quantity');
-      if (!stockError && stock && Array.isArray(stock)) totalStock += stock.reduce((a, b) => a + (parseInt(b.quantity) || 0), 0);
-      const { data: plStock, error: plStockError } = await supabase.from('pl_stock').select('quantity');
-      if (!plStockError && plStock && Array.isArray(plStock)) totalStock += plStock.reduce((a, b) => a + (parseInt(b.quantity) || 0), 0);
+      const stockRes = await supabase.from('stock').select('quantity');
+      console.log('Stock Query:', stockRes);
+      if (stockRes.data && Array.isArray(stockRes.data)) totalStock += stockRes.data.reduce((a, b) => a + (parseInt(b.quantity) || 0), 0);
+      const plStockRes = await supabase.from('pl_stock').select('quantity');
+      console.log('PL Stock Query:', plStockRes);
+      if (plStockRes.data && Array.isArray(plStockRes.data)) totalStock += plStockRes.data.reduce((a, b) => a + (parseInt(b.quantity) || 0), 0);
       document.getElementById("stat-total-stock").textContent = totalStock;
     }
 
@@ -150,3 +153,4 @@
   </script>
 </body>
 </html>
+
