@@ -37,7 +37,7 @@
       <p style="font-size:1.25rem;color:#7ee2f6;margin-top:2rem;">
         Welcome to your Super Admin Dashboard!
       </p>
-      <div class="diagnostic" id="diagnostic">Checking session...</div>
+      <div class="diagnostic" id="diagnostic">Checking access...</div>
     </main>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
@@ -47,19 +47,37 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
 
-    async function testAuth() {
-      const result = await supabase.auth.getUser();
-      console.log("getUser() result:", result);
-      let diag = document.getElementById("diagnostic");
-      if (result.error) {
-        diag.innerHTML = "Error: " + result.error.message;
-      } else if (!result.data.user) {
-        diag.innerHTML = "No user found in session.<br>Session probably missing or expired.";
-      } else {
-        diag.innerHTML = "User ID: " + result.data.user.id + "<br>Email: " + result.data.user.email;
+    async function checkSuperadminAccess() {
+      const diag = document.getElementById("diagnostic");
+      // 1. Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        diag.innerHTML = "Not logged in. Redirecting to login...";
+        setTimeout(() => window.location.href = "index.html", 1200);
+        return;
       }
+      // 2. Get profile and role
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile) {
+        diag.innerHTML = "No profile found. Logging out for security...";
+        setTimeout(() => { logout(); }, 1500);
+        return;
+      }
+
+      if (profile.role !== "superadmin") {
+        diag.innerHTML = "Access denied: you are not a superadmin. Logging out...";
+        setTimeout(() => { logout(); }, 1500);
+        return;
+      }
+
+      diag.innerHTML = "Access granted!<br>User ID: " + user.id + "<br>Email: " + user.email + "<br>Role: " + profile.role;
     }
-    testAuth();
+    checkSuperadminAccess();
 
     function logout() {
       supabase.auth.signOut().then(() => {
