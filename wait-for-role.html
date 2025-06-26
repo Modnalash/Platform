@@ -7,13 +7,14 @@
   <style>
     body { background:#0b1c2c; color:#fff; font-family:Inter,sans-serif; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; }
     .info { background:#1a2b3e; padding:2rem 2.5rem; border-radius:14px; box-shadow:0 8px 32px #0005; min-width:320px; text-align:center; }
+    button { background:#ff6666;color:#fff;padding:.7rem 1.4rem; border:none; border-radius:7px; font-size:1rem; margin-top:1.5rem; cursor:pointer;}
   </style>
 </head>
 <body>
   <div class="info">
     <h2>Welcome!</h2>
     <div id="roleInfo"></div>
-    <button onclick="logout()" style="background:#ff6666;color:#fff;">Sign Out</button>
+    <button onclick="logout()">Sign Out</button>
   </div>
   <script>
     const supabase = window.supabase.createClient(
@@ -33,10 +34,14 @@
         document.getElementById('roleInfo').innerHTML = "Your account is not yet active.<br>An administrator will activate your account soon.";
       }
     }
-    function logout() {
-      supabase.auth.signOut().then(()=>window.location.href="index.html");
+    async function logout() {
+      await supabase.auth.signOut();
+      localStorage.clear();
+      sessionStorage.clear();
+      setTimeout(() => window.location.href = "index.html", 300);
     }
     checkRole();
   </script>
 </body>
 </html>
+
