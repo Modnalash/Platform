@@ -77,7 +77,7 @@
       <div class="section">
         <h3>Add New Product</h3>
         <div class="controls">
-          <input type="text" id="productSku" placeholder="SKU" maxlength="32" />
+          <!-- SKU input removed, now auto-generated -->
           <input type="text" id="productName" placeholder="Product Name" />
           <select id="productCategory"></select>
           <input type="number" id="productQty" placeholder="Quantity" min="0" />
@@ -174,33 +174,35 @@
     }
 
     async function addProduct() {
-      const sku = document.getElementById('productSku').value.trim();
       const name = document.getElementById('productName').value.trim();
       const category = document.getElementById('productCategory').value;
       const qty = parseInt(document.getElementById('productQty').value,10);
       const cost_usd = parseFloat(document.getElementById('costUsd').value);
       const sell_pln = parseFloat(document.getElementById('sellPln').value);
 
-      if(!sku) return alert('SKU is required');
       if(!name||!category||isNaN(qty)||isNaN(cost_usd)||isNaN(sell_pln)) return alert('Fill all fields correctly');
 
-      // Check for duplicate SKU
-      if (stockData.some(p => p.sku && p.sku.toLowerCase() === sku.toLowerCase())) {
-        alert('SKU already exists!');
-        return;
+      // Fetch highest SKU number in stock
+      let { data: skus } = await supabase.from('stock').select('sku');
+      let maxNum = 0;
+      if (skus && skus.length) {
+        skus.forEach(row => {
+          const m = (row.sku||'').match(/^SK0*(\d+)$/i);
+          if (m && Number(m[1]) > maxNum) maxNum = Number(m[1]);
+        });
       }
+      const nextSku = 'SK' + String(maxNum+1).padStart(4, '0');
 
       // Insert into stock table
-      const { data, error } = await supabase.from('stock').insert([{sku, name, category, qty, cost_usd, sell_pln}]).select();
+      const { data, error } = await supabase.from('stock').insert([{sku: nextSku, name, category, qty, cost_usd, sell_pln}]).select();
       if(error) return alert('Error: '+error.message);
 
       // Insert into pl_stock with qty 0
       if (data && data.length) {
-        await supabase.from('pl_stock').insert([{sku, name, category, qty: 0}]);
+        await supabase.from('pl_stock').insert([{sku: nextSku, name, category, qty: 0}]);
       }
 
       // reset form
-      document.getElementById('productSku').value='';
       document.getElementById('productName').value='';
       document.getElementById('productCategory').value='';
       document.getElementById('productQty').value='';
