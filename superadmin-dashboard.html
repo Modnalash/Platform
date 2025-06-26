@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Super Admin Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: #0b1c2c;
+      color: #fff;
+    }
+    .container { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 260px;
+      background: #0b2436;
+      padding: 2.7rem 1.3rem 1.5rem 1.3rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      min-height: 100vh;
+      box-shadow: 3px 0 14px #0006;
+    }
+    .sidebar h2 {
+      margin-bottom: 2.3rem;
+      font-size: 1.7rem;
+      color: #7ee2f6;
+      letter-spacing: 1px;
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+    }
+    .sidebar a, .sidebar button {
+      color: #fff;
+      text-decoration: none;
+      padding: 0.92rem 1.2rem;
+      border-radius: 9px;
+      background: none;
+      border: none;
+      text-align: left;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 1.09rem;
+      transition: background 0.17s;
+      margin-bottom: 7px;
+    }
+    .sidebar a:hover, .sidebar a.active, .sidebar button:hover {
+      background: #163754;
+    }
+    .main { flex: 1; padding: 2.8rem 3vw; }
+    .header {
+      background: #12253c;
+      padding: 1.6rem 2.3rem 1.1rem 2.3rem;
+      font-size: 1.55rem;
+      border-radius: 14px;
+      margin-bottom: 2.1rem;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      box-shadow: 0 4px 18px #0003;
+      min-height: 62px;
+    }
+    .hello-owner {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.2rem;
+      color: #ffecd2;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      margin-right: 2.2rem;
+      margin-top: 0.3rem;
+      background: linear-gradient(90deg, #fffbe6 0%, #c9ecfc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .cards {
+      display: flex;
+      gap: 2.3rem;
+      flex-wrap: wrap;
+      margin-bottom: 2.6rem;
+    }
+    .card {
+      background: linear-gradient(120deg, #152f4a 60%, #23395d 100%);
+      border-radius: 14px;
+      padding: 1.25rem 2.2rem;
+      box-shadow: 0 4px 18px #0003;
+      min-width: 200px; min-height: 120px;
+      display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
+    }
+    .card h4 {
+      margin: 0 0 0.3rem 0;
+      color: #7ee2f6;
+      font-weight: 500;
+      font-size: 1.11rem;
+      letter-spacing: 1px;
+    }
+    .card .big {
+      font-size: 2.13rem;
+      margin-bottom: 0.1rem;
+      font-weight: 700;
+      color: #fffbe6;
+      font-family: 'Playfair Display', serif;
+      letter-spacing: 0.5px;
+    }
+    .section {
+      background: #18314f;
+      padding: 2rem;
+      border-radius: 12px;
+      margin-bottom: 2.3rem;
+    }
+    .section h3 {
+      margin: 0 0 1.2rem 0;
+      font-weight: 500;
+      color: #8dd1fc;
+      font-size: 1.3rem;
+      font-family: 'Inter', sans-serif;
+      letter-spacing: 0.5px;
+    }
+    .quick-links {
+      display: flex;
+      gap: 2.1rem;
+      margin-bottom: 2.3rem;
+      flex-wrap: wrap;
+    }
+    .quick-links a {
+      background: #112b44;
+      color: #fff;
+      padding: 1rem 2.2rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 1.09rem;
+      font-weight: 500;
+      box-shadow: 0 2px 9px #0002;
+      transition: background 0.14s, color 0.14s;
+    }
+    .quick-links a:hover {
+      background: #285a87;
+      color: #7ee2f6;
+    }
+    .logout-btn {
+      background: #f44336;
+      color: #fff;
+      margin-top: 1.5rem;
+    }
+    @media (max-width: 1050px) {
+      .cards { flex-direction: column; gap: 1.4rem; }
+      .main { padding: 2.2rem 1.3rem; }
+    }
+    @media (max-width: 650px) {
+      .container { flex-direction: column; }
+      .sidebar { width: 100vw; flex-direction: row; gap: 1.5rem; padding: 1rem; height: auto; min-height: unset;}
+      .main { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <nav class="sidebar">
+      <h2>Super Admin</h2>
+      <a href="#" class="active">Dashboard</a>
+      <a href="audit-log.html">Audit Log</a>
+      <a href="user-management.html">User Management</a>
+      <a href="all-orders.html">All Orders</a>
+      <a href="all-stock.html">All Stock</a>
+      <a href="platform-settings.html">Platform Settings</a>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    </nav>
+    <main class="main">
+      <div class="header">
+        <span class="hello-owner">Hello Peter</span>
+      </div>
+      <div class="cards">
+        <div class="card">
+          <h4>All Users</h4>
+          <div class="big" id="userCount">—</div>
+        </div>
+        <div class="card">
+          <h4>Pending Orders</h4>
+          <div class="big" id="pendingOrders">—</div>
+        </div>
+        <div class="card">
+          <h4>Total Stock</h4>
+          <div class="big" id="totalStock">—</div>
+        </div>
+        <div class="card">
+          <h4>Platform Actions (7d)</h4>
+          <div class="big" id="actionCount">—</div>
+        </div>
+      </div>
+      <div class="quick-links">
+        <a href="audit-log.html">🔍 View Audit Log</a>
+        <a href="user-management.html">👤 Manage Users</a>
+        <a href="all-orders.html">📦 All Orders</a>
+        <a href="all-stock.html">📊 View All Stock</a>
+        <a href="platform-settings.html">⚙️ Platform Settings</a>
+      </div>
+      <div class="section">
+        <h3>Latest Platform Actions</h3>
+        <ul id="latestActions"></ul>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script>
+    // SETUP YOUR SUPABASE
+    const supabase = window.supabase.createClient(
+      'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6InN1cGVyYWRtaW4iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
+    );
+    let currentUser = null;
+
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) { window.location.href = "index.html"; return; }
+      currentUser = user;
+      const { data: profile } = await supabase
+        .from('profiles').select('role').eq('id', user.id).single();
+      if (!profile || profile.role !== 'superadmin') {
+        window.location.href = "index.html";
+        return;
+      }
+      await logAction("Login", {});
+      loadDashboard();
+    });
+
+    async function logAction(action, details) {
+      if (!currentUser) return;
+      await supabase.from('audit_log').insert([{
+        user_id: currentUser.id,
+        user_email: currentUser.email,
+        action, details
+      }]);
+    }
+
+    async function loadDashboard() {
+      // Total users
+      const { data: users } = await supabase.from('profiles').select('id');
+      document.getElementById('userCount').textContent = users ? users.length : '—';
+
+      // Pending orders
+      const { data: pending } = await supabase.from('orders').select('id').eq('status', 'Pending');
+      document.getElementById('pendingOrders').textContent = pending ? pending.length : '—';
+
+      // Total stock
+      const { data: stocks } = await supabase.from('stock').select('qty');
+      let total = stocks ? stocks.reduce((sum, r) => sum + (r.qty || 0), 0) : 0;
+      document.getElementById('totalStock').textContent = total;
+
+      // Actions last 7d
+      const since = new Date(Date.now() - 7*24*60*60*1000).toISOString();
+      const { data: logs } = await supabase.from('audit_log').select('id').gte('timestamp', since);
+      document.getElementById('actionCount').textContent = logs ? logs.length : '—';
+
+      // Latest actions (last 8)
+      const { data: last8 } = await supabase
+        .from('audit_log')
+        .select('user_email, action, timestamp')
+        .order('timestamp', { descending: true })
+        .limit(8);
+      const list = document.getElementById('latestActions');
+      list.innerHTML = '';
+      if (last8 && last8.length) {
+        last8.forEach(log => {
+          const li = document.createElement('li');
+          li.textContent = `${log.timestamp?.slice(0,19).replace('T',' ')} — ${log.user_email} — ${log.action}`;
+          list.appendChild(li);
+        });
+      } else {
+        list.innerHTML = '<li>No actions found.</li>';
+      }
+    }
+
+    async function logout() {
+      await logAction('Logout', {});
+      await supabase.auth.signOut();
+      localStorage.clear();
+      sessionStorage.clear();
+      setTimeout(() => window.location.href = "index.html", 300);
+    }
+  </script>
+</body>
+</html>
