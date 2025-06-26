@@ -77,9 +77,12 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
 
-    // Role protection: Only "uk" role can access this page
+    let currentUser = null;
+
+    // Role protection: Only "uk" role can access this page. Log login.
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if(!user) { window.location.href = "index.html"; return; }
+      currentUser = user;
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
@@ -87,8 +90,23 @@
         .single();
       if(!profile || profile.role !== 'uk') {
         window.location.href = "index.html";
+        return;
       }
+      await logAction("Login", {});
     });
+
+    // Audit log helper
+    async function logAction(action, details) {
+      if (!currentUser) return;
+      await supabase.from('audit_log').insert([
+        {
+          user_id: currentUser.id,
+          user_email: currentUser.email,
+          action,
+          details
+        }
+      ]);
+    }
 
     let orderItems = [];
 
@@ -164,6 +182,10 @@
     async function submitOrder() {
       if (!orderItems.length) return alert('❌ No items to submit.');
       const groupId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+
+      // Audit log: Place Order
+      await logAction("Place Order", { items: orderItems, groupId });
+
       for (const item of orderItems) {
         const { error } = await supabase.from('orders').insert([
           { region: 'UK', product: item.product, qty: item.qty, category: item.category, order_group_id: groupId, status: 'Pending' }
@@ -178,6 +200,7 @@
     }
 
     async function logout() {
+      await logAction("Logout", {});
       await supabase.auth.signOut();
       localStorage.clear();
       sessionStorage.clear();
