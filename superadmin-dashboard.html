@@ -6,83 +6,16 @@
   <title>Super Admin Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
   <style>
-    body {
-      margin: 0;
-      font-family: 'Inter', sans-serif;
-      background: #0b1c2c;
-      color: #fff;
-    }
+    body { margin: 0; font-family: 'Inter', sans-serif; background: #0b1c2c; color: #fff; }
     .container { display: flex; min-height: 100vh; }
-    .sidebar {
-      width: 260px;
-      background: #0b2436;
-      padding: 2.7rem 1.3rem 1.5rem 1.3rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-      min-height: 100vh;
-      box-shadow: 3px 0 14px #0006;
-    }
-    .sidebar h2 {
-      margin-bottom: 2.3rem;
-      font-size: 1.7rem;
-      color: #7ee2f6;
-      letter-spacing: 1px;
-      font-family: 'Playfair Display', serif;
-      font-weight: 700;
-    }
-    .sidebar a, .sidebar button {
-      color: #fff;
-      text-decoration: none;
-      padding: 0.92rem 1.2rem;
-      border-radius: 9px;
-      background: none;
-      border: none;
-      text-align: left;
-      cursor: pointer;
-      font-family: inherit;
-      font-size: 1.09rem;
-      transition: background 0.17s;
-      margin-bottom: 7px;
-      display: block;
-    }
-    .sidebar a:hover, .sidebar a.active, .sidebar button:hover {
-      background: #163754;
-    }
+    .sidebar { width: 260px; background: #0b2436; padding: 2.7rem 1.3rem 1.5rem 1.3rem; display: flex; flex-direction: column; gap: 1.5rem; min-height: 100vh; box-shadow: 3px 0 14px #0006; }
+    .sidebar h2 { margin-bottom: 2.3rem; font-size: 1.7rem; color: #7ee2f6; letter-spacing: 1px; font-family: 'Playfair Display', serif; font-weight: 700; }
+    .sidebar a, .sidebar button { color: #fff; text-decoration: none; padding: 0.92rem 1.2rem; border-radius: 9px; background: none; border: none; text-align: left; cursor: pointer; font-family: inherit; font-size: 1.09rem; transition: background 0.17s; margin-bottom: 7px; display: block; }
+    .sidebar a:hover, .sidebar a.active, .sidebar button:hover { background: #163754; }
     .main { flex: 1; padding: 2.8rem 3vw; }
-    .header {
-      background: #12253c;
-      padding: 1.6rem 2.3rem 1.1rem 2.3rem;
-      font-size: 1.55rem;
-      border-radius: 14px;
-      margin-bottom: 2.1rem;
-      display: flex;
-      align-items: flex-start;
-      justify-content: flex-start;
-      box-shadow: 0 4px 18px #0003;
-      min-height: 62px;
-    }
-    .hello-owner {
-      font-family: 'Playfair Display', serif;
-      font-size: 2.2rem;
-      color: #ffecd2;
-      font-weight: 700;
-      letter-spacing: 1.5px;
-      margin-right: 2.2rem;
-      margin-top: 0.3rem;
-      background: linear-gradient(90deg, #fffbe6 0%, #c9ecfc 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    @media (max-width: 1050px) {
-      .main { padding: 2.2rem 1.3rem; }
-    }
-    @media (max-width: 650px) {
-      .container { flex-direction: column; }
-      .sidebar { width: 100vw; flex-direction: row; gap: 1.5rem; padding: 1rem; height: auto; min-height: unset;}
-      .main { padding: 1rem; }
-    }
+    .header { background: #12253c; padding: 1.6rem 2.3rem 1.1rem 2.3rem; font-size: 1.55rem; border-radius: 14px; margin-bottom: 2.1rem; display: flex; align-items: flex-start; justify-content: flex-start; box-shadow: 0 4px 18px #0003; min-height: 62px; }
+    .hello-owner { font-family: 'Playfair Display', serif; font-size: 2.2rem; color: #ffecd2; font-weight: 700; letter-spacing: 1.5px; margin-right: 2.2rem; margin-top: 0.3rem; background: linear-gradient(90deg, #fffbe6 0%, #c9ecfc 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .diagnostic { background: #112b44; color: #ffb; padding: 1.5rem 2rem; border-radius: 10px; margin: 2rem 0; font-size: 1.12rem; }
   </style>
 </head>
 <body>
@@ -102,47 +35,39 @@
         <span class="hello-owner">Hello Peter</span>
       </div>
       <p style="font-size:1.25rem;color:#7ee2f6;margin-top:2rem;">
-        Welcome to your Super Admin Dashboard! <br>
-        This is a secure page for superadmin only.
+        Welcome to your Super Admin Dashboard!
       </p>
+      <div class="diagnostic" id="diagnostic">Checking session...</div>
     </main>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script>
-    // 1. Secure: Only allow logged-in superadmin to view this page
     const supabase = window.supabase.createClient(
       'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6InN1cGVyYWRtaW4iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
 
-    async function requireSuperadmin() {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (!user) {
-        window.location.href = "index.html";
-        return;
+    async function testAuth() {
+      const result = await supabase.auth.getUser();
+      console.log("getUser() result:", result);
+      let diag = document.getElementById("diagnostic");
+      if (result.error) {
+        diag.innerHTML = "Error: " + result.error.message;
+      } else if (!result.data.user) {
+        diag.innerHTML = "No user found in session.<br>Session probably missing or expired.";
+      } else {
+        diag.innerHTML = "User ID: " + result.data.user.id + "<br>Email: " + result.data.user.email;
       }
-      // Fetch profile for this user
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles').select('role').eq('id', user.id).single();
-      if (!profile || profile.role !== 'superadmin') {
-        // Log out and redirect if not superadmin
-        await supabase.auth.signOut();
+    }
+    testAuth();
+
+    function logout() {
+      supabase.auth.signOut().then(() => {
         localStorage.clear();
         sessionStorage.clear();
         window.location.href = "index.html";
-        return;
-      }
-      // Otherwise: allowed!
+      });
     }
-
-    async function logout() {
-      await supabase.auth.signOut();
-      localStorage.clear();
-      sessionStorage.clear();
-      window.location.href = "index.html";
-    }
-
-    requireSuperadmin();
   </script>
 </body>
 </html>
