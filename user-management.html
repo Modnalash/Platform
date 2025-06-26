@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Management | Super Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@0.285.0/font/lucide.css">
+  <style>
+    body { margin: 0; font-family: 'Inter', sans-serif; background: linear-gradient(120deg, #181F2F 0%, #153448 100%); color: #fff; min-height: 100vh;}
+    .container { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 260px;
+      background: rgba(12, 23, 36, 0.92);
+      backdrop-filter: blur(4px);
+      border-right: 1.5px solid #263857;
+      padding: 2.8rem 1.1rem 1.8rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      min-height: 100vh;
+      box-shadow: 3px 0 32px #001f3f24;
+    }
+    .sidebar h2 {
+      margin-bottom: 2.6rem;
+      font-size: 2rem;
+      color: #51f2d6;
+      letter-spacing: 1px;
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      background: linear-gradient(90deg, #78ffd6 0%, #31c3f6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .sidebar-menu { flex: 1; display: flex; flex-direction: column; gap: 0.2rem; }
+    .sidebar a, .sidebar button {
+      color: #fff; text-decoration: none;
+      padding: 0.98rem 1.2rem 0.98rem 1.0rem; border-radius: 11px; background: none; border: none;
+      text-align: left; cursor: pointer; font-family: inherit; font-size: 1.13rem; font-weight: 500;
+      transition: background 0.19s, color 0.13s; margin-bottom: 4px; display: flex; align-items: center;
+      gap: 0.85rem; letter-spacing: 0.5px; outline: none;
+    }
+    .sidebar a:hover, .sidebar a.active, .sidebar button.logout-btn:hover {
+      background: linear-gradient(90deg,#23a6d5 0%, #23d5ab 100%);
+      color: #101e2a;
+    }
+    .sidebar i { font-size: 1.25em; opacity: 0.74; }
+    .main { flex: 1; padding: 2.8rem 4vw 2.2rem 4vw; background: none; min-width: 0; }
+    .header {
+      background: rgba(17,36,60, 0.89);
+      padding: 1.5rem 2.2rem 1.2rem 2.2rem;
+      font-size: 1.7rem; border-radius: 20px; margin-bottom: 2.1rem;
+      display: flex; align-items: flex-start; justify-content: flex-start;
+      box-shadow: 0 4px 24px #04183729; min-height: 58px;
+    }
+    .hello-owner { font-family: 'Playfair Display', serif; font-size: 2rem; color: #f8fff4; font-weight: 700; letter-spacing: 1.5px; background: linear-gradient(90deg, #f1fff2 0%, #b3ecf7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .subtext { font-size:1.14rem; color:#8ee8e4; margin-top:1.7rem; margin-bottom:1.6rem; }
+    .diagnostic { background: rgba(16,37,60, 0.9); color: #e7ffe7; padding: 1.3rem 1.8rem; border-radius: 12px; margin: 2rem 0 1.3rem 0; font-size: 1.09rem; font-family: 'Inter',sans-serif; box-shadow: 0 3px 12px #11223620; display:none;}
+    .search-row { display: flex; align-items: center; gap: 1.3rem; margin-bottom: 1.3rem; flex-wrap: wrap; }
+    .search-row input { background: rgba(255,255,255,0.13); color: #fff; border: 1px solid #23a6d580; border-radius: 9px; padding: 0.65rem 1rem; font-size: 1rem; font-family: inherit; outline: none; transition: border 0.14s; margin-right: 0.6rem; min-width: 240px; max-width: 320px;}
+    .search-row input:focus { border: 1.5px solid #00e9cc; background: rgba(255,255,255,0.20);}
+    .user-table-container { background: rgba(255,255,255,0.12); border-radius: 20px; box-shadow: 0 4px 32px #21cfc340; padding: 0.5rem 1.1rem 1.1rem 1.1rem; overflow-x: auto; border: 1.5px solid rgba(55,155,255,0.09); min-height: 380px; margin-top: 1rem;}
+    table.user-table { width: 100%; border-collapse: collapse; font-size: 0.98rem; font-family: 'Inter', sans-serif; color: #fff; }
+    table.user-table thead th { background: rgba(10,70,120,0.14); color: #72ffe2; font-size: 0.93rem; padding: 0.58rem 0.5rem; text-align: left; border-bottom: 2px solid #24d8d999; font-weight: 700; letter-spacing: 1px; }
+    table.user-table tbody tr { background: rgba(255,255,255,0.04); transition: background 0.13s;}
+    table.user-table tbody tr:hover { background: rgba(80,240,220,0.13);}
+    table.user-table td { padding: 0.42rem 0.5rem; border-bottom: 1px solid #218b9344; vertical-align: top; font-size: 0.97rem; letter-spacing: 0.2px; line-height: 1.3;}
+    .user-status { font-weight: 600; font-size: 0.99em; padding: 0.25em 0.9em; border-radius: 9px;}
+    .user-status.active { color: #22ffbc; background: #203f36; }
+    .user-status.blocked { color: #ff7e7e; background: #402528;}
+    .user-actions { display: flex; gap: 0.7em;}
+    .user-action-btn { background: none; border: none; cursor: pointer; color: #22e6fc; font-size: 1.2em; opacity: 0.85; padding: 3px;}
+    .user-action-btn:hover { color: #00ffc6; opacity: 1;}
+    .user-action-btn[disabled] { opacity: 0.33; pointer-events: none;}
+    .edit-modal-bg { position: fixed; z-index: 11111; left: 0; top: 0; width: 100vw; height: 100vh; background: rgba(12,22,30,0.55); display: none; align-items: center; justify-content: center;}
+    .edit-modal { background: #153448; border-radius: 18px; padding: 2.1em 2.5em; min-width: 330px; max-width: 98vw; box-shadow: 0 10px 80px #1ce7f722;}
+    .edit-modal label { display: block; margin-bottom: 0.5em; color: #93ffe2; font-size: 1.1em;}
+    .edit-modal select, .edit-modal input[type="text"] { width: 100%; padding: 0.7em 0.6em; border-radius: 7px; border: 1px solid #51f2d6; background: #101e2a; color: #fff; font-size: 1em; margin-bottom: 1.2em;}
+    .edit-modal button { background: linear-gradient(90deg,#23a6d5 0%, #23d5ab 100%); color: #101e2a; border: none; border-radius: 7px; padding: 0.61em 1.3em; font-size: 1em; font-weight: 600; cursor: pointer; margin-right: 1em;}
+    .edit-modal .cancel-btn { background: #20394c; color: #72ffe2;}
+    .edit-modal-title { font-family: 'Playfair Display', serif; color: #72ffe2; font-size: 1.23em; margin-bottom: 0.7em;}
+    @media (max-width: 900px) {.main{padding:2rem 1vw;}.user-table-container{padding:0.5rem 0.1rem 1.1rem 0.1rem;}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <nav class="sidebar">
+      <h2>Super Admin</h2>
+      <div class="sidebar-menu">
+        <a href="superadmin-dashboard.html"><i class="lucide lucide-pie-chart"></i><span>Dashboard</span></a>
+        <a href="audit-log.html"><i class="lucide lucide-list-checks"></i><span>Audit Log</span></a>
+        <a href="#" class="active"><i class="lucide lucide-users"></i><span>User Management</span></a>
+        <a href="#"><i class="lucide lucide-receipt"></i><span>All Orders</span></a>
+        <a href="#"><i class="lucide lucide-warehouse"></i><span>All Stock</span></a>
+        <a href="#"><i class="lucide lucide-sliders"></i><span>Platform Settings</span></a>
+      </div>
+      <button class="logout-btn" onclick="logout()"><i class="lucide lucide-log-out"></i> Logout</button>
+    </nav>
+    <main class="main">
+      <div class="header">
+        <span class="hello-owner">User Management</span>
+      </div>
+      <div class="subtext">
+        Manage all platform users, roles, and access in one place.
+      </div>
+      <div class="diagnostic" id="diagnostic">Checking access...</div>
+      <div class="search-row">
+        <input type="text" id="user-search" placeholder="Search users...">
+      </div>
+      <div class="user-table-container" id="user-table-container">
+        <table class="user-table" id="user-table">
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Name</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Last Login</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="user-table-tbody">
+            <tr><td colspan="7" class="audit-empty">Loading users...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+    <!-- Edit Modal -->
+    <div class="edit-modal-bg" id="edit-modal-bg">
+      <div class="edit-modal" id="edit-modal">
+        <div class="edit-modal-title">Edit User</div>
+        <form id="edit-user-form">
+          <label for="edit-role">Role</label>
+          <select id="edit-role">
+            <option value="user">User</option>
+            <option value="pl_user">PL User</option>
+            <option value="uk_user">UK User</option>
+            <option value="admin">Admin</option>
+            <option value="superadmin">Superadmin</option>
+          </select>
+          <label for="edit-status">Status</label>
+          <select id="edit-status">
+            <option value="active">Active</option>
+            <option value="blocked">Blocked</option>
+          </select>
+          <button type="submit">Save</button>
+          <button type="button" class="cancel-btn" onclick="closeEditModal()">Cancel</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script>
+    const supabase = window.supabase.createClient(
+      'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
+    );
+    let usersAll = [];
+    let filteredUsers = [];
+    let editingUserId = null;
+
+    async function checkSuperadminAccessAndLoadUsers() {
+      const diag = document.getElementById("diagnostic");
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        diag.style.display = "block";
+        diag.innerHTML = "Not logged in. Redirecting to login...";
+        setTimeout(() => window.location.href = "index.html", 1200);
+        return;
+      }
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      if (profileError || !profile) {
+        diag.style.display = "block";
+        diag.innerHTML = "No profile found. Logging out for security...";
+        setTimeout(() => { logout(); }, 1500);
+        return;
+      }
+      if (profile.role !== "superadmin") {
+        diag.style.display = "block";
+        diag.innerHTML = "Access denied: you are not a superadmin. Logging out...";
+        setTimeout(() => { logout(); }, 1500);
+        return;
+      }
+      diag.style.display = "none";
+      await loadUsers();
+    }
+
+    async function loadUsers() {
+      const tbody = document.getElementById("user-table-tbody");
+      tbody.innerHTML = `<tr><td colspan="7" class="audit-empty">Loading users...</td></tr>`;
+      let { data: users, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) {
+        tbody.innerHTML = `<tr><td colspan="7" class="audit-empty" style="color:#ff9eae">Error loading users: ${error.message}</td></tr>`;
+        return;
+      }
+      if (!users || users.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="audit-empty">No users found.</td></tr>`;
+        return;
+      }
+      usersAll = users;
+      filteredUsers = usersAll;
+      setupSearch();
+      renderUsers();
+    }
+
+    function setupSearch() {
+      const searchInput = document.getElementById("user-search");
+      searchInput.oninput = function() {
+        let q = searchInput.value.toLowerCase();
+        filteredUsers = usersAll.filter(user =>
+          (user.email?.toLowerCase().includes(q)) ||
+          (user.name?.toLowerCase().includes(q))
+        );
+        renderUsers();
+      };
+    }
+
+    function renderUsers() {
+      const tbody = document.getElementById("user-table-tbody");
+      tbody.innerHTML = "";
+      if (filteredUsers.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="audit-empty">No users found for your search.</td></tr>`;
+        return;
+      }
+      filteredUsers.forEach(user => {
+        tbody.innerHTML += `<tr>
+          <td>${user.email || "-"}</td>
+          <td>${user.name || "-"}</td>
+          <td>${user.role || "-"}</td>
+          <td><span class="user-status ${user.status || "active"}">${user.status === "blocked" ? "Blocked" : "Active"}</span></td>
+          <td>${user.last_login ? new Date(user.last_login).toLocaleString() : "-"}</td>
+          <td>${user.created_at ? new Date(user.created_at).toLocaleDateString() : "-"}</td>
+          <td class="user-actions">
+            <button class="user-action-btn" title="Edit" onclick='openEditModal("${user.id}")'><i class="lucide lucide-pencil"></i></button>
+            <button class="user-action-btn" title="${user.status === "blocked" ? "Unblock" : "Block"}" onclick='toggleBlockUser("${user.id}", "${user.status}")'><i class="lucide ${user.status === "blocked" ? "lucide-lock" : "lucide-unlock"}"></i></button>
+          </td>
+        </tr>`;
+      });
+    }
+
+    window.openEditModal = function(id) {
+      editingUserId = id;
+      const user = usersAll.find(u => u.id === id);
+      if (!user) return;
+      document.getElementById('edit-role').value = user.role || "user";
+      document.getElementById('edit-status').value = user.status || "active";
+      document.getElementById('edit-modal-bg').style.display = "flex";
+    }
+    window.closeEditModal = function() {
+      document.getElementById('edit-modal-bg').style.display = "none";
+      editingUserId = null;
+    }
+
+    document.getElementById('edit-user-form').onsubmit = async function(e) {
+      e.preventDefault();
+      if (!editingUserId) return;
+      const role = document.getElementById('edit-role').value;
+      const status = document.getElementById('edit-status').value;
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role, status })
+        .eq('id', editingUserId);
+      if (error) alert("Failed to update user: " + error.message);
+      window.closeEditModal();
+      await loadUsers();
+    }
+
+    window.toggleBlockUser = async function(id, status) {
+      const block = status !== "blocked";
+      const { error } = await supabase
+        .from('profiles')
+        .update({ status: block ? "blocked" : "active" })
+        .eq('id', id);
+      if (error) alert("Failed to update user status: " + error.message);
+      await loadUsers();
+    }
+
+    function logout() {
+      supabase.auth.signOut().then(() => {
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.href = "index.html";
+      });
+    }
+    checkSuperadminAccessAndLoadUsers();
+  </script>
+</body>
+</html>
