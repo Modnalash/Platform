@@ -73,11 +73,6 @@
           <span class="dash-card-value" id="stat-total-stock">...</span>
           <span class="dash-card-sub">All inventory units</span>
         </div>
-        <div class="dash-card">
-          <span class="dash-card-label">Platform Actions (7d)</span>
-          <span class="dash-card-value" id="stat-actions-7d">...</span>
-          <span class="dash-card-sub">Audit log entries (last 7d)</span>
-        </div>
       </div>
     </main>
   </div>
@@ -123,26 +118,24 @@
     async function loadDashboardStats() {
       // All Users
       const { count: usersCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
-      document.getElementById("stat-users").textContent = usersCount ?? '-';
+      document.getElementById("stat-users").textContent = usersCount ?? '0';
 
       // Pending Orders
-      const { count: pendingOrders } = await supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'pending');
-      document.getElementById("stat-pending-orders").textContent = pendingOrders ?? '-';
+      let pendingOrders = 0;
+      const { count: pendingOrdersCount, error: orderError } = await supabase
+        .from('orders')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+      if (!orderError && typeof pendingOrdersCount === 'number') pendingOrders = pendingOrdersCount;
+      document.getElementById("stat-pending-orders").textContent = pendingOrders;
 
       // Total Stock (sum stock.quantity + pl_stock.quantity)
       let totalStock = 0;
-      const { data: stock } = await supabase.from('stock').select('quantity');
-      if (stock && Array.isArray(stock)) totalStock += stock.reduce((a, b) => a + (b.quantity || 0), 0);
-      const { data: plStock } = await supabase.from('pl_stock').select('quantity');
-      if (plStock && Array.isArray(plStock)) totalStock += plStock.reduce((a, b) => a + (b.quantity || 0), 0);
+      const { data: stock, error: stockError } = await supabase.from('stock').select('quantity');
+      if (!stockError && stock && Array.isArray(stock)) totalStock += stock.reduce((a, b) => a + (parseInt(b.quantity) || 0), 0);
+      const { data: plStock, error: plStockError } = await supabase.from('pl_stock').select('quantity');
+      if (!plStockError && plStock && Array.isArray(plStock)) totalStock += plStock.reduce((a, b) => a + (parseInt(b.quantity) || 0), 0);
       document.getElementById("stat-total-stock").textContent = totalStock;
-
-      // Platform Actions (last 7 days)
-      const since = new Date();
-      since.setDate(since.getDate() - 7);
-      const isoSince = since.toISOString();
-      const { count: actionsCount } = await supabase.from('audit_log').select('*', { count: 'exact', head: true }).gte('created_at', isoSince);
-      document.getElementById("stat-actions-7d").textContent = actionsCount ?? '-';
     }
 
     checkSuperadminAccessAndLoadStats();
