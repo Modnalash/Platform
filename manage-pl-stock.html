@@ -27,7 +27,7 @@
   <header>
     <button class="back-btn" onclick="location.href='dashboard-pluser.html'">← Back</button>
     <h1>PL Local Stock</h1>
-    <button class="logout-btn" onclick="location.href='index.html'">Logout</button>
+    <button class="logout-btn" onclick="logout()">Logout</button>
   </header>
 
   <div class="container">
@@ -58,6 +58,37 @@
     );
 
     let adminStock = [], plStock = [];
+    let currentUser = null;
+
+    // Audit log helper
+    async function logAction(action, details) {
+      if (!currentUser) return;
+      await supabase.from('audit_log').insert([
+        {
+          user_id: currentUser.id,
+          user_email: currentUser.email,
+          action,
+          details
+        }
+      ]);
+    }
+
+    // Role check and log Login
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) { window.location.href = "index.html"; return; }
+      currentUser = user;
+      await logAction("Login", {});
+      fetchData();
+    });
+
+    // Logout and log
+    async function logout() {
+      await logAction("Logout", {});
+      await supabase.auth.signOut();
+      localStorage.clear();
+      sessionStorage.clear();
+      setTimeout(() => window.location.href = "index.html", 300);
+    }
 
     // Persist adjust input values
     const STORAGE_KEY = 'plAdjustValues';
@@ -70,7 +101,6 @@
 
     document.getElementById('searchInput').addEventListener('input', renderTable);
     document.getElementById('categoryFilter').addEventListener('change', renderTable);
-    window.addEventListener('DOMContentLoaded', fetchData);
 
     async function fetchData() {
       const [mainRes, plRes] = await Promise.all([
@@ -167,6 +197,13 @@
           .insert([{ name: mainRec.name, category: mainRec.category, qty: newQty }]);
         if (error) return alert(error.message);
       }
+
+      // AUDIT LOG for adjust
+      await logAction("PL Adjust Stock", {
+        product: mainRec.name,
+        category: mainRec.category,
+        new_qty: newQty
+      });
 
       setAdjust(mainId, 0);
 
