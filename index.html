@@ -23,10 +23,12 @@
     <img src="logo1.png" alt="MODNA LASH WAREHOUSE" class="logo" style="max-width:220px; width:100%; display:block;"/>
     <h2 id="formTitle">Sign In</h2>
     <div id="message"></div>
-    <input type="email" id="email" placeholder="Email" autocomplete="username" />
-    <input type="password" id="password" placeholder="Password" autocomplete="current-password" />
-    <button onclick="login()" id="loginBtn">Sign In</button>
-    <button onclick="signup()" id="signupBtn" style="display:none;">Sign Up</button>
+    <form id="loginForm" autocomplete="on">
+      <input type="email" id="email" placeholder="Email" autocomplete="username" required />
+      <input type="password" id="password" placeholder="Password" autocomplete="current-password" required />
+      <button type="submit" id="loginBtn">Sign In</button>
+      <button type="button" onclick="signup()" id="signupBtn" style="display:none;">Sign Up</button>
+    </form>
     <div class="switch" id="toggleForm" onclick="toggleForm()">Don't have an account? Sign up</div>
   </div>
   <script>
@@ -73,6 +75,17 @@
       document.getElementById('message').innerHTML = `<div class="${error ? 'err' : 'msg'}">${msg}</div>`;
     }
 
+    // Add submit event for Enter key support
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      if (isSignup) {
+        signup();
+      } else {
+        login();
+      }
+    });
+
+    // Optional: If already logged in, go to wait-for-role.html
     supabase.auth.getUser().then(({ data: { user } }) => {
       if(user) window.location.href = "wait-for-role.html";
     });
