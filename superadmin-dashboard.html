@@ -5,34 +5,204 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Super Admin Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@0.285.0/font/lucide.css">
   <style>
-    body { margin: 0; font-family: 'Inter', sans-serif; background: #0b1c2c; color: #fff; }
-    .container { display: flex; min-height: 100vh; }
-    .sidebar { width: 260px; background: #0b2436; padding: 2.7rem 1.3rem 1.5rem 1.3rem; display: flex; flex-direction: column; gap: 1.5rem; min-height: 100vh; box-shadow: 3px 0 14px #0006; }
-    .sidebar h2 { margin-bottom: 2.3rem; font-size: 1.7rem; color: #7ee2f6; letter-spacing: 1px; font-family: 'Playfair Display', serif; font-weight: 700; }
-    .sidebar a, .sidebar button { color: #fff; text-decoration: none; padding: 0.92rem 1.2rem; border-radius: 9px; background: none; border: none; text-align: left; cursor: pointer; font-family: inherit; font-size: 1.09rem; transition: background 0.17s; margin-bottom: 7px; display: block; }
-    .sidebar a:hover, .sidebar a.active, .sidebar button:hover { background: #163754; }
-    .main { flex: 1; padding: 2.8rem 3vw; }
-    .header { background: #12253c; padding: 1.6rem 2.3rem 1.1rem 2.3rem; font-size: 1.55rem; border-radius: 14px; margin-bottom: 2.1rem; display: flex; align-items: flex-start; justify-content: flex-start; box-shadow: 0 4px 18px #0003; min-height: 62px; }
-    .hello-owner { font-family: 'Playfair Display', serif; font-size: 2.2rem; color: #ffecd2; font-weight: 700; letter-spacing: 1.5px; margin-right: 2.2rem; margin-top: 0.3rem; background: linear-gradient(90deg, #fffbe6 0%, #c9ecfc 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    .diagnostic { background: #112b44; color: #ffb; padding: 1.5rem 2rem; border-radius: 10px; margin: 2rem 0; font-size: 1.12rem; }
-    .dashboard-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 2rem; margin-top: 2.5rem; }
-    .dash-card {
-      background: #132943;
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(120deg, #181F2F 0%, #153448 100%);
+      color: #fff;
+      min-height: 100vh;
+    }
+    .container {
+      display: flex;
+      min-height: 100vh;
+    }
+    .sidebar {
+      width: 260px;
+      background: rgba(12, 23, 36, 0.92);
+      backdrop-filter: blur(4px);
+      border-right: 1.5px solid #263857;
+      padding: 2.8rem 1.1rem 1.8rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      min-height: 100vh;
+      box-shadow: 3px 0 32px #001f3f24;
+    }
+    .sidebar h2 {
+      margin-bottom: 2.6rem;
+      font-size: 2rem;
+      color: #51f2d6;
+      letter-spacing: 1px;
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      background: linear-gradient(90deg, #78ffd6 0%, #31c3f6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .sidebar-menu {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .sidebar a, .sidebar button {
+      color: #fff;
+      text-decoration: none;
+      padding: 0.98rem 1.2rem 0.98rem 1.0rem;
+      border-radius: 11px;
+      background: none;
+      border: none;
+      text-align: left;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 1.13rem;
+      font-weight: 500;
+      transition: background 0.19s, color 0.13s;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      letter-spacing: 0.5px;
+      outline: none;
+    }
+    .sidebar a:hover, .sidebar a.active, .sidebar button.logout-btn:hover {
+      background: linear-gradient(90deg,#23a6d5 0%, #23d5ab 100%);
+      color: #101e2a;
+    }
+    .sidebar i {
+      font-size: 1.25em;
+      opacity: 0.74;
+    }
+    .main {
+      flex: 1;
+      padding: 2.8rem 4vw 2.2rem 4vw;
+      background: none;
+    }
+    .header {
+      background: rgba(17,36,60, 0.89);
+      padding: 1.8rem 2.5rem 1.4rem 2.5rem;
+      font-size: 1.77rem;
       border-radius: 20px;
-      padding: 2.2rem 2rem 1.3rem 2rem;
-      box-shadow: 0 3px 18px #0002;
-      min-height: 120px;
+      margin-bottom: 2.1rem;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      box-shadow: 0 4px 24px #04183729;
+      min-height: 65px;
+    }
+    .hello-owner {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.3rem;
+      color: #f8fff4;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      margin-right: 2.2rem;
+      margin-top: 0.3rem;
+      background: linear-gradient(90deg, #f1fff2 0%, #b3ecf7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subtext {
+      font-size:1.26rem;
+      color:#8ee8e4;
+      margin-top:2.2rem;
+      margin-bottom:1.7rem;
+    }
+    .diagnostic {
+      background: rgba(16,37,60, 0.9);
+      color: #e7ffe7;
+      padding: 1.3rem 1.8rem;
+      border-radius: 12px;
+      margin: 2rem 0 0.6rem 0;
+      font-size: 1.11rem;
+      font-family: 'Inter',sans-serif;
+      box-shadow: 0 3px 12px #11223620;
+      display:none;
+    }
+    .dashboard-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2.3rem;
+      margin-top: 2.2rem;
+    }
+    .dash-card {
+      background: rgba(255,255,255,0.11);
+      border-radius: 28px;
+      padding: 2.1rem 2rem 1.2rem 2rem;
+      box-shadow: 0 4px 32px #10a8b740;
+      min-height: 125px;
       display: flex;
       flex-direction: column;
       align-items: flex-start;
-      transition: box-shadow 0.2s;
+      border: 1.5px solid rgba(55,155,255,0.09);
+      position: relative;
+      overflow: hidden;
+      animation: fadeIn 0.9s cubic-bezier(.32,0,.67,.98);
     }
-    .dash-card-label { color: #63e2ff; font-size: 1.09rem; margin-bottom: 0.7rem; letter-spacing: 1px; }
-    .dash-card-value { font-size: 2.4rem; font-family: 'Playfair Display', serif; font-weight: 700; color: #fffbe6; }
-    .dash-card-sub { font-size: 0.99rem; color: #bee0ff; margin-top: 0.5rem; }
-    @media (max-width: 850px) {
-      .dashboard-cards { grid-template-columns: 1fr; gap: 1.3rem;}
+    .dash-card:before {
+      content: '';
+      position: absolute;
+      right: -60px; top: -60px;
+      width: 120px; height: 120px;
+      background: radial-gradient(circle at 60% 40%, #48e0cb33 0%, transparent 60%);
+      z-index: 1;
+    }
+    .dash-card-label {
+      color: #5beae5;
+      font-size: 1.08rem;
+      margin-bottom: 0.5rem;
+      letter-spacing: 1.1px;
+      z-index: 2;
+      position: relative;
+      text-transform: uppercase;
+      font-weight: 600;
+      opacity: 0.91;
+    }
+    .dash-card-value {
+      font-size: 2.7rem;
+      font-family: 'Playfair Display', serif;
+      font-weight: 800;
+      color: #f9fff6;
+      letter-spacing: 0.5px;
+      z-index: 2;
+      position: relative;
+      line-height: 1.1;
+      margin-bottom: 0.2rem;
+      filter: drop-shadow(0 2px 12px #32e3be10);
+    }
+    .dash-card-sub {
+      font-size: 1.05rem;
+      color: #caf3ff;
+      margin-top: 0.3rem;
+      opacity: 0.83;
+      z-index: 2;
+      position: relative;
+    }
+    .logout-btn {
+      margin-top: 1.7rem;
+      font-size: 1.12rem;
+      background: linear-gradient(90deg,#fa65a0 0%, #fccb90 100%);
+      color: #153448 !important;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      box-shadow: 0 2px 8px #f990af38;
+    }
+    .logout-btn:hover {
+      background: linear-gradient(90deg,#ff325d 0%, #fdbb88 100%);
+      color: #fff !important;
+    }
+    @media (max-width: 900px) {
+      .main {padding: 2rem 1vw;}
+      .dashboard-cards { gap: 1.3rem;}
+      .sidebar {padding:1.4rem 0.7rem;}
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(32px);}
+      to { opacity: 1; transform: translateY(0);}
     }
   </style>
 </head>
@@ -40,21 +210,21 @@
   <div class="container">
     <nav class="sidebar">
       <h2>Super Admin</h2>
-      <a href="#" class="active">Dashboard</a>
-      <a href="#">Audit Log</a>
-      <a href="#">User Management</a>
-      <a href="#">All Orders</a>
-      <a href="#">All Stock</a>
-      <a href="#">Platform Settings</a>
-      <button class="logout-btn" onclick="logout()">Logout</button>
+      <div class="sidebar-menu">
+        <a href="#" class="active"><i class="lucide lucide-pie-chart"></i>Dashboard</a>
+        <a href="#"><i class="lucide lucide-list-checks"></i>Audit Log</a>
+        <a href="#"><i class="lucide lucide-users"></i>User Management</a>
+        <a href="#"><i class="lucide lucide-receipt"></i>All Orders</a>
+        <a href="#"><i class="lucide lucide-warehouse"></i>All Stock</a>
+        <a href="#"><i class="lucide lucide-sliders"></i>Platform Settings</a>
+      </div>
+      <button class="logout-btn" onclick="logout()"><i class="lucide lucide-log-out"></i> Logout</button>
     </nav>
     <main class="main">
       <div class="header">
         <span class="hello-owner">Hello Peter</span>
       </div>
-      <p style="font-size:1.25rem;color:#7ee2f6;margin-top:2rem;">
-        Welcome to your Super Admin Dashboard!
-      </p>
+      <p class="subtext">Welcome to your Super Admin Dashboard!</p>
       <div class="diagnostic" id="diagnostic">Checking access...</div>
       <div class="dashboard-cards" id="dashboard-cards" style="display:none;">
         <div class="dash-card">
@@ -88,6 +258,7 @@
       // 1. Get current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
+        diag.style.display = "block";
         diag.innerHTML = "Not logged in. Redirecting to login...";
         setTimeout(() => window.location.href = "index.html", 1200);
         return;
@@ -100,11 +271,13 @@
         .single();
 
       if (profileError || !profile) {
+        diag.style.display = "block";
         diag.innerHTML = "No profile found. Logging out for security...";
         setTimeout(() => { logout(); }, 1500);
         return;
       }
       if (profile.role !== "superadmin") {
+        diag.style.display = "block";
         diag.innerHTML = "Access denied: you are not a superadmin. Logging out...";
         setTimeout(() => { logout(); }, 1500);
         return;
@@ -123,7 +296,7 @@
       const pendingOrdersRes = await supabase
         .from('orders')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'Pending'); // <-- Capital P here!
+        .eq('status', 'Pending');
       document.getElementById("stat-pending-orders").textContent =
         typeof pendingOrdersRes.count === "number" ? pendingOrdersRes.count : '0';
 
