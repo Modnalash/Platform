@@ -44,6 +44,7 @@
       font-size: 1.09rem;
       transition: background 0.17s;
       margin-bottom: 7px;
+      display: block;
     }
     .sidebar a:hover, .sidebar a.active, .sidebar button:hover {
       background: #163754;
@@ -74,77 +75,7 @@
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
-    .cards {
-      display: flex;
-      gap: 2.3rem;
-      flex-wrap: wrap;
-      margin-bottom: 2.6rem;
-    }
-    .card {
-      background: linear-gradient(120deg, #152f4a 60%, #23395d 100%);
-      border-radius: 14px;
-      padding: 1.25rem 2.2rem;
-      box-shadow: 0 4px 18px #0003;
-      min-width: 200px; min-height: 120px;
-      display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
-    }
-    .card h4 {
-      margin: 0 0 0.3rem 0;
-      color: #7ee2f6;
-      font-weight: 500;
-      font-size: 1.11rem;
-      letter-spacing: 1px;
-    }
-    .card .big {
-      font-size: 2.13rem;
-      margin-bottom: 0.1rem;
-      font-weight: 700;
-      color: #fffbe6;
-      font-family: 'Playfair Display', serif;
-      letter-spacing: 0.5px;
-    }
-    .section {
-      background: #18314f;
-      padding: 2rem;
-      border-radius: 12px;
-      margin-bottom: 2.3rem;
-    }
-    .section h3 {
-      margin: 0 0 1.2rem 0;
-      font-weight: 500;
-      color: #8dd1fc;
-      font-size: 1.3rem;
-      font-family: 'Inter', sans-serif;
-      letter-spacing: 0.5px;
-    }
-    .quick-links {
-      display: flex;
-      gap: 2.1rem;
-      margin-bottom: 2.3rem;
-      flex-wrap: wrap;
-    }
-    .quick-links a {
-      background: #112b44;
-      color: #fff;
-      padding: 1rem 2.2rem;
-      border-radius: 8px;
-      text-decoration: none;
-      font-size: 1.09rem;
-      font-weight: 500;
-      box-shadow: 0 2px 9px #0002;
-      transition: background 0.14s, color 0.14s;
-    }
-    .quick-links a:hover {
-      background: #285a87;
-      color: #7ee2f6;
-    }
-    .logout-btn {
-      background: #f44336;
-      color: #fff;
-      margin-top: 1.5rem;
-    }
     @media (max-width: 1050px) {
-      .cards { flex-direction: column; gap: 1.4rem; }
       .main { padding: 2.2rem 1.3rem; }
     }
     @media (max-width: 650px) {
@@ -159,144 +90,20 @@
     <nav class="sidebar">
       <h2>Super Admin</h2>
       <a href="#" class="active">Dashboard</a>
-      <a href="audit-log.html">Audit Log</a>
-      <a href="user-management.html">User Management</a>
-      <a href="all-orders.html">All Orders</a>
-      <a href="all-stock.html">All Stock</a>
-      <a href="platform-settings.html">Platform Settings</a>
-      <button class="logout-btn" onclick="logout()">Logout</button>
+      <a href="#">Audit Log</a>
+      <a href="#">User Management</a>
+      <a href="#">All Orders</a>
+      <a href="#">All Stock</a>
+      <a href="#">Platform Settings</a>
+      <button class="logout-btn" onclick="alert('Logged out (demo only)!');">Logout</button>
     </nav>
     <main class="main">
       <div class="header">
         <span class="hello-owner">Hello Peter</span>
       </div>
-      <div class="cards">
-        <div class="card">
-          <h4>All Users</h4>
-          <div class="big" id="userCount">—</div>
-        </div>
-        <div class="card">
-          <h4>Pending Orders</h4>
-          <div class="big" id="pendingOrders">—</div>
-        </div>
-        <div class="card">
-          <h4>Total Stock</h4>
-          <div class="big" id="totalStock">—</div>
-        </div>
-        <div class="card">
-          <h4>Platform Actions (7d)</h4>
-          <div class="big" id="actionCount">—</div>
-        </div>
-      </div>
-      <div class="quick-links">
-        <a href="audit-log.html">🔍 View Audit Log</a>
-        <a href="user-management.html">👤 Manage Users</a>
-        <a href="all-orders.html">📦 All Orders</a>
-        <a href="all-stock.html">📊 View All Stock</a>
-        <a href="platform-settings.html">⚙️ Platform Settings</a>
-      </div>
-      <div class="section">
-        <h3>Latest Platform Actions</h3>
-        <ul id="latestActions"></ul>
-      </div>
+      <!-- No data cards, just your welcome message and sidebar -->
+      <p style="font-size:1.25rem;color:#7ee2f6;margin-top:2rem;">Welcome to your Super Admin Dashboard! <br>This is a dummy/demo page to confirm login works.</p>
     </main>
   </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <script>
-    // SETUP YOUR SUPABASE
-    const supabase = window.supabase.createClient(
-      'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6InN1cGVyYWRtaW4iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
-    );
-    let currentUser = null;
-
-    supabase.auth.getUser().then(async ({ data: { user }, error }) => {
-      console.log('Auth user:', user, error);
-      if (!user) {
-        alert('No user found. Redirecting to login.');
-        window.location.href = "index.html";
-        return;
-      }
-      currentUser = user;
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles').select('role').eq('id', user.id).single();
-      console.log('Loaded profile:', profile, profileError);
-      if (!profile || profile.role !== 'superadmin') {
-        alert(
-          "Role check failed.\n" +
-          "Loaded profile: " + JSON.stringify(profile) + "\n" +
-          "Error: " + profileError + "\n\n" +
-          "Logging you out!"
-        );
-        await supabase.auth.signOut();
-        localStorage.clear();
-        sessionStorage.clear();
-        window.location.href = "index.html";
-        return;
-      }
-      await logAction("Login", {});
-      loadDashboard();
-    });
-
-    async function logAction(action, details) {
-      if (!currentUser) return;
-      const { error } = await supabase.from('audit_log').insert([{
-        user_id: currentUser.id,
-        user_email: currentUser.email,
-        action, details
-      }]);
-      if (error) {
-        alert("AUDIT LOG INSERT FAILED: " + error.message);
-        console.error("Audit Log Error", error);
-      }
-    }
-
-    async function loadDashboard() {
-      // Total users
-      const { data: users } = await supabase.from('profiles').select('id');
-      document.getElementById('userCount').textContent = users ? users.length : '—';
-
-      // Pending orders
-      const { data: pending } = await supabase.from('orders').select('id').eq('status', 'Pending');
-      document.getElementById('pendingOrders').textContent = pending ? pending.length : '—';
-
-      // Total stock
-      const { data: stocks } = await supabase.from('stock').select('qty');
-      let total = stocks ? stocks.reduce((sum, r) => sum + (r.qty || 0), 0) : 0;
-      document.getElementById('totalStock').textContent = total;
-
-      // Actions last 7d
-      const since = new Date(Date.now() - 7*24*60*60*1000).toISOString();
-      const { data: logs } = await supabase.from('audit_log').select('id').gte('timestamp', since);
-      document.getElementById('actionCount').textContent = logs ? logs.length : '—';
-
-      // Latest actions (last 8)
-      const { data: last8 } = await supabase
-        .from('audit_log')
-        .select('user_email, action, timestamp')
-        .order('timestamp', { descending: true })
-        .limit(8);
-      const list = document.getElementById('latestActions');
-      list.innerHTML = '';
-      if (last8 && last8.length) {
-        last8.forEach(log => {
-          const li = document.createElement('li');
-          li.textContent = `${log.timestamp?.slice(0,19).replace('T',' ')} — ${log.user_email} — ${log.action}`;
-          list.appendChild(li);
-        });
-      } else {
-        list.innerHTML = '<li>No actions found.</li>';
-      }
-    }
-
-    async function logout() {
-      await logAction('Logout', {});
-      await supabase.auth.signOut();
-      localStorage.clear();
-      sessionStorage.clear();
-      setTimeout(() => window.location.href = "index.html", 300);
-    }
-  </script>
 </body>
 </html>
