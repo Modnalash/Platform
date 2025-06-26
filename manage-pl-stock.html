@@ -12,14 +12,15 @@
     .back-btn, .logout-btn { background:#f44336; border:none; color:#fff; padding:0.5rem 1rem; border-radius:5px; cursor:pointer; }
     .container { padding:2rem; }
     .controls { display:flex; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem; }
-    .controls input, .controls select { padding:0.5rem 1rem; border:none; border-radius:4px; font-size:1rem; }
+    .controls input, .controls select, .controls button { padding:0.5rem 1rem; border:none; border-radius:4px; font-size:1rem; }
     table { width:100%; border-collapse:collapse; background:#1b263b; margin-bottom:1.5rem; }
     th, td { padding:0.75rem 1rem; border:1px solid #2b3a50; text-align:left; }
     th { background:#112d4e; }
-    /* highlight low-stock rows (<=20) with light red */
     tr.low-stock { background: rgba(255, 0, 0, 0.1); }
     .actions button { background:#3fbc5f; border:none; color:#0d1b2a; padding:0.5rem 1rem; border-radius:4px; cursor:pointer; }
     .actions button:hover { background:#2c9e4c; }
+    .export-btn { background:#f9c74f; color:#222; font-weight:bold; }
+    .export-btn:hover { background:#f9844a; }
   </style>
 </head>
 <body>
@@ -33,6 +34,7 @@
     <div class="controls">
       <input type="text" id="searchInput" placeholder="Search by product…" />
       <select id="categoryFilter"></select>
+      <button class="export-btn" onclick="exportPLStock()">Export to CSV</button>
     </div>
 
     <table id="localStockTable">
@@ -57,11 +59,10 @@
 
     let adminStock = [], plStock = [];
 
-    // We persist across reloads here:
+    // Persist adjust input values
     const STORAGE_KEY = 'plAdjustValues';
     let adjustValues = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
 
-    // Helper to set & save:
     function setAdjust(id, val) {
       adjustValues[id] = val;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(adjustValues));
@@ -89,13 +90,11 @@
         cats.map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
-    function renderTable() {
-      const tbody  = document.querySelector('#localStockTable tbody');
+    function getMergedRows() {
       const search = document.getElementById('searchInput').value.toLowerCase();
       const cat    = document.getElementById('categoryFilter').value;
-      tbody.innerHTML = '';
 
-      const merged = adminStock.map(item => {
+      return adminStock.map(item => {
         const pl = plStock.find(x => x.name === item.name) || {};
         return {
           mainId:   item.id,
@@ -111,12 +110,17 @@
         const okCat    = !cat    || row.category === cat;
         return okSearch && okCat;
       });
+    }
 
+    function renderTable() {
+      const tbody  = document.querySelector('#localStockTable tbody');
+      tbody.innerHTML = '';
+
+      const merged = getMergedRows();
       merged.forEach(row => {
         const tr = document.createElement('tr');
         if (row.qty <= 20) tr.classList.add('low-stock');
 
-        // choose between saved adjust or default qty
         const val = adjustValues[row.mainId] !== undefined
                     ? adjustValues[row.mainId]
                     : row.qty;
@@ -151,7 +155,6 @@
       const mainRec = adminStock.find(r => r.id === mainId);
       if (!mainRec) return alert('Admin item not found.');
 
-      // upsert
       if (plId) {
         const { error } = await supabase
           .from('pl_stock')
@@ -165,12 +168,29 @@
         if (error) return alert(error.message);
       }
 
-      // reset this one to 0 and save
       setAdjust(mainId, 0);
 
       await fetchData();
     }
+
+    // Export function
+    function exportPLStock() {
+      const rows = getMergedRows();
+      let csv = "Product,Category,Qty\n";
+      rows.forEach(r => {
+        csv += `"${r.name.replace(/"/g,'""')}","${r.category.replace(/"/g,'""')}",${r.qty}\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'pl_stock.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
   </script>
 </body>
 </html>
-
