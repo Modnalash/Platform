@@ -27,7 +27,7 @@
     <h1>UK Live Stock Overview</h1>
     <div>
       <button class="nav-btn" onclick="location.href='dashboard-ukuser.html'">← Back to Dashboard</button>
-      <button class="logout-btn" onclick="location.href='index.html'">Logout</button>
+      <button class="logout-btn" onclick="logout()">Logout</button>
     </div>
   </header>
 
@@ -67,6 +67,37 @@
     const supabaseUrl = 'https://rwmwsaxlqblvnhfyuuqg.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y';
     const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    let currentUser = null;
+
+    // Log login on page load, role must be "uk"
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if(!user) { window.location.href = "index.html"; return; }
+      currentUser = user;
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      if(!profile || profile.role !== 'uk') {
+        window.location.href = "index.html";
+        return;
+      }
+      await logAction("Login", {});
+    });
+
+    // Audit log helper
+    async function logAction(action, details) {
+      if (!currentUser) return;
+      await supabase.from('audit_log').insert([
+        {
+          user_id: currentUser.id,
+          user_email: currentUser.email,
+          action,
+          details
+        }
+      ]);
+    }
 
     let combinedData = [];
 
@@ -115,6 +146,14 @@
         </tr>`;
         tbody.insertAdjacentHTML('beforeend', row);
       });
+    }
+
+    async function logout() {
+      await logAction("Logout", {});
+      await supabase.auth.signOut();
+      localStorage.clear();
+      sessionStorage.clear();
+      setTimeout(() => window.location.href = "index.html", 300);
     }
 
     document.addEventListener('DOMContentLoaded', () => {
