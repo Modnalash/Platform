@@ -6,6 +6,7 @@
   <title>Manage Stock</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
+    /* ...[keep your style exactly as before]... */
     body { margin:0; font-family:'Inter',sans-serif; background:#0b1c2c; color:#fff; }
     .container { display:flex; }
     .sidebar { width:250px; background:#112b44; padding:2rem 1rem; display:flex; flex-direction:column; gap:1.5rem; height:100vh; }
@@ -122,6 +123,27 @@
     let stockData = [];
     let categories = [...initialCategories];
     let editId = null;
+    let currentUser = null;
+
+    // AUTH & USER INFO
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if(!user) return window.location.href = "index.html";
+      currentUser = user;
+      fetchStock();
+    });
+
+    // AUDIT LOG FUNCTION
+    async function logAction(action, details) {
+      if (!currentUser) return;
+      await supabase.from('audit_log').insert([
+        {
+          user_id: currentUser.id,
+          user_email: currentUser.email,
+          action,
+          details
+        }
+      ]);
+    }
 
     document.getElementById('searchInput').addEventListener('input', renderTable);
     document.getElementById('sortCategory').addEventListener('change', renderTable);
@@ -202,6 +224,9 @@
         await supabase.from('pl_stock').insert([{sku: nextSku, name, category, qty: 0}]);
       }
 
+      // AUDIT LOG
+      await logAction("Add Product", { sku: nextSku, name, category, qty, cost_usd, sell_pln });
+
       // reset form
       document.getElementById('productName').value='';
       document.getElementById('productCategory').value='';
@@ -217,6 +242,10 @@
       if(isNaN(toAdd)) return alert('Enter valid number');
       const item=stockData.find(x=>x.id===id);
       await supabase.from('stock').update({qty:item.qty+toAdd}).eq('id',id);
+
+      // AUDIT LOG
+      await logAction("Add Quantity", { sku: item.sku, name: item.name, qty_added: toAdd, qty_before: item.qty, qty_after: item.qty + toAdd });
+
       fetchStock();
     }
 
@@ -251,6 +280,8 @@
         return;
       }
 
+      const oldData = stockData.find(p=>p.id===editId);
+
       // Update main stock table
       await supabase.from('stock').update({
         sku: newSku, name: newName, category: newCat, qty: newQty, cost_usd: newCost, sell_pln: newSell
@@ -260,6 +291,9 @@
       await supabase.from('pl_stock').update({
         name: newName, category: newCat, sku: newSku
       }).eq('sku', newSku);
+
+      // AUDIT LOG
+      await logAction("Edit Product", { id: editId, sku: newSku, name: newName, category: newCat, qty: newQty, cost_usd: newCost, sell_pln: newSell, oldData });
 
       closeModal();
       fetchStock();
@@ -272,7 +306,14 @@
       if(item && item.sku){
         await supabase.from('pl_stock').delete().eq('sku', item.sku);
       }
+
+      // Save old data for audit
+      const oldData = { ...item };
       await supabase.from('stock').delete().eq('id',id);
+
+      // AUDIT LOG
+      await logAction("Delete Product", oldData);
+
       fetchStock();
     }
 
