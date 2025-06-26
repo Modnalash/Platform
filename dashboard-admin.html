@@ -23,13 +23,19 @@
       height: 100vh;
     }
     .sidebar h2 { margin-bottom: 2rem; font-size: 24px; }
-    .sidebar a {
+    .sidebar a, .sidebar button {
       color: white;
       text-decoration: none;
       padding: 0.8rem 1rem;
       border-radius: 8px;
+      background: none;
+      border: none;
+      text-align: left;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: inherit;
     }
-    .sidebar a:hover, .sidebar a.active { background-color: #1e3d5e; }
+    .sidebar a:hover, .sidebar a.active, .sidebar button:hover { background-color: #1e3d5e; }
     .main { flex: 1; padding: 2rem; }
     .header {
       background-color: #1e3d5e;
@@ -56,7 +62,7 @@
       <a href="manage-stock.html">Manage Stock</a>
       <a href="order-history.html">Order History</a>
       <a href="report.html">Report</a>
-      <a href="index.html">Logout</a>
+      <button onclick="logout()">Logout</button>
     </div>
     <div class="main">
       <div class="header">Welcome, Admin</div>
@@ -116,6 +122,13 @@
       } else {
         document.getElementById('orderCount').textContent = '📄 —';
       }
+    }
+
+    async function logout() {
+      await supabase.auth.signOut();
+      localStorage.clear();
+      sessionStorage.clear();
+      setTimeout(() => window.location.href = "index.html", 300);
     }
 
     loadDashboardData();
