@@ -71,28 +71,45 @@
   </div>
 
   <script>
-    const { createClient } = supabase;
-    const supabaseUrl = 'https://rwmwsaxlqblvnhfyuuqg.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y';
-    const supabaseClient = createClient(supabaseUrl, supabaseKey);
+    const supabase = window.supabase.createClient(
+      'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
+    );
+    let currentUser = null;
 
-    // Role protection: Only "pl" role can access this page
-    supabaseClient.auth.getUser().then(async ({ data: { user } }) => {
+    // Role protection: Only "pl" role can access this page. Log login.
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       if(!user) { window.location.href = "index.html"; return; }
-      const { data: profile } = await supabaseClient
+      currentUser = user;
+      const { data: profile } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
         .single();
       if(!profile || profile.role !== 'pl') {
         window.location.href = "index.html";
+        return;
       }
+      await logAction("Login", {});
     });
+
+    // Audit log helper
+    async function logAction(action, details) {
+      if (!currentUser) return;
+      await supabase.from('audit_log').insert([
+        {
+          user_id: currentUser.id,
+          user_email: currentUser.email,
+          action,
+          details
+        }
+      ]);
+    }
 
     let orderItems = [];
 
     async function fetchStock() {
-      const { data, error } = await supabaseClient
+      const { data, error } = await supabase
         .from('stock')
         .select('*')
         .order('name', { ascending: true });
@@ -156,10 +173,14 @@
     async function submitOrder() {
       if (!orderItems.length) return alert('❌ No items in order.');
       const groupId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+
+      // AUDIT LOG for placing order
+      await logAction("Place Order", { items: orderItems, groupId });
+
       for (const item of orderItems) {
-        const { error } = await supabaseClient.from('orders').insert([{ region: 'PL', product: item.product, qty: item.qty, category: item.category, order_group_id: groupId, status: 'Pending' }]);
+        const { error } = await supabase.from('orders').insert([{ region: 'PL', product: item.product, qty: item.qty, category: item.category, order_group_id: groupId, status: 'Pending' }]);
         if (error) { alert('❌ Failed to submit order.'); return; }
-        await supabaseClient.from('stock').update({ qty: item.available - item.qty }).eq('id', item.stock_id);
+        await supabase.from('stock').update({ qty: item.available - item.qty }).eq('id', item.stock_id);
       }
       alert('✅ Order placed successfully.');
       orderItems = [];
@@ -168,7 +189,8 @@
     }
 
     async function logout() {
-      await supabaseClient.auth.signOut();
+      await logAction("Logout", {});
+      await supabase.auth.signOut();
       localStorage.clear();
       sessionStorage.clear();
       setTimeout(() => window.location.href = "index.html", 300);
