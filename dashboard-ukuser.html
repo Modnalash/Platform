@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>UK Dashboard</title>
-  <!-- Google Font for Handwriting Style -->
   <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@supabase/supabase-js"></script>
   <style>
@@ -38,13 +37,7 @@
 
     <div class="filter-row">
       <label for="searchInput">Search:</label>
-      <input
-        type="text"
-        id="searchInput"
-        placeholder="Search by product..."
-        oninput="applyFilter()"
-      />
-
+      <input type="text" id="searchInput" placeholder="Search by product..." oninput="applyFilter()" />
       <label for="categoryFilter">Category:</label>
       <select id="categoryFilter" onchange="applyFilter()">
         <option value="All">All</option>
@@ -79,15 +72,26 @@
   </div>
 
   <script>
-    // Initialize Supabase client
     const supabase = window.supabase.createClient(
       'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
 
+    // Role protection: Only "uk" role can access this page
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if(!user) { window.location.href = "index.html"; return; }
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      if(!profile || profile.role !== 'uk') {
+        window.location.href = "index.html";
+      }
+    });
+
     let orderItems = [];
 
-    // Fetch live stock in alphabetical order by name
     async function fetchStock() {
       const { data, error } = await supabase
         .from('stock')
