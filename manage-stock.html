@@ -62,7 +62,12 @@
         <table id="stockTable">
           <thead>
             <tr>
-              <th>Product</th><th>Category</th><th>Quantity</th><th>Add Qty</th><th>Actions</th>
+              <th>SKU</th>
+              <th>Product</th>
+              <th>Category</th>
+              <th>Quantity</th>
+              <th>Add Qty</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -72,6 +77,7 @@
       <div class="section">
         <h3>Add New Product</h3>
         <div class="controls">
+          <input type="text" id="productSku" placeholder="SKU" maxlength="32" />
           <input type="text" id="productName" placeholder="Product Name" />
           <select id="productCategory"></select>
           <input type="number" id="productQty" placeholder="Quantity" min="0" />
@@ -88,6 +94,8 @@
   <div id="editModal" class="modal">
     <div class="modal-content">
       <h2>Edit Product</h2>
+      <label for="editSku">SKU</label>
+      <input type="text" id="editSku" maxlength="32" />
       <label for="editName">Name</label>
       <input type="text" id="editName" />
       <label for="editCategory">Category</label>
@@ -110,7 +118,6 @@
       'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
-    // Static category list
     const initialCategories = ['Starter Kit','Express Lash','Wielokrotnego','Bio','Ribbon','Accessories','Make-up'];
     let stockData = [];
     let categories = [...initialCategories];
@@ -123,7 +130,6 @@
       const { data, error } = await supabase.from('stock').select('*').order('name', { ascending:true });
       if (!error && Array.isArray(data)) {
         stockData = data;
-        // merge categories
         categories = [...new Set([...initialCategories, ...stockData.map(r=>r.category)])];
         populateCategorySelectors();
         renderTable();
@@ -148,11 +154,12 @@
       const c = document.getElementById('sortCategory').value;
       tbody.innerHTML = '';
       stockData
-        .filter(x => x.name.toLowerCase().includes(s))
+        .filter(x => (x.name || '').toLowerCase().includes(s))
         .filter(x => !c || x.category===c)
         .forEach(item=>{
           const tr=document.createElement('tr');
           tr.innerHTML=`
+            <td>${item.sku || ''}</td>
             <td>${item.name}</td>
             <td>${item.category}</td>
             <td>${item.qty}</td>
@@ -167,23 +174,33 @@
     }
 
     async function addProduct() {
-      const name=document.getElementById('productName').value.trim();
-      const category=document.getElementById('productCategory').value;
-      const qty=parseInt(document.getElementById('productQty').value,10);
-      const cost_usd=parseFloat(document.getElementById('costUsd').value);
-      const sell_pln=parseFloat(document.getElementById('sellPln').value);
+      const sku = document.getElementById('productSku').value.trim();
+      const name = document.getElementById('productName').value.trim();
+      const category = document.getElementById('productCategory').value;
+      const qty = parseInt(document.getElementById('productQty').value,10);
+      const cost_usd = parseFloat(document.getElementById('costUsd').value);
+      const sell_pln = parseFloat(document.getElementById('sellPln').value);
+
+      if(!sku) return alert('SKU is required');
       if(!name||!category||isNaN(qty)||isNaN(cost_usd)||isNaN(sell_pln)) return alert('Fill all fields correctly');
-      
-      // Add to stock table
-      const { data, error } = await supabase.from('stock').insert([{name,category,qty,cost_usd,sell_pln}]).select();
+
+      // Check for duplicate SKU
+      if (stockData.some(p => p.sku && p.sku.toLowerCase() === sku.toLowerCase())) {
+        alert('SKU already exists!');
+        return;
+      }
+
+      // Insert into stock table
+      const { data, error } = await supabase.from('stock').insert([{sku, name, category, qty, cost_usd, sell_pln}]).select();
       if(error) return alert('Error: '+error.message);
 
-      // Add to pl_stock with qty 0 (match name & category exactly!)
+      // Insert into pl_stock with qty 0
       if (data && data.length) {
-        await supabase.from('pl_stock').insert([{name, category, qty: 0}]);
+        await supabase.from('pl_stock').insert([{sku, name, category, qty: 0}]);
       }
 
       // reset form
+      document.getElementById('productSku').value='';
       document.getElementById('productName').value='';
       document.getElementById('productCategory').value='';
       document.getElementById('productQty').value='';
@@ -204,6 +221,7 @@
     function openModal(id) {
       editId=id;
       const item=stockData.find(x=>x.id===id);
+      document.getElementById('editSku').value=item.sku || '';
       document.getElementById('editName').value=item.name;
       document.getElementById('editCategory').value=item.category;
       document.getElementById('editQty').value=item.qty;
@@ -214,13 +232,25 @@
 
     function closeModal(){document.getElementById('editModal').classList.remove('active');}
     async function saveEdit() {
+      const newSku=document.getElementById('editSku').value.trim();
       const newName=document.getElementById('editName').value.trim();
       const newCat=document.getElementById('editCategory').value;
       const newQty=parseInt(document.getElementById('editQty').value,10);
       const newCost=parseFloat(document.getElementById('editCostUsd').value);
       const newSell=parseFloat(document.getElementById('editSellPln').value);
+
+      if(!newSku) return alert('SKU is required');
       if(!newName||!newCat||isNaN(newQty)||isNaN(newCost)||isNaN(newSell)) return alert('Fill all fields');
-      await supabase.from('stock').update({name:newName,category:newCat,qty:newQty,cost_usd:newCost,sell_pln:newSell}).eq('id',editId);
+
+      // Prevent duplicate SKU on edit
+      if (stockData.some(p => p.id !== editId && p.sku && p.sku.toLowerCase() === newSku.toLowerCase())) {
+        alert('SKU already exists!');
+        return;
+      }
+
+      await supabase.from('stock').update({
+        sku: newSku, name: newName, category: newCat, qty: newQty, cost_usd: newCost, sell_pln: newSell
+      }).eq('id',editId);
       closeModal();fetchStock();
     }
 
@@ -231,8 +261,13 @@
     }
 
     function exportCSV() {
-      const header=['Product','Category','Quantity'];
-      const rows=stockData.map(i=>[i.name,i.category,i.qty].join(','));
+      const header=['SKU','Product','Category','Quantity'];
+      const rows=stockData.map(i=>[
+        i.sku ? `"${i.sku.replace(/"/g,'""')}"` : '',
+        `"${i.name.replace(/"/g,'""')}"`,
+        `"${i.category.replace(/"/g,'""')}"`,
+        i.qty
+      ].join(','));
       const blob=new Blob([[header.join(',')+'\n'+rows.join('\n')]],{type:'text/csv'});
       const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='stock.csv';a.click();
     }
@@ -241,4 +276,3 @@
   </script>
 </body>
 </html>
-
