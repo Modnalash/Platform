@@ -211,17 +211,24 @@
     );
     let currentUser = null;
 
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) { 
-        window.location.href = "index.html"; 
-        return; 
+    supabase.auth.getUser().then(async ({ data: { user }, error }) => {
+      console.log('Auth user:', user, error);
+      if (!user) {
+        alert('No user found. Redirecting to login.');
+        window.location.href = "index.html";
+        return;
       }
       currentUser = user;
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles').select('role').eq('id', user.id).single();
-
+      console.log('Loaded profile:', profile, profileError);
       if (!profile || profile.role !== 'superadmin') {
-        // FULL logout and redirect, breaks the loop!
+        alert(
+          "Role check failed.\n" +
+          "Loaded profile: " + JSON.stringify(profile) + "\n" +
+          "Error: " + profileError + "\n\n" +
+          "Logging you out!"
+        );
         await supabase.auth.signOut();
         localStorage.clear();
         sessionStorage.clear();
@@ -234,11 +241,15 @@
 
     async function logAction(action, details) {
       if (!currentUser) return;
-      await supabase.from('audit_log').insert([{
+      const { error } = await supabase.from('audit_log').insert([{
         user_id: currentUser.id,
         user_email: currentUser.email,
         action, details
       }]);
+      if (error) {
+        alert("AUDIT LOG INSERT FAILED: " + error.message);
+        console.error("Audit Log Error", error);
+      }
     }
 
     async function loadDashboard() {
