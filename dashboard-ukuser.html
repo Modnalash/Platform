@@ -28,7 +28,7 @@
     <h1>Hello Magda</h1>
     <div>
       <button class="nav-btn" onclick="location.href='dashboard-uk-stock.html'">Live Stock Overview</button>
-      <button class="logout-btn" onclick="location.href='index.html'">Logout</button>
+      <button class="logout-btn" onclick="logout()">Logout</button>
     </div>
   </header>
 
@@ -177,8 +177,14 @@
       fetchStock();
     }
 
+    async function logout() {
+      await supabase.auth.signOut();
+      localStorage.clear();
+      sessionStorage.clear();
+      setTimeout(() => window.location.href = "index.html", 300);
+    }
+
     document.addEventListener('DOMContentLoaded', fetchStock);
   </script>
 </body>
 </html>
-
