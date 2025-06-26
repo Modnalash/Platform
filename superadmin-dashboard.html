@@ -118,7 +118,6 @@
     async function loadDashboardStats() {
       // All Users
       const usersRes = await supabase.from('profiles').select('*', { count: 'exact', head: true });
-      console.log('Users Query:', usersRes);
       document.getElementById("stat-users").textContent = usersRes.count ?? '0';
 
       // Pending Orders
@@ -126,18 +125,15 @@
         .from('orders')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'pending');
-      console.log('Pending Orders Query:', pendingOrdersRes);
       document.getElementById("stat-pending-orders").textContent =
         typeof pendingOrdersRes.count === "number" ? pendingOrdersRes.count : '0';
 
-      // Total Stock
+      // Total Stock (sum stock.qty + pl_stock.qty)
       let totalStock = 0;
-      const stockRes = await supabase.from('stock').select('quantity');
-      console.log('Stock Query:', stockRes);
-      if (stockRes.data && Array.isArray(stockRes.data)) totalStock += stockRes.data.reduce((a, b) => a + (parseInt(b.quantity) || 0), 0);
-      const plStockRes = await supabase.from('pl_stock').select('quantity');
-      console.log('PL Stock Query:', plStockRes);
-      if (plStockRes.data && Array.isArray(plStockRes.data)) totalStock += plStockRes.data.reduce((a, b) => a + (parseInt(b.quantity) || 0), 0);
+      const stockRes = await supabase.from('stock').select('qty');
+      if (stockRes.data && Array.isArray(stockRes.data)) totalStock += stockRes.data.reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
+      const plStockRes = await supabase.from('pl_stock').select('qty');
+      if (plStockRes.data && Array.isArray(plStockRes.data)) totalStock += plStockRes.data.reduce((a, b) => a + (parseInt(b.qty) || 0), 0);
       document.getElementById("stat-total-stock").textContent = totalStock;
     }
 
@@ -153,4 +149,3 @@
   </script>
 </body>
 </html>
-
