@@ -231,6 +231,7 @@
     }
 
     function closeModal(){document.getElementById('editModal').classList.remove('active');}
+
     async function saveEdit() {
       const newSku=document.getElementById('editSku').value.trim();
       const newName=document.getElementById('editName').value.trim();
@@ -248,14 +249,27 @@
         return;
       }
 
+      // Update main stock table
       await supabase.from('stock').update({
         sku: newSku, name: newName, category: newCat, qty: newQty, cost_usd: newCost, sell_pln: newSell
-      }).eq('id',editId);
-      closeModal();fetchStock();
+      }).eq('id', editId);
+
+      // Also update pl_stock table by SKU!
+      await supabase.from('pl_stock').update({
+        name: newName, category: newCat, sku: newSku
+      }).eq('sku', newSku);
+
+      closeModal();
+      fetchStock();
     }
 
     async function deleteProduct(id) {
       if(!confirm('Delete this product?')) return;
+      // Remove from stock
+      const item = stockData.find(x => x.id === id);
+      if(item && item.sku){
+        await supabase.from('pl_stock').delete().eq('sku', item.sku);
+      }
       await supabase.from('stock').delete().eq('id',id);
       fetchStock();
     }
