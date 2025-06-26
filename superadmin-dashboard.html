@@ -95,15 +95,54 @@
       <a href="#">All Orders</a>
       <a href="#">All Stock</a>
       <a href="#">Platform Settings</a>
-      <button class="logout-btn" onclick="alert('Logged out (demo only)!');">Logout</button>
+      <button class="logout-btn" onclick="logout()">Logout</button>
     </nav>
     <main class="main">
       <div class="header">
         <span class="hello-owner">Hello Peter</span>
       </div>
-      <!-- No data cards, just your welcome message and sidebar -->
-      <p style="font-size:1.25rem;color:#7ee2f6;margin-top:2rem;">Welcome to your Super Admin Dashboard! <br>This is a dummy/demo page to confirm login works.</p>
+      <p style="font-size:1.25rem;color:#7ee2f6;margin-top:2rem;">
+        Welcome to your Super Admin Dashboard! <br>
+        This is a secure page for superadmin only.
+      </p>
     </main>
   </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script>
+    // 1. Secure: Only allow logged-in superadmin to view this page
+    const supabase = window.supabase.createClient(
+      'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6InN1cGVyYWRtaW4iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
+    );
+
+    async function requireSuperadmin() {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (!user) {
+        window.location.href = "index.html";
+        return;
+      }
+      // Fetch profile for this user
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles').select('role').eq('id', user.id).single();
+      if (!profile || profile.role !== 'superadmin') {
+        // Log out and redirect if not superadmin
+        await supabase.auth.signOut();
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.href = "index.html";
+        return;
+      }
+      // Otherwise: allowed!
+    }
+
+    async function logout() {
+      await supabase.auth.signOut();
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = "index.html";
+    }
+
+    requireSuperadmin();
+  </script>
 </body>
 </html>
