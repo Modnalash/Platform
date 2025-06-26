@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Welcome - MODNA Platform</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body { background:#0b1c2c; color:#fff; font-family:Inter,sans-serif; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; }
+    .info { background:#1a2b3e; padding:2rem 2.5rem; border-radius:14px; box-shadow:0 8px 32px #0005; min-width:320px; text-align:center; }
+  </style>
+</head>
+<body>
+  <div class="info">
+    <h2>Welcome!</h2>
+    <div id="roleInfo"></div>
+    <button onclick="logout()" style="background:#ff6666;color:#fff;">Sign Out</button>
+  </div>
+  <script>
+    const supabase = window.supabase.createClient(
+      'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
+    );
+    async function checkRole() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { window.location.href = "index.html"; return; }
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+      if (profile && profile.role) {
+        if(profile.role === 'admin') window.location.href = "dashboard-admin.html";
+        else if(profile.role === 'pl') window.location.href = "dashboard-pluser.html";
+        else if(profile.role === 'uk') window.location.href = "dashboard-ukuser.html";
+        else document.getElementById('roleInfo').innerHTML = "Unknown role, contact admin.";
+      } else {
+        document.getElementById('roleInfo').innerHTML = "Your account is not yet active.<br>An administrator will activate your account soon.";
+      }
+    }
+    function logout() {
+      supabase.auth.signOut().then(()=>window.location.href="index.html");
+    }
+    checkRole();
+  </script>
+</body>
+</html>
