@@ -16,6 +16,25 @@
     .header { background: #12253c; padding: 1.6rem 2.3rem 1.1rem 2.3rem; font-size: 1.55rem; border-radius: 14px; margin-bottom: 2.1rem; display: flex; align-items: flex-start; justify-content: flex-start; box-shadow: 0 4px 18px #0003; min-height: 62px; }
     .hello-owner { font-family: 'Playfair Display', serif; font-size: 2.2rem; color: #ffecd2; font-weight: 700; letter-spacing: 1.5px; margin-right: 2.2rem; margin-top: 0.3rem; background: linear-gradient(90deg, #fffbe6 0%, #c9ecfc 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
     .diagnostic { background: #112b44; color: #ffb; padding: 1.5rem 2rem; border-radius: 10px; margin: 2rem 0; font-size: 1.12rem; }
+    .dashboard-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 2rem; margin-top: 2.5rem; }
+    .dash-card {
+      background: #132943;
+      border-radius: 20px;
+      padding: 2.2rem 2rem 1.3rem 2rem;
+      box-shadow: 0 3px 18px #0002;
+      min-height: 120px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      transition: box-shadow 0.2s;
+    }
+    .dash-card-label { color: #63e2ff; font-size: 1.09rem; margin-bottom: 0.7rem; letter-spacing: 1px; }
+    .dash-card-value { font-size: 2.4rem; font-family: 'Playfair Display', serif; font-weight: 700; color: #fffbe6; }
+    .dash-card-sub { font-size: 0.99rem; color: #bee0ff; margin-top: 0.5rem; }
+    .dash-card-loader { font-size: 1.6rem; color: #b7e4ef; margin-top: 0.8rem;}
+    @media (max-width: 850px) {
+      .dashboard-cards { grid-template-columns: 1fr; gap: 1.3rem;}
+    }
   </style>
 </head>
 <body>
@@ -38,6 +57,28 @@
         Welcome to your Super Admin Dashboard!
       </p>
       <div class="diagnostic" id="diagnostic">Checking access...</div>
+      <div class="dashboard-cards" id="dashboard-cards" style="display:none;">
+        <div class="dash-card">
+          <span class="dash-card-label">All Users</span>
+          <span class="dash-card-value" id="stat-users">...</span>
+          <span class="dash-card-sub">Active user accounts</span>
+        </div>
+        <div class="dash-card">
+          <span class="dash-card-label">Pending Orders</span>
+          <span class="dash-card-value" id="stat-pending-orders">...</span>
+          <span class="dash-card-sub">Orders not completed</span>
+        </div>
+        <div class="dash-card">
+          <span class="dash-card-label">Total Stock</span>
+          <span class="dash-card-value" id="stat-total-stock">...</span>
+          <span class="dash-card-sub">All inventory units</span>
+        </div>
+        <div class="dash-card">
+          <span class="dash-card-label">Platform Actions (7d)</span>
+          <span class="dash-card-value" id="stat-actions-7d">...</span>
+          <span class="dash-card-sub">Audit log entries (last 7d)</span>
+        </div>
+      </div>
     </main>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
@@ -47,8 +88,9 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
 
-    async function checkSuperadminAccess() {
+    async function checkSuperadminAccessAndLoadStats() {
       const diag = document.getElementById("diagnostic");
+      const cards = document.getElementById("dashboard-cards");
       // 1. Get current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
@@ -68,16 +110,42 @@
         setTimeout(() => { logout(); }, 1500);
         return;
       }
-
       if (profile.role !== "superadmin") {
         diag.innerHTML = "Access denied: you are not a superadmin. Logging out...";
         setTimeout(() => { logout(); }, 1500);
         return;
       }
-
-      diag.innerHTML = "Access granted!<br>User ID: " + user.id + "<br>Email: " + user.email + "<br>Role: " + profile.role;
+      diag.style.display = "none";
+      cards.style.display = "grid";
+      await loadDashboardStats();
     }
-    checkSuperadminAccess();
+
+    async function loadDashboardStats() {
+      // All Users
+      const { count: usersCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+      document.getElementById("stat-users").textContent = usersCount ?? '-';
+
+      // Pending Orders
+      const { count: pendingOrders } = await supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+      document.getElementById("stat-pending-orders").textContent = pendingOrders ?? '-';
+
+      // Total Stock (sum stock.quantity + pl_stock.quantity)
+      let totalStock = 0;
+      const { data: stock } = await supabase.from('stock').select('quantity');
+      if (stock && Array.isArray(stock)) totalStock += stock.reduce((a, b) => a + (b.quantity || 0), 0);
+      const { data: plStock } = await supabase.from('pl_stock').select('quantity');
+      if (plStock && Array.isArray(plStock)) totalStock += plStock.reduce((a, b) => a + (b.quantity || 0), 0);
+      document.getElementById("stat-total-stock").textContent = totalStock;
+
+      // Platform Actions (last 7 days)
+      const since = new Date();
+      since.setDate(since.getDate() - 7);
+      const isoSince = since.toISOString();
+      const { count: actionsCount } = await supabase.from('audit_log').select('*', { count: 'exact', head: true }).gte('created_at', isoSince);
+      document.getElementById("stat-actions-7d").textContent = actionsCount ?? '-';
+    }
+
+    checkSuperadminAccessAndLoadStats();
 
     function logout() {
       supabase.auth.signOut().then(() => {
