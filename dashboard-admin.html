@@ -71,19 +71,7 @@
         <div class="stat" id="stockCount">💼 Loading total stock…</div>
         <div class="stat" id="orderCount">📄 Loading new orders…</div>
       </div>
-      <div class="section" id="logSection">
-        <h3>Logins & Logouts</h3>
-        <table style="width:100%;background:#192a44;border-radius:7px;">
-          <thead>
-            <tr>
-              <th style="color:#8ef8c7;">User</th>
-              <th style="color:#8ef8c7;">Action</th>
-              <th style="color:#8ef8c7;">Time</th>
-            </tr>
-          </thead>
-          <tbody id="logsTable"></tbody>
-        </table>
-      </div>
+      <!-- Logins & Logouts section removed -->
     </div>
   </div>
 
@@ -96,7 +84,7 @@
 
     let currentUser = null;
 
-    // Role protection: Only "admin" role can access this page, also log Login event
+    // Role protection: Only "admin" role can access this page, log Login event
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if(!user) { window.location.href = "index.html"; return; }
       currentUser = user;
@@ -111,7 +99,6 @@
       }
       await logAction('Login', {});
       loadDashboardData();
-      loadLogins();
     });
 
     // Log action helper
@@ -164,29 +151,7 @@
       sessionStorage.clear();
       setTimeout(() => window.location.href = "index.html", 300);
     }
-
-    // Show last 30 logins/logouts, newest first
-    async function loadLogins() {
-      const { data: logs, error } = await supabase
-        .from('audit_log')
-        .select('user_email,action,timestamp')
-        .in('action', ['Login', 'Logout'])
-        .order('timestamp', { ascending: false })
-        .limit(30);
-      const tbody = document.getElementById('logsTable');
-      tbody.innerHTML = '';
-      if (logs && logs.length) {
-        logs.forEach(log => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${log.user_email}</td>
-                          <td>${log.action}</td>
-                          <td>${new Date(log.timestamp).toLocaleString()}</td>`;
-          tbody.appendChild(tr);
-        });
-      } else {
-        tbody.innerHTML = '<tr><td colspan="3">No recent logins/logouts.</td></tr>';
-      }
-    }
   </script>
 </body>
 </html>
+
