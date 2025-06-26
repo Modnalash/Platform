@@ -6,21 +6,93 @@
   <title>Login - MODNA Platform</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
-    body { background:#0b1c2c; color:#fff; font-family:Inter,sans-serif; display:flex; align-items:center; justify-content:center; height:100vh; }
-    .login-box { background:#1a2b3e; border-radius:12px; padding:2.5rem 2.2rem 2rem; min-width:320px; box-shadow:0 8px 32px #0005; display:flex; flex-direction:column; align-items:center; }
-    .logo { margin-bottom:1.6rem; }
-    h2 { text-align:center; }
-    input, button { width:100%; padding:.75rem; border-radius:7px; border:none; font-size:1rem; margin:0.5rem 0 1rem; }
-    button { background:#76d0a5; color:#0d1b2a; font-weight:bold; cursor:pointer; }
-    button:hover { background:#5cb688; }
-    .switch { color:#aaa; cursor:pointer; text-align:center; }
-    .err { color:#ff8080; font-weight:bold; margin-bottom:10px; }
-    .msg { color:#6be495; font-weight:bold; margin-bottom:10px; }
+    body {
+      background: #0b1c2c;
+      color: #fff;
+      font-family: Inter, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .login-box {
+      background: #1a2b3e;
+      border-radius: 18px;
+      padding: 1.5rem 1.8rem 1.2rem 1.8rem;
+      min-width: 310px;
+      max-width: 340px;
+      width: 95%;
+      box-shadow: 0 8px 32px #0006;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: -40px;
+    }
+    .logo {
+      margin-bottom: 1.2rem;
+      max-width: 180px;
+      width: 100%;
+      display: block;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 1.2rem;
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: .02em;
+    }
+    input, button {
+      width: 100%;
+      padding: .62rem .85rem;
+      border-radius: 7px;
+      border: none;
+      font-size: 1rem;
+      margin: 0.36rem 0 0.9rem 0;
+      box-sizing: border-box;
+    }
+    button {
+      background: #76d0a5;
+      color: #0d1b2a;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background .16s;
+      margin-bottom: .4rem;
+    }
+    button:hover { background: #5cb688; }
+    .switch {
+      color: #bbb;
+      cursor: pointer;
+      text-align: center;
+      font-size: .96rem;
+      margin-top: 0.3rem;
+      margin-bottom: 0.2rem;
+    }
+    .err {
+      color: #ff8080;
+      font-weight: bold;
+      margin-bottom: 10px;
+      font-size: .98rem;
+    }
+    .msg {
+      color: #6be495;
+      font-weight: bold;
+      margin-bottom: 10px;
+      font-size: .99rem;
+    }
+    @media (max-width: 600px) {
+      .login-box {
+        min-width: 92vw;
+        max-width: 99vw;
+        padding: 1rem 0.5rem 0.9rem 0.5rem;
+      }
+      .logo { max-width: 140px; }
+    }
   </style>
 </head>
 <body>
   <div class="login-box">
-    <img src="logo1.png" alt="MODNA LASH WAREHOUSE" class="logo" style="max-width:220px; width:100%; display:block;"/>
+    <img src="logo1.png" alt="MODNA LASH WAREHOUSE" class="logo"/>
     <h2 id="formTitle">Sign In</h2>
     <div id="message"></div>
     <form id="loginForm" autocomplete="on">
@@ -55,7 +127,6 @@
       const { error, data } = await supabase.auth.signInWithPassword({ email, password });
       if (error) return showMsg(error.message, true);
 
-      // Success!
       showMsg('Login successful! Redirecting...');
       setTimeout(() => { window.location.href = "wait-for-role.html"; }, 600);
     }
@@ -75,7 +146,6 @@
       document.getElementById('message').innerHTML = `<div class="${error ? 'err' : 'msg'}">${msg}</div>`;
     }
 
-    // Add submit event for Enter key support
     document.getElementById('loginForm').addEventListener('submit', function(e) {
       e.preventDefault();
       if (isSignup) {
@@ -85,7 +155,6 @@
       }
     });
 
-    // Optional: If already logged in, go to wait-for-role.html
     supabase.auth.getUser().then(({ data: { user } }) => {
       if(user) window.location.href = "wait-for-role.html";
     });
