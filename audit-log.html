@@ -7,7 +7,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@0.285.0/font/lucide.css">
   <style>
-    /* ...[your same styles, unchanged]... */
     body {
       margin: 0;
       font-family: 'Inter', sans-serif;
@@ -285,8 +284,8 @@
       <h2>Super Admin</h2>
       <div class="sidebar-menu">
         <a href="superadmin-dashboard.html"><i class="lucide lucide-pie-chart"></i><span>Dashboard</span></a>
-        <a href="#" class="active"><i class="lucide lucide-list-checks"></i><span>Audit Log</span></a>
-        <a href="#"><i class="lucide lucide-users"></i><span>User Management</span></a>
+        <a href="audit-log.html" class="active"><i class="lucide lucide-list-checks"></i><span>Audit Log</span></a>
+        <a href="user-management.html"><i class="lucide lucide-users"></i><span>User Management</span></a>
         <a href="#"><i class="lucide lucide-receipt"></i><span>All Orders</span></a>
         <a href="#"><i class="lucide lucide-warehouse"></i><span>All Stock</span></a>
         <a href="#"><i class="lucide lucide-sliders"></i><span>Platform Settings</span></a>
@@ -432,7 +431,8 @@
       }
       try { return JSON.stringify(JSON.parse(details)); } catch { return details; }
     }
-    // ----------- DETAILS PREVIEW/EXPAND FUNCTIONALITY -----------
+
+    // DETAILS PREVIEW/EXPAND FUNCTIONALITY
     function renderAuditLog() {
       const tbody = document.getElementById("audit-log-tbody");
       const pag = document.getElementById("pagination-row");
