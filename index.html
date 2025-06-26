@@ -1,162 +1,147 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Login - MODNA Platform</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MODNA Platform Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
   <style>
     body {
-      background: #0b1c2c;
-      color: #fff;
-      font-family: Inter, sans-serif;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
+      margin: 0; padding: 0; background: #0b1c2c; min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; font-family: 'Inter', sans-serif;
     }
-    .login-box {
-      background: #1a2b3e;
-      border-radius: 18px;
-      padding: 1.5rem 1.8rem 1.2rem 1.8rem;
-      min-width: 310px;
-      max-width: 340px;
-      width: 95%;
-      box-shadow: 0 8px 32px #0006;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-top: -40px;
+    .login-container {
+      background: #192a44;
+      border-radius: 14px;
+      box-shadow: 0 10px 36px #0005;
+      padding: 2.5rem 2rem 2rem 2rem;
+      min-width: 320px; max-width: 380px;
+      display: flex; flex-direction: column; align-items: center;
     }
-    .logo {
-      margin-bottom: 1.2rem;
-      max-width: 180px;
-      width: 100%;
-      display: block;
+    .login-logo {
+      width: 80px; height: 80px; object-fit: contain; margin-bottom: 1.5rem;
+      background: #fff; border-radius: 50%; box-shadow: 0 2px 8px #0002;
     }
-    h2 {
-      text-align: center;
-      margin-bottom: 1.2rem;
-      font-size: 1.5rem;
+    .login-title {
+      color: #7ee2f6;
+      font-size: 2rem;
       font-weight: 600;
-      letter-spacing: .02em;
-    }
-    input, button {
-      width: 100%;
-      padding: .62rem .85rem;
-      border-radius: 7px;
-      border: none;
-      font-size: 1rem;
-      margin: 0.36rem 0 0.9rem 0;
-      box-sizing: border-box;
-    }
-    button {
-      background: #76d0a5;
-      color: #0d1b2a;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background .16s;
-      margin-bottom: .4rem;
-    }
-    button:hover { background: #5cb688; }
-    .switch {
-      color: #bbb;
-      cursor: pointer;
+      margin-bottom: 1.5rem;
+      letter-spacing: 0.02em;
       text-align: center;
-      font-size: .96rem;
-      margin-top: 0.3rem;
-      margin-bottom: 0.2rem;
     }
-    .err {
-      color: #ff8080;
-      font-weight: bold;
-      margin-bottom: 10px;
-      font-size: .98rem;
+    form { width: 100%; display: flex; flex-direction: column; gap: 1.25rem; }
+    input {
+      width: 100%; padding: 0.75rem 1rem; border-radius: 8px;
+      border: none; font-size: 1.08rem;
+      background: #f5f8fa; color: #192a44;
+      outline: none;
     }
-    .msg {
-      color: #6be495;
-      font-weight: bold;
-      margin-bottom: 10px;
-      font-size: .99rem;
+    input:focus { box-shadow: 0 0 0 2px #48cae4; }
+    button[type="submit"] {
+      width: 100%; padding: 0.8rem 1rem;
+      background: linear-gradient(90deg, #48cae4 40%, #06d6a0 100%);
+      color: #192a44; border: none; border-radius: 8px;
+      font-size: 1.15rem; font-weight: 600; letter-spacing: 0.02em;
+      cursor: pointer; margin-top: 0.2rem;
+      transition: box-shadow 0.2s;
+      box-shadow: 0 3px 8px #05b4d825;
     }
-    @media (max-width: 600px) {
-      .login-box {
-        min-width: 92vw;
-        max-width: 99vw;
-        padding: 1rem 0.5rem 0.9rem 0.5rem;
-      }
-      .logo { max-width: 140px; }
+    button[type="submit"]:hover {
+      box-shadow: 0 6px 18px #06d6a055;
+    }
+    .login-error {
+      color: #fa5252;
+      font-weight: 500;
+      margin-top: -0.5rem;
+      margin-bottom: 0.25rem;
+      text-align: center;
+      min-height: 22px;
+    }
+    @media (max-width: 500px) {
+      .login-container { min-width: unset; width: 96vw; padding: 1.5rem 0.5rem; }
     }
   </style>
 </head>
 <body>
-  <div class="login-box">
-    <img src="logo1.png" alt="MODNA LASH WAREHOUSE" class="logo"/>
-    <h2 id="formTitle">Sign In</h2>
-    <div id="message"></div>
+  <div class="login-container">
+    <img src="logo1.png" alt="MODNA Logo" class="login-logo" />
+    <div class="login-title">MODNA Platform Login</div>
     <form id="loginForm" autocomplete="on">
-      <input type="email" id="email" placeholder="Email" autocomplete="username" required />
+      <input type="email" id="email" placeholder="Email" autocomplete="username" required autofocus />
       <input type="password" id="password" placeholder="Password" autocomplete="current-password" required />
-      <button type="submit" id="loginBtn">Sign In</button>
-      <button type="button" onclick="signup()" id="signupBtn" style="display:none;">Sign Up</button>
+      <div class="login-error" id="errorMsg"></div>
+      <button type="submit">Log In</button>
     </form>
-    <div class="switch" id="toggleForm" onclick="toggleForm()">Don't have an account? Sign up</div>
   </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script>
     const supabase = window.supabase.createClient(
       'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
 
-    let isSignup = false;
-    function toggleForm() {
-      isSignup = !isSignup;
-      document.getElementById('formTitle').innerText = isSignup ? "Sign Up" : "Sign In";
-      document.getElementById('loginBtn').style.display = isSignup ? "none" : "";
-      document.getElementById('signupBtn').style.display = isSignup ? "" : "none";
-      document.getElementById('toggleForm').innerText = isSignup ? "Already have an account? Sign in" : "Don't have an account? Sign up";
-      document.getElementById('message').innerText = '';
-    }
-
-    async function login() {
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value.trim();
-      if (!email || !password) return showMsg('Please enter both email and password.', true);
-
-      const { error, data } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) return showMsg(error.message, true);
-
-      showMsg('Login successful! Redirecting...');
-      setTimeout(() => { window.location.href = "wait-for-role.html"; }, 600);
-    }
-
-    async function signup() {
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value.trim();
-      if (!email || !password) return showMsg('Please enter both email and password.', true);
-
-      const { error } = await supabase.auth.signUp({ email, password });
-      if (error) return showMsg(error.message, true);
-
-      showMsg('Sign up successful! Please check your email to confirm your account.', false);
-    }
-
-    function showMsg(msg, error=false) {
-      document.getElementById('message').innerHTML = `<div class="${error ? 'err' : 'msg'}">${msg}</div>`;
-    }
-
-    document.getElementById('loginForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      if (isSignup) {
-        signup();
-      } else {
-        login();
+    // Redirect if already logged in (optional)
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (user) {
+        // get user role to redirect to right dashboard
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        if (!profile) return;
+        if (profile.role === 'admin')       window.location.href = 'dashboard-admin.html';
+        else if (profile.role === 'pl')     window.location.href = 'dashboard-pluser.html';
+        else if (profile.role === 'uk')     window.location.href = 'dashboard-ukuser.html';
+        else if (profile.role === 'superadmin') window.location.href = 'dashboard-superadmin.html';
+        // ...add more roles if you need
       }
     });
 
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if(user) window.location.href = "wait-for-role.html";
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      document.getElementById('errorMsg').textContent = '';
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      if (!email || !password) {
+        document.getElementById('errorMsg').textContent = "Please enter email and password.";
+        return;
+      }
+
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        document.getElementById('errorMsg').textContent = error.message.replace("Invalid login credentials", "Wrong email or password");
+        return;
+      }
+      // get user role to redirect to right dashboard
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+
+      if (!profileData) {
+        document.getElementById('errorMsg').textContent = "Profile not found. Contact admin.";
+        return;
+      }
+
+      if (profileData.role === 'admin')        window.location.href = 'dashboard-admin.html';
+      else if (profileData.role === 'pl')      window.location.href = 'dashboard-pluser.html';
+      else if (profileData.role === 'uk')      window.location.href = 'dashboard-ukuser.html';
+      else if (profileData.role === 'superadmin') window.location.href = 'dashboard-superadmin.html';
+      else {
+        document.getElementById('errorMsg').textContent = "Your account has no dashboard assigned.";
+      }
+    });
+
+    // Allow login on Enter in any field (form submit handles it)
+    document.getElementById('email').addEventListener('keydown', e => {
+      if (e.key === 'Enter') e.target.form.dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}));
+    });
+    document.getElementById('password').addEventListener('keydown', e => {
+      if (e.key === 'Enter') e.target.form.dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}));
     });
   </script>
 </body>
