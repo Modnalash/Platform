@@ -90,7 +90,7 @@
       <div class="sidebar-menu">
         <a href="superadmin-dashboard.html"><i class="lucide lucide-pie-chart"></i><span>Dashboard</span></a>
         <a href="audit-log.html"><i class="lucide lucide-list-checks"></i><span>Audit Log</span></a>
-        <a href="#" class="active"><i class="lucide lucide-users"></i><span>User Management</span></a>
+        <a href="user-management.html" class="active"><i class="lucide lucide-users"></i><span>User Management</span></a>
         <a href="#"><i class="lucide lucide-receipt"></i><span>All Orders</span></a>
         <a href="#"><i class="lucide lucide-warehouse"></i><span>All Stock</span></a>
         <a href="#"><i class="lucide lucide-sliders"></i><span>Platform Settings</span></a>
@@ -191,22 +191,39 @@
       await loadUsers();
     }
 
+    // Fetch both auth.users and profiles and join data by id
     async function loadUsers() {
       const tbody = document.getElementById("user-table-tbody");
       tbody.innerHTML = `<tr><td colspan="7" class="audit-empty">Loading users...</td></tr>`;
-      let { data: users, error } = await supabase
+      // 1. Get all profiles
+      let { data: profiles, error: profileErr } = await supabase
         .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (error) {
-        tbody.innerHTML = `<tr><td colspan="7" class="audit-empty" style="color:#ff9eae">Error loading users: ${error.message}</td></tr>`;
+        .select('*');
+      // 2. Get all auth users
+      let { data: authUsers, error: authErr } = await supabase
+        .from('users')
+        .select('id, email, last_sign_in_at, created_at');
+
+      if (profileErr || authErr) {
+        tbody.innerHTML = `<tr><td colspan="7" class="audit-empty" style="color:#ff9eae">Error loading users: ${profileErr?.message || ''} ${authErr?.message || ''}</td></tr>`;
         return;
       }
-      if (!users || users.length === 0) {
+      if (!profiles || profiles.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" class="audit-empty">No users found.</td></tr>`;
         return;
       }
-      usersAll = users;
+
+      // Merge auth user info into profiles
+      usersAll = profiles.map(profile => {
+        const auth = authUsers.find(u => u.id === profile.id) || {};
+        return {
+          ...profile,
+          email: profile.email || auth.email || "-",
+          last_login: auth.last_sign_in_at || "-",
+          created: auth.created_at || profile.created_at || "-"
+        };
+      });
+
       filteredUsers = usersAll;
       setupSearch();
       renderUsers();
@@ -218,7 +235,8 @@
         let q = searchInput.value.toLowerCase();
         filteredUsers = usersAll.filter(user =>
           (user.email?.toLowerCase().includes(q)) ||
-          (user.name?.toLowerCase().includes(q))
+          (user.name?.toLowerCase().includes(q)) ||
+          (user.role?.toLowerCase().includes(q))
         );
         renderUsers();
       };
@@ -237,8 +255,8 @@
           <td>${user.name || "-"}</td>
           <td>${user.role || "-"}</td>
           <td><span class="user-status ${user.status || "active"}">${user.status === "blocked" ? "Blocked" : "Active"}</span></td>
-          <td>${user.last_login ? new Date(user.last_login).toLocaleString() : "-"}</td>
-          <td>${user.created_at ? new Date(user.created_at).toLocaleDateString() : "-"}</td>
+          <td>${user.last_login && user.last_login !== "-" ? new Date(user.last_login).toLocaleString() : "-"}</td>
+          <td>${user.created && user.created !== "-" ? new Date(user.created).toLocaleDateString() : "-"}</td>
           <td class="user-actions">
             <button class="user-action-btn" title="Edit" onclick='openEditModal("${user.id}")'><i class="lucide lucide-pencil"></i></button>
             <button class="user-action-btn" title="${user.status === "blocked" ? "Unblock" : "Block"}" onclick='toggleBlockUser("${user.id}", "${user.status}")'><i class="lucide ${user.status === "blocked" ? "lucide-lock" : "lucide-unlock"}"></i></button>
@@ -295,3 +313,4 @@
   </script>
 </body>
 </html>
+
