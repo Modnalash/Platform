@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>UK Dashboard</title>
-  <!-- Google Font for Handwriting Style -->
   <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@supabase/supabase-js"></script>
   <style>
@@ -22,6 +21,13 @@
     th { background-color: #112d4e; }
     .order-btn, .submit-btn { background: #3fbc5f; padding: 8px 16px; border: none; color: white; border-radius: 5px; cursor: pointer; font-size: 1rem; }
     .order-btn:hover, .submit-btn:hover { background: #2c9e4c; }
+    @media (max-width: 540px) {
+      table { min-width: 520px; font-size: 0.98rem; }
+      th, td { max-width: 120px; padding: 0.48rem 0.25rem; font-size: 0.98rem; word-break: break-word; }
+      td input[type="number"] { width: 60px; min-width: 40px; }
+      .order-btn { padding: 8px 16px; min-width: 50px; width: auto; font-size: 1rem; }
+      .container { padding: 8px; }
+    }
   </style>
 </head>
 <body>
@@ -29,7 +35,7 @@
     <h1>Hello Magda</h1>
     <div>
       <button class="nav-btn" onclick="location.href='dashboard-uk-stock.html'">Live Stock Overview</button>
-      <button class="logout-btn" onclick="location.href='index.html'">Logout</button>
+      <button class="logout-btn" onclick="logout()">Logout</button>
     </div>
   </header>
 
@@ -44,7 +50,6 @@
         placeholder="Search by product..."
         oninput="applyFilter()"
       />
-
       <label for="categoryFilter">Category:</label>
       <select id="categoryFilter" onchange="applyFilter()">
         <option value="All">All</option>
@@ -58,18 +63,20 @@
       </select>
     </div>
 
-    <table id="stockTable">
-      <thead>
-        <tr>
-          <th>Product</th>
-          <th>Category</th>
-          <th>Available</th>
-          <th>Qty</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+    <div style="overflow-x:auto;">
+      <table id="stockTable">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Category</th>
+            <th>Available</th>
+            <th>Qty</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
 
     <div>
       <h3>🛒 Order Summary</h3>
@@ -173,8 +180,20 @@
       fetchStock();
     }
 
+    // REAL Supabase logout (so the user is logged out, not just redirected!)
+    async function logout() {
+      await supabase.auth.signOut();
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = "index.html";
+    }
+
+    // Require authentication (redirect to index.html if not logged in)
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) window.location.href = "index.html";
+    });
+
     document.addEventListener('DOMContentLoaded', fetchStock);
   </script>
 </body>
 </html>
-
