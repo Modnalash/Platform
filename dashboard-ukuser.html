@@ -305,53 +305,74 @@
       td {max-width: 90px;}
       .order-btn, .submit-btn {font-size:0.97rem;padding:6px 9px;}
     }
+    /* --- MOBILE: Show as vertical card --- */
     @media (max-width: 540px) {
       .main {padding: 0.6rem 0.12rem;}
       .header {padding:0.6rem 0.2rem 0.5rem 0.7rem;}
       .hello-owner {font-size:0.99rem;}
       .card-table {padding:0.05rem;}
-      .card-table table, .card-table thead, .card-table tbody, .card-table th, .card-table td, .card-table tr {
+      .card-table table, .card-table thead, .card-table tbody, .card-table th {
         display: block;
         width: 100%;
       }
       .card-table thead {
         display: none;
       }
+      .card-table tbody {
+        display: block;
+        width: 100%;
+      }
       .card-table tr {
-        margin-bottom: 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
+        margin-bottom: 15px;
         background: rgba(255,255,255,0.03);
         border-radius: 13px;
         box-shadow: 0 1px 9px #13e2c219;
-        padding: 8px 4px;
+        padding: 10px 10px 12px 10px;
         border-bottom: 1.5px solid #37c0a120;
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: space-between;
+        width: 100%;
+        min-width: 0;
       }
       .card-table td {
-        padding: 4px 2px 4px 0;
-        border: none;
-        font-size: 0.92rem;
-        min-width: 40vw;
-        width: 49%;
         display: flex;
-        align-items: center;
-        word-break: break-word;
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 3px 0 3px 0;
+        border: none;
+        background: none;
+        font-size: 1rem;
+        width: 100%;
+        margin-bottom: 2px;
         max-width: 99vw;
       }
       .card-table td:before {
         content: attr(data-label);
-        flex: 0 0 95px;
         color: #51f2d6;
-        font-size: 0.9rem;
-        font-weight: 600;
-        margin-right: 8px;
-        min-width: 76px;
-        text-align: left;
+        font-size: 0.94rem;
+        font-weight: 700;
+        margin-bottom: 1px;
         display: block;
+        letter-spacing: .3px;
       }
-      .order-btn, .submit-btn {font-size:0.95rem;padding:7px 15px;margin-left:auto;}
+      .card-table td:last-child {
+        margin-top: 8px;
+        align-items: stretch;
+      }
+      .order-btn {
+        font-size:1.09rem;
+        padding:10px 0;
+        width: 100%;
+        margin-top: 4px;
+        margin-bottom: 0;
+      }
+      td input[type="number"] {
+        width: 100%;
+        min-width: 50px;
+        max-width: 160px;
+      }
     }
   </style>
 </head>
