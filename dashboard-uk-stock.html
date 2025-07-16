@@ -3,124 +3,400 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>UK Live Stock Overview</title>
+  <title>UK User Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@0.285.0/font/lucide.css">
   <script src="https://unpkg.com/@supabase/supabase-js"></script>
   <style>
-    body { font-family: 'Segoe UI', sans-serif; background-color: #0d1b2a; color: #fff; margin: 0; padding: 0; }
-    header { display: flex; justify-content: space-between; align-items: center; padding: 20px; background-color: #112d4e; }
-    header h1 { margin: 0; font-size: 1.5rem; }
-    .nav-btn, .logout-btn { background: #00a8e8; border: none; color: white; padding: 8px 16px; cursor: pointer; border-radius: 5px; margin-left: 8px; }
-    .logout-btn { background: #f44336; }
-    .container { padding: 20px; }
-    .filter-row { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 20px; align-items: center; }
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(120deg, #181F2F 0%, #153448 100%);
+      color: #fff;
+      min-height: 100vh;
+    }
+    .container {
+      display: flex;
+      min-height: 100vh;
+    }
+    .sidebar {
+      width: 260px;
+      background: rgba(12, 23, 36, 0.92);
+      backdrop-filter: blur(4px);
+      border-right: 1.5px solid #263857;
+      padding: 2.8rem 1.1rem 1.8rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      min-height: 100vh;
+      box-shadow: 3px 0 32px #001f3f24;
+      position: relative;
+      z-index: 90;
+      transition: left 0.2s;
+    }
+    .sidebar h2 {
+      margin-bottom: 2.6rem;
+      font-size: 2rem;
+      color: #51f2d6;
+      letter-spacing: 1px;
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      background: linear-gradient(90deg, #78ffd6 0%, #31c3f6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .sidebar-menu {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .sidebar a, .sidebar button {
+      color: #fff;
+      text-decoration: none;
+      padding: 0.98rem 1.2rem 0.98rem 1.0rem;
+      border-radius: 11px;
+      background: none;
+      border: none;
+      text-align: left;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 1.13rem;
+      font-weight: 500;
+      transition: background 0.19s, color 0.13s;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      letter-spacing: 0.5px;
+      outline: none;
+    }
+    .sidebar a.active, .sidebar a:hover, .sidebar button.logout-btn:hover {
+      background: linear-gradient(90deg,#23a6d5 0%, #23d5ab 100%);
+      color: #101e2a;
+    }
+    .sidebar i {
+      font-size: 1.25em;
+      opacity: 0.74;
+    }
+    .main {
+      flex: 1;
+      padding: 2.8rem 4vw 2.2rem 4vw;
+      background: none;
+    }
+    .header {
+      background: rgba(17,36,60, 0.89);
+      padding: 1.8rem 2.5rem 1.4rem 2.5rem;
+      font-size: 1.77rem;
+      border-radius: 20px;
+      margin-bottom: 2.1rem;
+      display: flex;
+      align-items: flex-start;
+      box-shadow: 0 4px 24px #04183729;
+      min-height: 65px;
+      font-family: 'Playfair Display', serif;
+      color: #f8fff4;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      font-size: 2rem;
+      background-clip: text;
+    }
+    .filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 20px;
+      align-items: center;
+    }
     .filter-row label { margin-right: 4px; }
-    .filter-row input, .filter-row select { padding: 6px 12px; border-radius: 4px; border: none; font-size: 1rem; }
-    table { width: 100%; border-collapse: collapse; background-color: #1b263b; margin-bottom: 20px; }
-    th, td { padding: 10px; border: 1px solid #2b3a50; text-align: left; }
-    th { background-color: #112d4e; }
-    /* highlight low stock rows */
-    tr.low-stock td { background-color: rgba(255, 0, 0, 0.1); }
+    .filter-row input, .filter-row select {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: none;
+      font-size: 1rem;
+      background: #1b263b;
+      color: #e3ffff;
+      outline: none;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: rgba(255,255,255,0.07);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 4px 32px #10a8b720;
+      margin-bottom: 20px;
+    }
+    th, td {
+      padding: 13px;
+      border: 1px solid #2b3a50;
+      text-align: left;
+      font-size: 1.08rem;
+    }
+    th {
+      background: linear-gradient(90deg,#102940 0%, #153448 100%);
+      color: #6be0ea;
+      font-size: 1.12rem;
+      letter-spacing: 0.8px;
+    }
+    .order-btn, .submit-btn {
+      background: linear-gradient(90deg,#3fbc5f 0%, #51f2d6 100%);
+      padding: 8px 16px;
+      border: none;
+      color: white;
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: background 0.13s;
+    }
+    .order-btn:hover, .submit-btn:hover {
+      background: linear-gradient(90deg,#23a6d5 0%, #23d5ab 100%);
+      color: #101e2a;
+    }
+    .logout-btn {
+      margin-top: 1.7rem;
+      font-size: 1.12rem;
+      background: linear-gradient(90deg,#fa65a0 0%, #fccb90 100%);
+      color: #153448 !important;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      box-shadow: 0 2px 8px #f990af38;
+    }
+    .logout-btn:hover {
+      background: linear-gradient(90deg,#ff325d 0%, #fdbb88 100%);
+      color: #fff !important;
+    }
+    /* Hamburger styles */
+    .hamburger {
+      display: none;
+      position: absolute;
+      top: 24px;
+      right: -48px;
+      background: transparent;
+      border: none;
+      z-index: 110;
+      cursor: pointer;
+    }
+    .hamburger span {
+      display: block;
+      width: 32px;
+      height: 4px;
+      margin: 6px 0;
+      background: #79ffe0;
+      border-radius: 3px;
+      transition: 0.24s;
+    }
+    @media (max-width: 900px) {
+      .main {padding: 2rem 1vw;}
+      .sidebar {padding:1.4rem 0.7rem;}
+    }
+    @media (max-width: 700px) {
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: -280px;
+        height: 100vh;
+        z-index: 101;
+        transition: left 0.26s cubic-bezier(.7,0,.45,1.02);
+      }
+      .sidebar.open {
+        left: 0;
+      }
+      .hamburger {
+        display: block;
+        top: 18px;
+        right: 10px;
+      }
+      .container {
+        flex-direction: column;
+      }
+      .main {
+        padding: 1.2rem 2vw;
+      }
+    }
   </style>
 </head>
 <body>
-  <header>
-    <h1>UK Live Stock Overview</h1>
-    <div>
-      <button class="nav-btn" onclick="location.href='dashboard-ukuser.html'">← Back to Dashboard</button>
-      <button class="logout-btn" onclick="location.href='index.html'">Logout</button>
-    </div>
-  </header>
-
   <div class="container">
-    <div class="filter-row">
-      <label for="searchInput">Search Product:</label>
-      <input type="text" id="searchInput" placeholder="Search by product..." oninput="renderTable()" />
-      <label for="categoryFilter">Category:</label>
-      <select id="categoryFilter" onchange="renderTable()">
-        <option value="All">All</option>
-        <option value="Starter Kit">Starter Kit</option>
-        <option value="Express Lash">Express Lash</option>
-        <option value="Wielokrotnego">Wielokrotnego</option>
-        <option value="Bio">Bio</option>
-        <option value="Ribbon">Ribbon</option>
-        <option value="Accessories">Accessories</option>
-        <option value="Make-up">Make-up</option>
-      </select>
-    </div>
-
-    <table id="combinedTable">
-      <thead>
-        <tr>
-          <th>Product</th>
-          <th>Category</th>
-          <th>PL Qty</th>
-          <th>Admin Qty</th>
-          <th>Total</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+    <nav class="sidebar" id="sidebar">
+      <h2>UK User</h2>
+      <div class="sidebar-menu">
+        <a href="dashboard-ukuser.html" class="active"><i class="lucide lucide-user"></i>User Dashboard</a>
+        <a href="dashboard-uk-stock.html"><i class="lucide lucide-warehouse"></i>Live Stock Overview</a>
+      </div>
+      <button class="logout-btn" onclick="logout()"><i class="lucide lucide-log-out"></i> Logout</button>
+    </nav>
+    <button class="hamburger" id="hamburger" onclick="toggleSidebar()" aria-label="Open Menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+    <main class="main">
+      <div class="header">
+        Hello Magda
+      </div>
+      <h2 style="margin-top:0.6em;">Place an Order</h2>
+      <div class="filter-row">
+        <label for="searchInput">Search:</label>
+        <input type="text" id="searchInput" placeholder="Search by product..." oninput="applyFilter()" />
+        <label for="categoryFilter">Category:</label>
+        <select id="categoryFilter" onchange="applyFilter()">
+          <option value="All">All</option>
+          <option value="Starter Kit">Starter Kit</option>
+          <option value="Express Lash">Express Lash</option>
+          <option value="Wielokrotnego">Wielokrotnego</option>
+          <option value="Bio">Bio</option>
+          <option value="Ribbon">Ribbon</option>
+          <option value="Accessories">Accessories</option>
+          <option value="Make-up">Make-up</option>
+        </select>
+      </div>
+      <table id="stockTable">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Category</th>
+            <th>Available</th>
+            <th>Qty</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div>
+        <h3>🛒 Order Summary</h3>
+        <ul id="orderPreview"></ul>
+        <button class="submit-btn" onclick="submitOrder()">✅ Confirm and Submit Order</button>
+      </div>
+    </main>
   </div>
-
   <script>
-    // initialise Supabase
-    const supabaseUrl = 'https://rwmwsaxlqblvnhfyuuqg.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y';
-    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-
-    let combinedData = [];
-
-    async function fetchData() {
-      const [{ data: plData, error: plErr }, { data: adminData, error: adminErr }] = await Promise.all([
-        supabase.from('pl_stock').select('*'),
-        supabase.from('stock').select('*')
-      ]);
-      if (plErr || adminErr) { console.error(plErr || adminErr); return; }
-
-      const map = {};
-      plData.forEach(item => {
-        const key = item.name + '|' + item.category;
-        map[key] = { name: item.name, category: item.category, pl_qty: item.qty, admin_qty: 0 };
-      });
-      adminData.forEach(item => {
-        const key = item.name + '|' + item.category;
-        if (map[key]) map[key].admin_qty = item.qty;
-        else map[key] = { name: item.name, category: item.category, pl_qty: 0, admin_qty: item.qty };
-      });
-
-      combinedData = Object.values(map).map(x => ({ ...x, total: x.pl_qty + x.admin_qty }));
-      // sort alphabetically by product name
-      combinedData.sort((a, b) => a.name.localeCompare(b.name));
-      renderTable();
+    // Hamburger menu logic
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
     }
+    window.addEventListener('click', function(e) {
+      const sidebar = document.getElementById('sidebar');
+      const hamburger = document.getElementById('hamburger');
+      if (
+        sidebar.classList.contains('open') &&
+        !sidebar.contains(e.target) &&
+        !hamburger.contains(e.target)
+      ) {
+        sidebar.classList.remove('open');
+      }
+    });
 
-    function renderTable() {
-      const search = document.getElementById('searchInput').value.toLowerCase();
-      const cat = document.getElementById('categoryFilter').value;
-      const tbody = document.querySelector('#combinedTable tbody');
+    // ---- ORIGINAL LOGIC (UNCHANGED) ----
+    const supabase = window.supabase.createClient(
+      'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
+    );
+
+    let orderItems = [];
+
+    // Fetch live stock in alphabetical order by name
+    async function fetchStock() {
+      const { data, error } = await supabase
+        .from('stock')
+        .select('*')
+        .order('name', { ascending: true });
+      if (error) { console.error(error); return; }
+      const tbody = document.querySelector('#stockTable tbody');
       tbody.innerHTML = '';
-
-      combinedData.filter(item =>
-        (cat === 'All' || item.category === cat) &&
-        (!search || item.name.toLowerCase().includes(search))
-      ).forEach(item => {
-        const isLow = item.total <= 50;
-        const rowClass = isLow ? 'low-stock' : '';
-        const row = `<tr class="${rowClass}">
+      data.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
           <td>${item.name}</td>
           <td>${item.category}</td>
-          <td>${item.pl_qty}</td>
-          <td>${item.admin_qty}</td>
-          <td>${item.total}</td>
-        </tr>`;
-        tbody.insertAdjacentHTML('beforeend', row);
+          <td>${item.qty}</td>
+          <td>
+            <input
+              type="number"
+              data-id="${item.id}"
+              data-name="${item.name}"
+              data-cat="${item.category}"
+              data-qty="${item.qty}"
+              value="0"
+              min="0"
+              max="${item.qty}"
+            />
+          </td>
+          <td><button class="order-btn" onclick="addToOrder(this)">Add</button></td>`;
+        tbody.appendChild(row);
+      });
+      applyFilter();
+    }
+
+    function applyFilter() {
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      const selectedCat = document.getElementById('categoryFilter').value;
+      document.querySelectorAll('#stockTable tbody tr').forEach(row => {
+        const name = row.cells[0].innerText.toLowerCase();
+        const cat = row.cells[1].innerText;
+        row.style.display =
+          ((!searchTerm || name.includes(searchTerm)) &&
+           (selectedCat === 'All' || cat === selectedCat))
+          ? '' : 'none';
       });
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      fetchData();
-      setInterval(fetchData, 60000);
-    });
+    function addToOrder(button) {
+      const input = button.closest('tr').querySelector('input');
+      const qty = parseInt(input.value, 10);
+      if (qty > 0 && qty <= +input.dataset.qty) {
+        orderItems.push({
+          product: input.dataset.name,
+          category: input.dataset.cat,
+          qty,
+          stock_id: input.dataset.id,
+          available: +input.dataset.qty
+        });
+        input.value = 0;
+        updateOrderPreview();
+      }
+    }
+
+    function updateOrderPreview() {
+      const ul = document.getElementById('orderPreview');
+      ul.innerHTML = '';
+      orderItems.forEach(item => {
+        ul.innerHTML += `<li>${item.product} (${item.category}) — Qty: ${item.qty}</li>`;
+      });
+    }
+
+    async function submitOrder() {
+      if (!orderItems.length) return alert('❌ No items to submit.');
+      const groupId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+      for (const item of orderItems) {
+        const { error } = await supabase.from('orders').insert([
+          { region: 'UK', product: item.product, qty: item.qty, category: item.category, order_group_id: groupId, status: 'Pending' }
+        ]);
+        if (error) { alert('❌ Failed to submit order.'); return; }
+        await supabase.from('stock').update({ qty: item.available - item.qty }).eq('id', item.stock_id);
+      }
+      alert('✅ Order placed!');
+      orderItems = [];
+      updateOrderPreview();
+      fetchStock();
+    }
+
+    document.addEventListener('DOMContentLoaded', fetchStock);
+
+    // -------- LOGOUT FUNCTION ----------
+    function logout() {
+      if (window.supabase && supabase.auth && supabase.auth.signOut) {
+        supabase.auth.signOut().then(() => {
+          localStorage.clear();
+          sessionStorage.clear();
+          window.location.href = "index.html";
+        });
+      } else {
+        window.location.href = "index.html";
+      }
+    }
   </script>
 </body>
 </html>
