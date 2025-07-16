@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>UK Live Stock Overview</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@0.285.0/font/lucide.css">
@@ -149,6 +149,7 @@
       font-size: 0.98rem;
       color: #fff;
       margin-bottom: 0;
+      background: none;
     }
     thead th {
       background: rgba(10,70,120,0.14);
@@ -175,6 +176,7 @@
       letter-spacing: 0.2px;
       line-height: 1.3;
     }
+    tr.low-stock td { background-color: rgba(255, 0, 0, 0.1); }
     @media (max-width: 900px) {
       .main {padding: 1.2rem 0.3rem;}
       .header {font-size:1.3rem;}
@@ -184,7 +186,7 @@
     }
     @media (max-width: 600px) {
       .filter-row {flex-direction:column;}
-      .search-bar { width: 92vw; }
+      .card-table {padding: 0.2rem;}
     }
   </style>
 </head>
@@ -206,10 +208,10 @@
         Below is a live overview of all available stock for UK. Filter and search as you need!
       </div>
       <div class="filter-row">
-        <label for="searchInput">Search:</label>
-        <input type="text" id="searchInput" placeholder="Search by product..." oninput="applyFilter()" />
+        <label for="searchInput">Search Product:</label>
+        <input type="text" id="searchInput" placeholder="Search by product..." oninput="renderTable()" />
         <label for="categoryFilter">Category:</label>
-        <select id="categoryFilter" onchange="applyFilter()">
+        <select id="categoryFilter" onchange="renderTable()">
           <option value="All">All</option>
           <option value="Starter Kit">Starter Kit</option>
           <option value="Express Lash">Express Lash</option>
@@ -221,12 +223,14 @@
         </select>
       </div>
       <div class="card-table">
-        <table id="stockTable">
+        <table id="combinedTable">
           <thead>
             <tr>
               <th>Product</th>
               <th>Category</th>
-              <th>Available</th>
+              <th>PL Qty</th>
+              <th>Admin Qty</th>
+              <th>Total</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -234,16 +238,17 @@
       </div>
     </main>
   </div>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+  <script src="https://unpkg.com/@supabase/supabase-js"></script>
   <script>
-    const supabase = window.supabase.createClient(
-      'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
-    );
+    // initialise Supabase
+    const supabaseUrl = 'https://rwmwsaxlqblvnhfyuuqg.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y';
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
     let currentUser = null;
 
-    // Only "uk" role can access this page
+    // Log login on page load, role must be "uk"
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if(!user) { window.location.href = "index.html"; return; }
       currentUser = user;
@@ -256,7 +261,7 @@
         window.location.href = "index.html";
         return;
       }
-      await logAction("View UK Stock", {});
+      await logAction("Login", {});
     });
 
     // Audit log helper
@@ -272,35 +277,52 @@
       ]);
     }
 
-    async function fetchStock() {
-      const { data, error } = await supabase
-        .from('stock')
-        .select('*')
-        .order('name', { ascending: true });
-      if (error) { console.error(error); return; }
-      const tbody = document.querySelector('#stockTable tbody');
-      tbody.innerHTML = '';
-      data.forEach(item => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${item.name}</td>
-          <td>${item.category}</td>
-          <td>${item.qty}</td>`;
-        tbody.appendChild(row);
+    let combinedData = [];
+
+    async function fetchData() {
+      const [{ data: plData, error: plErr }, { data: adminData, error: adminErr }] = await Promise.all([
+        supabase.from('pl_stock').select('*'),
+        supabase.from('stock').select('*')
+      ]);
+      if (plErr || adminErr) { console.error(plErr || adminErr); return; }
+
+      const map = {};
+      plData.forEach(item => {
+        const key = item.name + '|' + item.category;
+        map[key] = { name: item.name, category: item.category, pl_qty: item.qty, admin_qty: 0 };
       });
-      applyFilter();
+      adminData.forEach(item => {
+        const key = item.name + '|' + item.category;
+        if (map[key]) map[key].admin_qty = item.qty;
+        else map[key] = { name: item.name, category: item.category, pl_qty: 0, admin_qty: item.qty };
+      });
+
+      combinedData = Object.values(map).map(x => ({ ...x, total: x.pl_qty + x.admin_qty }));
+      // sort alphabetically by product name
+      combinedData.sort((a, b) => a.name.localeCompare(b.name));
+      renderTable();
     }
 
-    function applyFilter() {
-      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-      const selectedCat = document.getElementById('categoryFilter').value;
-      document.querySelectorAll('#stockTable tbody tr').forEach(row => {
-        const name = row.cells[0].innerText.toLowerCase();
-        const cat = row.cells[1].innerText;
-        row.style.display =
-          ((!searchTerm || name.includes(searchTerm)) &&
-           (selectedCat === 'All' || cat === selectedCat))
-          ? '' : 'none';
+    function renderTable() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const cat = document.getElementById('categoryFilter').value;
+      const tbody = document.querySelector('#combinedTable tbody');
+      tbody.innerHTML = '';
+
+      combinedData.filter(item =>
+        (cat === 'All' || item.category === cat) &&
+        (!search || item.name.toLowerCase().includes(search))
+      ).forEach(item => {
+        const isLow = item.total <= 50;
+        const rowClass = isLow ? 'low-stock' : '';
+        const row = `<tr class="${rowClass}">
+          <td>${item.name}</td>
+          <td>${item.category}</td>
+          <td>${item.pl_qty}</td>
+          <td>${item.admin_qty}</td>
+          <td>${item.total}</td>
+        </tr>`;
+        tbody.insertAdjacentHTML('beforeend', row);
       });
     }
 
@@ -312,7 +334,10 @@
       setTimeout(() => window.location.href = "index.html", 300);
     }
 
-    document.addEventListener('DOMContentLoaded', fetchStock);
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchData();
+      setInterval(fetchData, 60000);
+    });
   </script>
 </body>
 </html>
