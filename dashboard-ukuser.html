@@ -310,72 +310,31 @@
       td {max-width: 90px;}
       .order-btn, .submit-btn {font-size:0.97rem;padding:6px 9px;}
     }
-    /* --- MOBILE: Show as vertical card --- */
+    /* --- MOBILE: Simple responsive table --- */
     @media (max-width: 540px) {
-      .main {padding: 0.6rem 0.12rem;}
-      .header {padding:0.6rem 0.2rem 0.5rem 0.7rem;}
-      .hello-owner {font-size:0.99rem;}
-      .card-table {padding:0.05rem;}
-      .card-table table, .card-table thead, .card-table tbody, .card-table th {
-        display: block;
-        width: 100%;
+      .card-table {
+        overflow-x: auto;
+        padding: 0.07rem;
       }
-      .card-table thead {
-        display: none;
+      .card-table table {
+        min-width: 520px; /* force full table to fit horizontally */
+        font-size: 0.98rem;
       }
-      .card-table tbody {
-        display: block;
-        width: 100%;
-      }
-      .card-table tr {
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        margin-bottom: 15px;
-        background: rgba(255,255,255,0.03);
-        border-radius: 13px;
-        box-shadow: 0 1px 9px #13e2c219;
-        padding: 10px 10px 12px 10px;
-        border-bottom: 1.5px solid #37c0a120;
-        width: 100%;
-        min-width: 0;
-      }
-      .card-table td {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 3px 0 3px 0;
-        border: none;
-        background: none;
-        font-size: 1rem;
-        width: 100%;
-        margin-bottom: 2px;
-        max-width: 99vw;
-      }
-      .card-table td:before {
-        content: attr(data-label);
-        color: #51f2d6;
-        font-size: 0.94rem;
-        font-weight: 700;
-        margin-bottom: 1px;
-        display: block;
-        letter-spacing: .3px;
-      }
-      .card-table td:last-child {
-        margin-top: 8px;
-        align-items: stretch;
-      }
-      .order-btn {
-        font-size:1.09rem;
-        padding:10px 0;
-        width: 100%;
-        margin-top: 4px;
-        margin-bottom: 0;
+      td, th {
+        max-width: 120px;
+        padding: 0.48rem 0.25rem;
+        font-size: 0.98rem;
+        word-break: break-word;
       }
       td input[type="number"] {
-        width: 100%;
+        width: 60px;
+        min-width: 40px;
+      }
+      .order-btn {
+        padding: 8px 16px;
         min-width: 50px;
-        max-width: 160px;
+        width: auto;
+        font-size: 1rem;
       }
     }
   </style>
@@ -447,7 +406,7 @@
       document.body.style.overflow = "hidden";
     }
     function closeSidebar() {
-            document.getElementById('mainSidebar').classList.add('closed');
+      document.getElementById('mainSidebar').classList.add('closed');
       document.getElementById('mainSidebar').classList.remove('open');
       document.getElementById('sidebarBackdrop').style.display = 'none';
       document.body.style.overflow = "";
