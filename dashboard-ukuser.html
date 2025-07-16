@@ -29,6 +29,9 @@
       gap: 2rem;
       min-height: 100vh;
       box-shadow: 3px 0 32px #001f3f24;
+      transition: left 0.35s;
+      z-index: 30;
+      position: relative;
     }
     .sidebar h2 {
       margin-bottom: 2.6rem;
@@ -80,6 +83,7 @@
       flex: 1;
       padding: 2.8rem 4vw 2.2rem 4vw;
       min-width: 0;
+      transition: filter 0.3s;
     }
     .header {
       background: rgba(17,36,60, 0.89);
@@ -149,6 +153,8 @@
       font-size: 0.98rem;
       color: #fff;
       margin-bottom: 0;
+      background: none;
+      min-width: 650px;
     }
     thead th {
       background: rgba(10,70,120,0.14);
@@ -208,22 +214,84 @@
       margin-bottom: 4px;
       color: #eafcff;
     }
+    /* Hamburger button for mobile */
+    .hamburger {
+      display: none;
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 60;
+      background: rgba(36,51,77,0.97);
+      border-radius: 7px;
+      border: 1.5px solid #29f2d7b3;
+      width: 44px;
+      height: 44px;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .hamburger i {
+      font-size: 2.1rem;
+      color: #5fffff;
+      margin: auto;
+      display: block;
+    }
+    .sidebar.closed {
+      left: -280px;
+      position: fixed;
+      top: 0; bottom: 0;
+      min-height: 100vh;
+      z-index: 50;
+    }
+    .sidebar.open {
+      left: 0;
+      position: fixed;
+      top: 0; bottom: 0;
+      min-height: 100vh;
+      z-index: 55;
+      background: rgba(12, 23, 36, 0.99);
+    }
+    .sidebar-backdrop {
+      display: none;
+    }
     @media (max-width: 900px) {
       .main {padding: 1.2rem 0.3rem;}
-      .header {font-size:1.3rem;}
-      .sidebar {width:66px;padding:1.2rem 2px;}
-      .sidebar h2 {font-size:1.3rem;letter-spacing:0;}
-      .sidebar-menu a span {display:none;}
+      .header {font-size:1.2rem;}
+      .sidebar {
+        width: 180px;
+        padding: 1.2rem 0.4rem 1.2rem 0.6rem;
+      }
+      .sidebar h2 {font-size:1.1rem;letter-spacing:0;}
+      .sidebar-menu a span {display:inline;}
+      .sidebar.open { width: 74vw; min-width: 168px; }
+      .sidebar.closed { width: 0; min-width: 0; }
+      .card-table { padding: 0.3rem; }
+      table { min-width: 560px; font-size:0.94rem; }
+      .hamburger { display: flex; }
+      .sidebar-backdrop {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; width: 100vw; height: 100vh;
+        background: rgba(0,0,0,0.28);
+        z-index: 40;
+      }
+      .sidebar.open ~ .sidebar-backdrop {
+        display: block;
+      }
     }
     @media (max-width: 600px) {
-      .search-bar { width: 92vw; }
-      .order-summary-section { padding: 0.6rem 0.2rem;}
+      .header {padding:1.1rem 0.6rem 0.7rem 1.3rem;}
+      .hello-owner {font-size:1.48rem;}
+      .filter-row {flex-direction:column;align-items:stretch;}
+      .card-table {padding:0.13rem;}
+      table {font-size:0.91rem;min-width:400px;}
     }
   </style>
 </head>
 <body>
+  <div class="hamburger" onclick="openSidebar()" id="hamburgerMenu" aria-label="Open navigation"><i class="lucide lucide-menu"></i></div>
   <div class="container">
-    <nav class="sidebar">
+    <nav class="sidebar closed" id="mainSidebar">
       <h2>UK User</h2>
       <div class="sidebar-menu">
         <a href="dashboard-ukuser.html" class="active"><i class="lucide lucide-home"></i><span>Dashboard</span></a>
@@ -231,7 +299,8 @@
       </div>
       <button class="logout-btn" onclick="logout()"><i class="lucide lucide-log-out"></i> Logout</button>
     </nav>
-    <main class="main">
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeSidebar()"></div>
+    <main class="main" id="mainContent">
       <div class="header">
         <span class="hello-owner" id="helloOwner"></span>
       </div>
@@ -254,18 +323,20 @@
         </select>
       </div>
       <div class="card-table">
-        <table id="stockTable">
-          <thead>
-            <tr>
-              <th>Product</th>
-              <th>Category</th>
-              <th>Available</th>
-              <th>Qty</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+        <div style="overflow-x:auto;">
+          <table id="stockTable">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Category</th>
+                <th>Available</th>
+                <th>Qty</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
       <div class="order-summary-section">
         <h3>🛒 Order Summary</h3>
@@ -274,9 +345,36 @@
       </div>
     </main>
   </div>
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script>
+    // Responsive sidebar logic
+    function openSidebar() {
+      document.getElementById('mainSidebar').classList.add('open');
+      document.getElementById('mainSidebar').classList.remove('closed');
+      document.getElementById('sidebarBackdrop').style.display = 'block';
+      document.body.style.overflow = "hidden";
+    }
+    function closeSidebar() {
+      document.getElementById('mainSidebar').classList.add('closed');
+      document.getElementById('mainSidebar').classList.remove('open');
+      document.getElementById('sidebarBackdrop').style.display = 'none';
+      document.body.style.overflow = "";
+    }
+    // Hide sidebar by default on mobile
+    function mobileSidebarInit() {
+      if(window.innerWidth <= 900){
+        closeSidebar();
+        document.getElementById('hamburgerMenu').style.display = 'flex';
+      } else {
+        document.getElementById('mainSidebar').classList.remove('closed', 'open');
+        document.getElementById('hamburgerMenu').style.display = 'none';
+        document.getElementById('sidebarBackdrop').style.display = 'none';
+      }
+    }
+    window.addEventListener('resize', mobileSidebarInit);
+    window.addEventListener('DOMContentLoaded', mobileSidebarInit);
+
+    // Supabase code (untouched)
     const supabase = window.supabase.createClient(
       'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
@@ -298,7 +396,6 @@
       typing();
     }
 
-    // Role protection: Only "uk" role can access this page. Log login.
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if(!user) { window.location.href = "index.html"; return; }
       currentUser = user;
@@ -429,7 +526,11 @@
       setTimeout(() => window.location.href = "index.html", 300);
     }
 
-    document.addEventListener('DOMContentLoaded', fetchStock);
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchStock();
+      mobileSidebarInit();
+    });
   </script>
 </body>
 </html>
+
