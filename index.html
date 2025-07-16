@@ -127,8 +127,23 @@
       const { error, data } = await supabase.auth.signInWithPassword({ email, password });
       if (error) return showMsg(error.message, true);
 
-      // --- Update last_login in profiles table after successful login ---
+      // --- Block login if user is disabled ---
       if (data?.user) {
+        // 1. Fetch the user profile
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('status')
+          .eq('id', data.user.id)
+          .single();
+
+        // 2. If disabled, show error and log out
+        if (profile && profile.status === "disabled") {
+          showMsg('Your account is disabled. Please contact support.', true);
+          await supabase.auth.signOut();
+          return;
+        }
+
+        // 3. Update last_login as before
         await supabase
           .from('profiles')
           .update({ last_login: new Date().toISOString() })
