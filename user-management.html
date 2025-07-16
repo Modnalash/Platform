@@ -144,12 +144,19 @@
         }
         .status-pill {
             display: inline-block;
-            background: #0e6a51;
-            color: #b8ffe0;
+            color: #fff;
             padding: 6px 23px;
             border-radius: 12px;
             font-weight: bold;
             font-size: 1.01rem;
+            background: #0e6a51;
+            transition: background 0.18s;
+        }
+        .status-pill.disabled {
+            background: #b0423e !important;
+        }
+        .status-pill.active {
+            background: #0e6a51 !important;
         }
         .action-btns {
             display: flex;
@@ -254,23 +261,40 @@
             tableBody.innerHTML = '';
             users.forEach(user => {
                 const tr = document.createElement('tr');
+                // Choose color for pill by status
+                const statusClass = (user.status === 'disabled') ? 'status-pill disabled' : 'status-pill active';
                 tr.innerHTML = `
                     <td>${user.email || "-"}</td>
                     <td>${user.name || "-"}</td>
                     <td>${user.role || "-"}</td>
-                    <td><span class="status-pill">${user.status ? capitalize(user.status) : "Active"}</span></td>
+                    <td><span class="${statusClass}">${user.status ? capitalize(user.status) : "Active"}</span></td>
                     <td>${user.last_login ? formatDate(user.last_login, true) : "-"}</td>
                     <td>${user.created_at ? formatDate(user.created_at) : "-"}</td>
                     <td>
                         <div class="action-btns">
-                            <button onclick="editUser('${user.id}')">Edit</button>
-                            <button onclick="resetPassword('${user.email}')">Reset Password</button>
-                            <button onclick="deleteUser('${user.id}')">Delete</button>
+                            <button onclick="toggleUserStatus('${user.id}', '${user.status || "active"}')">
+                                ${user.status === "disabled" ? "Enable" : "Disable"}
+                            </button>
                         </div>
                     </td>
                 `;
                 tableBody.appendChild(tr);
             });
+        }
+
+        // --- Toggle active/disabled user ---
+        async function toggleUserStatus(id, currentStatus) {
+            const newStatus = currentStatus === "disabled" ? "active" : "disabled";
+            const { error } = await supabase
+                .from('profiles')
+                .update({ status: newStatus })
+                .eq('id', id);
+
+            if (error) {
+                alert('Failed to update user status: ' + error.message);
+            } else {
+                loadUsers();
+            }
         }
 
         // --- Search/Filter ---
@@ -295,32 +319,8 @@
             return withTime ? `${datePart} ${timePart}` : datePart;
         }
 
-        // --- User Action Functions ---
-        function editUser(id) {
-            alert('Edit user function for user: ' + id);
-            // You can build an edit popup/modal here.
-        }
-        function resetPassword(email) {
-            if (!email || email === "-") return alert("No email available for this user.");
-            // This should call your backend or Supabase function to send reset password email.
-            alert('Password reset link would be sent to: ' + email + ' (build backend logic)');
-        }
-        function deleteUser(id) {
-            if (confirm("Are you sure you want to delete this user?")) {
-                supabase.from('profiles').delete().eq('id', id).then(({error}) => {
-                    if (error) {
-                        alert('Failed to delete: ' + error.message);
-                    } else {
-                        allUsers = allUsers.filter(u => u.id !== id);
-                        filterUsers();
-                    }
-                });
-            }
-        }
-
         // --- Logout Stub ---
         function logout() {
-            // Clear session, redirect to login
             window.location.href = "index.html";
         }
 
