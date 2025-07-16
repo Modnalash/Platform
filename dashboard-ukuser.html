@@ -216,25 +216,56 @@
     }
     /* Hamburger button for mobile */
     .hamburger {
-      display: none;
-      position: fixed;
-      top: 70px;
-      left: 20px;
-      z-index: 60;
-      background: rgba(36,51,77,0.97);
-      border-radius: 7px;
-      border: 1.5px solid #29f2d7b3;
-      width: 44px;
-      height: 44px;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-    }
-    .hamburger i {
-      font-size: 2.1rem;
-      color: #5fffff;
-      margin: auto;
-      display: block;
+  display: none;
+  position: fixed;
+  top: 70px; /* LOWERED for better visibility */
+  left: 20px;
+  z-index: 60;
+  background: rgba(36,51,77,0.97);
+  border-radius: 7px;
+  border: 1.5px solid #29f2d7b3;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px #01263b18;
+  transition: background 0.2s, border 0.2s;
+}
+
+.hamburger:active, .hamburger:focus {
+  background: #1ed5b6;
+  border: 1.5px solid #27eae1;
+}
+
+.hamburger-icon {
+  display: block;
+  width: 28px;
+  height: 20px;
+  position: relative;
+  margin: auto;
+}
+.hamburger-icon:before,
+.hamburger-icon:after,
+.hamburger-icon {
+  content: '';
+  display: block;
+  background: #51f2d6;
+  border-radius: 2px;
+  height: 4px;
+  width: 28px;
+  position: absolute;
+  left: 0;
+  transition: all 0.23s;
+}
+.hamburger-icon:before {
+  top: 0;
+}
+.hamburger-icon {
+  top: 8px;
+}
+.hamburger-icon:after {
+  top: 16px;
     }
     .sidebar.closed {
       left: -280px;
@@ -289,7 +320,8 @@
   </style>
 </head>
 <body>
-  <div class="hamburger" onclick="openSidebar()" id="hamburgerMenu" aria-label="Open navigation"><i class="lucide lucide-menu"></i></div>
+  <div class="hamburger" onclick="openSidebar()" id="hamburgerMenu" aria-label="Open navigation">
+  <span class="hamburger-icon"></span>
   <div class="container">
     <nav class="sidebar closed" id="mainSidebar">
       <h2>UK User</h2>
