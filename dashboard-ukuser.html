@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>UK User Dashboard</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700&family=Dancing+Script:wght@700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@0.285.0/font/lucide.css">
   <style>
     body {
@@ -94,17 +94,17 @@
       min-height: 65px;
     }
     .hello-owner {
-      font-family: 'Playfair Display', serif;
-      font-size: 2.1rem;
-      color: #f8fff4;
+      font-family: 'Dancing Script', cursive;
+      font-size: 2.3rem;
+      color: #fffbec;
       font-weight: 700;
       letter-spacing: 1.5px;
-      margin-right: 1.4rem;
-      margin-top: 0.1rem;
-      background: linear-gradient(90deg, #f1fff2 0%, #b3ecf7 100%);
+      background: linear-gradient(90deg, #fffbe7 0%, #b3ecf7 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
+      display: inline-block;
+      min-height: 44px;
     }
     .subtext {
       font-size:1.19rem;
@@ -233,7 +233,7 @@
     </nav>
     <main class="main">
       <div class="header">
-        <span class="hello-owner">Hello Magda</span>
+        <span class="hello-owner" id="helloOwner"></span>
       </div>
       <div class="subtext">
         Place and review your stock orders. Quickly filter products, build your order, and submit in seconds.
@@ -284,19 +284,36 @@
 
     let currentUser = null;
 
+    // Typewriter effect for "Hello Name"
+    function typeWriter(element, text, speed=60) {
+      let i = 0;
+      element.textContent = "";
+      function typing() {
+        if (i < text.length) {
+          element.textContent += text.charAt(i);
+          i++;
+          setTimeout(typing, speed);
+        }
+      }
+      typing();
+    }
+
     // Role protection: Only "uk" role can access this page. Log login.
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if(!user) { window.location.href = "index.html"; return; }
       currentUser = user;
       const { data: profile } = await supabase
         .from('profiles')
-        .select('role')
+        .select('name,role')
         .eq('id', user.id)
         .single();
       if(!profile || profile.role !== 'uk') {
         window.location.href = "index.html";
         return;
       }
+      // Dynamic name (use profile.name or fallback to email)
+      const firstName = profile.name ? profile.name.split(' ')[0] : (user.email ? user.email.split('@')[0] : "User");
+      typeWriter(document.getElementById('helloOwner'), `Hello ${firstName}`);
       await logAction("Login", {});
     });
 
