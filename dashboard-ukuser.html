@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>UK User Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Playfair+Display:wght@700&family=Dancing+Script:wght@700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@0.285.0/font/lucide.css">
   <style>
     body {
       margin: 0;
@@ -75,10 +74,6 @@
       background: linear-gradient(90deg,#23a6d5 0%, #23d5ab 100%);
       color: #101e2a;
     }
-    .sidebar i {
-      font-size: 1.25em;
-      opacity: 0.74;
-    }
     .main {
       flex: 1;
       padding: 2.8rem 4vw 2.2rem 4vw;
@@ -146,6 +141,10 @@
       border: 1.5px solid rgba(55,155,255,0.09);
       min-height: 320px;
       margin-bottom: 40px;
+    }
+    .card-table-inner {
+      width: 100%;
+      overflow-x: auto;
     }
     table {
       width: 100%;
@@ -229,12 +228,42 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
+      box-shadow: 0 2px 8px #01263b18;
+      transition: background 0.2s, border 0.2s;
     }
-    .hamburger i {
-      font-size: 2.1rem;
-      color: #5fffff;
-      margin: auto;
+    .hamburger:active, .hamburger:focus {
+      background: #1ed5b6;
+      border: 1.5px solid #27eae1;
+    }
+    .hamburger-icon {
       display: block;
+      width: 28px;
+      height: 20px;
+      position: relative;
+      margin: auto;
+    }
+    .hamburger-icon,
+    .hamburger-icon:before,
+    .hamburger-icon:after {
+      content: '';
+      position: absolute;
+      left: 0;
+      height: 4px;
+      width: 28px;
+      background: #51f2d6;
+      border-radius: 2px;
+      transition: all 0.2s;
+    }
+    .hamburger-icon {
+      top: 8px;
+    }
+    .hamburger-icon:before {
+      top: -8px;
+      content: '';
+    }
+    .hamburger-icon:after {
+      top: 8px;
+      content: '';
     }
     .sidebar.closed {
       left: -280px;
@@ -266,7 +295,6 @@
       .sidebar.open { width: 74vw; min-width: 168px; }
       .sidebar.closed { width: 0; min-width: 0; }
       .card-table { padding: 0.3rem; }
-      table { min-width: 560px; font-size:0.94rem; }
       .hamburger { display: flex; }
       .sidebar-backdrop {
         display: none;
@@ -278,26 +306,51 @@
       .sidebar.open ~ .sidebar-backdrop {
         display: block;
       }
+      .card-table-inner {
+        overflow-x: auto;
+      }
+      table {
+        min-width: 520px;
+        font-size:0.97rem;
+      }
+    }
+    @media (max-width: 700px) {
+      .card-table {
+        padding: 0;
+        border-radius: 0;
+        box-shadow: none;
+        border: none;
+      }
+      .card-table-inner {
+        overflow-x: auto;
+      }
+      table {
+        min-width: 480px;
+        font-size: 0.97rem;
+      }
     }
     @media (max-width: 600px) {
       .header {padding:1.1rem 0.6rem 0.7rem 1.3rem;}
       .hello-owner {font-size:1.48rem;}
       .filter-row {flex-direction:column;align-items:stretch;}
       .card-table {padding:0.13rem;}
+      .card-table-inner {overflow-x:auto;}
       table {font-size:0.91rem;min-width:400px;}
     }
   </style>
 </head>
 <body>
-  <div class="hamburger" onclick="openSidebar()" id="hamburgerMenu" aria-label="Open navigation"><i class="lucide lucide-menu"></i></div>
+  <div class="hamburger" onclick="openSidebar()" id="hamburgerMenu" aria-label="Open navigation">
+    <span class="hamburger-icon"></span>
+  </div>
   <div class="container">
     <nav class="sidebar closed" id="mainSidebar">
       <h2>UK User</h2>
       <div class="sidebar-menu">
-        <a href="dashboard-ukuser.html" class="active"><i class="lucide lucide-home"></i><span>Dashboard</span></a>
-        <a href="dashboard-uk-stock.html"><i class="lucide lucide-warehouse"></i><span>Live Stock Overview</span></a>
+        <a href="dashboard-ukuser.html" class="active"><span>Dashboard</span></a>
+        <a href="dashboard-uk-stock.html"><span>Live Stock Overview</span></a>
       </div>
-      <button class="logout-btn" onclick="logout()"><i class="lucide lucide-log-out"></i> Logout</button>
+      <button class="logout-btn" onclick="logout()">Logout</button>
     </nav>
     <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeSidebar()"></div>
     <main class="main" id="mainContent">
@@ -323,7 +376,7 @@
         </select>
       </div>
       <div class="card-table">
-        <div style="overflow-x:auto;">
+        <div class="card-table-inner">
           <table id="stockTable">
             <thead>
               <tr>
@@ -360,7 +413,6 @@
       document.getElementById('sidebarBackdrop').style.display = 'none';
       document.body.style.overflow = "";
     }
-    // Hide sidebar by default on mobile
     function mobileSidebarInit() {
       if(window.innerWidth <= 900){
         closeSidebar();
@@ -374,7 +426,6 @@
     window.addEventListener('resize', mobileSidebarInit);
     window.addEventListener('DOMContentLoaded', mobileSidebarInit);
 
-    // Supabase code (untouched)
     const supabase = window.supabase.createClient(
       'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
@@ -382,7 +433,6 @@
 
     let currentUser = null;
 
-    // Typewriter effect for "Hello Name"
     function typeWriter(element, text, speed=60) {
       let i = 0;
       element.textContent = "";
@@ -404,7 +454,7 @@
         .select('name,role')
         .eq('id', user.id)
         .single();
-      if(!profile || profile.role !== 'uk') {
+            if(!profile || profile.role !== 'uk') {
         window.location.href = "index.html";
         return;
       }
@@ -533,4 +583,3 @@
   </script>
 </body>
 </html>
-
