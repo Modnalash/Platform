@@ -314,10 +314,10 @@
       return;
     }
 
-    // 2) fetch items
+    // 2) fetch items INCLUDING region
     const { data: items, error: err2 } = await supabase
       .from('orders')
-      .select('product,category,qty')
+      .select('product,category,qty,region')
       .eq('order_group_id', gid);
 
     if (err2) {
@@ -326,8 +326,10 @@
       return;
     }
 
-    // 3) upsert each into pl_stock
-    for (const { product, category, qty } of items) {
+    // 3) Only add to PL stock if region is PL
+    for (const { product, category, qty, region } of items) {
+      if (region !== 'PL') continue; // Skip non-PL orders
+
       // check existing
       const { data: existing, error: err3 } = await supabase
         .from('pl_stock')
