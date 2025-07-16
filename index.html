@@ -127,6 +127,14 @@
       const { error, data } = await supabase.auth.signInWithPassword({ email, password });
       if (error) return showMsg(error.message, true);
 
+      // --- Update last_login in profiles table after successful login ---
+      if (data?.user) {
+        await supabase
+          .from('profiles')
+          .update({ last_login: new Date().toISOString() })
+          .eq('id', data.user.id);
+      }
+
       showMsg('Login successful! Redirecting...');
       setTimeout(() => { window.location.href = "wait-for-role.html"; }, 600);
     }
