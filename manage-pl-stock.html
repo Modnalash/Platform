@@ -32,7 +32,7 @@
 
   <div class="container">
     <div class="controls">
-      <input type="text" id="searchInput" placeholder="Search by product…" />
+      <input type="text" id="searchInput" placeholder="Search by product or SKU…" />
       <select id="categoryFilter"></select>
       <button class="export-btn" onclick="exportPLStock()">Export to CSV</button>
     </div>
@@ -40,6 +40,7 @@
     <table id="localStockTable">
       <thead>
         <tr>
+          <th>SKU</th>
           <th>Product</th>
           <th>Category</th>
           <th>Qty</th>
@@ -125,8 +126,9 @@
       const cat    = document.getElementById('categoryFilter').value;
 
       return adminStock.map(item => {
-        const pl = plStock.find(x => x.name === item.name) || {};
+        const pl = plStock.find(x => x.sku === item.sku) || {};
         return {
+          sku:      item.sku,
           mainId:   item.id,
           plId:     pl.id   || null,
           name:     item.name,
@@ -136,7 +138,7 @@
       })
       .sort((a,b) => a.name.localeCompare(b.name))
       .filter(row => {
-        const okSearch = !search || row.name.toLowerCase().includes(search);
+        const okSearch = !search || row.name.toLowerCase().includes(search) || row.sku.toLowerCase().includes(search);
         const okCat    = !cat    || row.category === cat;
         return okSearch && okCat;
       });
@@ -156,6 +158,7 @@
                     : row.qty;
 
         tr.innerHTML = `
+          <td>${row.sku || ''}</td>
           <td>${row.name}</td>
           <td>${row.category}</td>
           <td>${row.qty}</td>
@@ -194,12 +197,13 @@
       } else {
         const { error } = await supabase
           .from('pl_stock')
-          .insert([{ name: mainRec.name, category: mainRec.category, qty: newQty }]);
+          .insert([{ sku: mainRec.sku, name: mainRec.name, category: mainRec.category, qty: newQty }]);
         if (error) return alert(error.message);
       }
 
       // AUDIT LOG for adjust
       await logAction("PL Adjust Stock", {
+        sku: mainRec.sku,
         product: mainRec.name,
         category: mainRec.category,
         new_qty: newQty
@@ -213,9 +217,9 @@
     // Export function
     function exportPLStock() {
       const rows = getMergedRows();
-      let csv = "Product,Category,Qty\n";
+      let csv = "SKU,Product,Category,Qty\n";
       rows.forEach(r => {
-        csv += `"${r.name.replace(/"/g,'""')}","${r.category.replace(/"/g,'""')}",${r.qty}\n`;
+        csv += `"${r.sku}","${r.name.replace(/"/g,'""')}","${r.category.replace(/"/g,'""')}",${r.qty}\n`;
       });
       const blob = new Blob([csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
