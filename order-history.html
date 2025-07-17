@@ -300,9 +300,9 @@
     }
   }
 
-  // Fulfill and update PL stock, and log
+  // Fulfill and update PL stock, and log (FIXED - aggregates quantities before updating PL stock)
   async function fulfillGroup(gid) {
-    // 1) mark fulfilled
+    // 1) Mark orders as fulfilled
     const { error: err1 } = await supabase
       .from('orders')
       .update({ status: 'Fulfilled' })
@@ -314,7 +314,7 @@
       return;
     }
 
-    // 2) fetch items INCLUDING region
+    // 2) Fetch items INCLUDING region
     const { data: items, error: err2 } = await supabase
       .from('orders')
       .select('product,category,qty,region')
@@ -326,15 +326,24 @@
       return;
     }
 
-    // 3) Only add to PL stock if region is PL
+    // 3) Aggregate items for PL region
+    const plItemsMap = {};
     for (const { product, category, qty, region } of items) {
       if (region !== 'PL') continue; // Skip non-PL orders
+      const key = product + '|' + category;
+      plItemsMap[key] = (plItemsMap[key] || 0) + qty;
+    }
 
-      // check existing
+    // 4) Update PL stock per aggregated item
+    for (const key in plItemsMap) {
+      const [product, category] = key.split('|');
+      const totalQty = plItemsMap[key];
+
       const { data: existing, error: err3 } = await supabase
         .from('pl_stock')
         .select('id,qty')
         .eq('name', product)
+        .eq('category', category)
         .single();
 
       if (err3 && err3.code !== 'PGRST116') {
@@ -345,13 +354,13 @@
       if (existing) {
         const { error: err4 } = await supabase
           .from('pl_stock')
-          .update({ qty: existing.qty + qty })
+          .update({ qty: existing.qty + totalQty })
           .eq('id', existing.id);
         if (err4) console.error('Error updating pl_stock:', product, err4);
       } else {
         const { error: err5 } = await supabase
           .from('pl_stock')
-          .insert([{ name: product, category, qty }]);
+          .insert([{ name: product, category, qty: totalQty }]);
         if (err5) console.error('Error inserting pl_stock:', product, err5);
       }
     }
