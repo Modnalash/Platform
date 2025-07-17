@@ -47,7 +47,7 @@
       <input
         type="text"
         id="searchInput"
-        placeholder="Search by product..."
+        placeholder="Search by product or SKU..."
         oninput="applyFilter()"
       />
       <label for="categoryFilter">Category:</label>
@@ -67,6 +67,7 @@
       <table id="stockTable">
         <thead>
           <tr>
+            <th>SKU</th>
             <th>Product</th>
             <th>Category</th>
             <th>Available</th>
@@ -106,6 +107,7 @@
       data.forEach(item => {
         const row = document.createElement('tr');
         row.innerHTML = `
+          <td>${item.sku || ''}</td>
           <td>${item.name}</td>
           <td>${item.category}</td>
           <td>${item.qty}</td>
@@ -113,6 +115,7 @@
             <input
               type="number"
               data-id="${item.id}"
+              data-sku="${item.sku || ''}"
               data-name="${item.name}"
               data-cat="${item.category}"
               data-qty="${item.qty}"
@@ -131,10 +134,11 @@
       const searchTerm = document.getElementById('searchInput').value.toLowerCase();
       const selectedCat = document.getElementById('categoryFilter').value;
       document.querySelectorAll('#stockTable tbody tr').forEach(row => {
-        const name = row.cells[0].innerText.toLowerCase();
-        const cat = row.cells[1].innerText;
+        const sku = row.cells[0].innerText.toLowerCase();
+        const name = row.cells[1].innerText.toLowerCase();
+        const cat = row.cells[2].innerText;
         row.style.display =
-          ((!searchTerm || name.includes(searchTerm)) &&
+          ((!searchTerm || name.includes(searchTerm) || sku.includes(searchTerm)) &&
            (selectedCat === 'All' || cat === selectedCat))
           ? '' : 'none';
       });
@@ -145,6 +149,7 @@
       const qty = parseInt(input.value, 10);
       if (qty > 0 && qty <= +input.dataset.qty) {
         orderItems.push({
+          sku: input.dataset.sku,
           product: input.dataset.name,
           category: input.dataset.cat,
           qty,
@@ -160,7 +165,7 @@
       const ul = document.getElementById('orderPreview');
       ul.innerHTML = '';
       orderItems.forEach(item => {
-        ul.innerHTML += `<li>${item.product} (${item.category}) — Qty: ${item.qty}</li>`;
+        ul.innerHTML += `<li>${item.product} (${item.category}) [SKU: ${item.sku}] — Qty: ${item.qty}</li>`;
       });
     }
 
@@ -169,7 +174,7 @@
       const groupId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
       for (const item of orderItems) {
         const { error } = await supabase.from('orders').insert([
-          { region: 'UK', product: item.product, qty: item.qty, category: item.category, order_group_id: groupId, status: 'Pending' }
+          { region: 'UK', sku: item.sku, product: item.product, qty: item.qty, category: item.category, order_group_id: groupId, status: 'Pending' }
         ]);
         if (error) { alert('❌ Failed to submit order.'); return; }
         await supabase.from('stock').update({ qty: item.available - item.qty }).eq('id', item.stock_id);
