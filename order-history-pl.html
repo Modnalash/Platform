@@ -43,9 +43,10 @@
     const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
     async function fetchOrders() {
+      // Now select SKU as well
       const { data: orders, error } = await supabaseClient
         .from('orders')
-        .select('order_group_id,product,category,qty,status,created_at')
+        .select('order_group_id,sku,product,category,qty,status,created_at')
         .eq('region', 'PL')
         .order('created_at', { ascending: false });
 
@@ -83,13 +84,13 @@
         const table = document.createElement('table');
         table.innerHTML = `
           <thead>
-            <tr><th>Product</th><th>Category</th><th>Qty</th><th>Status</th></tr>
+            <tr><th>SKU</th><th>Product</th><th>Category</th><th>Qty</th><th>Status</th></tr>
           </thead>
         `;
         const previewTbody = document.createElement('tbody');
         items.slice(0, 5).forEach(i => {
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${i.product}</td><td>${i.category}</td><td>${i.qty}</td><td>${i.status}</td>`;
+          tr.innerHTML = `<td>${i.sku || ''}</td><td>${i.product}</td><td>${i.category}</td><td>${i.qty}</td><td>${i.status}</td>`;
           previewTbody.appendChild(tr);
         });
         table.appendChild(previewTbody);
@@ -98,7 +99,7 @@
         fullTbody.style.display = 'none';
         items.slice(5).forEach(i => {
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${i.product}</td><td>${i.category}</td><td>${i.qty}</td><td>${i.status}</td>`;
+          tr.innerHTML = `<td>${i.sku || ''}</td><td>${i.product}</td><td>${i.category}</td><td>${i.qty}</td><td>${i.status}</td>`;
           fullTbody.appendChild(tr);
         });
         table.appendChild(fullTbody);
@@ -130,4 +131,3 @@
   </script>
 </body>
 </html>
-
