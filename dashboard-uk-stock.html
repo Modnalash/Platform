@@ -33,8 +33,8 @@
 
   <div class="container">
     <div class="filter-row">
-      <label for="searchInput">Search Product:</label>
-      <input type="text" id="searchInput" placeholder="Search by product..." oninput="renderTable()" />
+      <label for="searchInput">Search Product or SKU:</label>
+      <input type="text" id="searchInput" placeholder="Search by product or SKU..." oninput="renderTable()" />
       <label for="categoryFilter">Category:</label>
       <select id="categoryFilter" onchange="renderTable()">
         <option value="All">All</option>
@@ -51,6 +51,7 @@
     <table id="combinedTable">
       <thead>
         <tr>
+          <th>SKU</th>
           <th>Product</th>
           <th>Category</th>
           <th>PL Qty</th>
@@ -79,13 +80,13 @@
 
       const map = {};
       plData.forEach(item => {
-        const key = item.name + '|' + item.category;
-        map[key] = { name: item.name, category: item.category, pl_qty: item.qty, admin_qty: 0 };
+        const key = item.sku || item.name + '|' + item.category;
+        map[key] = { sku: item.sku || '', name: item.name, category: item.category, pl_qty: item.qty, admin_qty: 0 };
       });
       adminData.forEach(item => {
-        const key = item.name + '|' + item.category;
+        const key = item.sku || item.name + '|' + item.category;
         if (map[key]) map[key].admin_qty = item.qty;
-        else map[key] = { name: item.name, category: item.category, pl_qty: 0, admin_qty: item.qty };
+        else map[key] = { sku: item.sku || '', name: item.name, category: item.category, pl_qty: 0, admin_qty: item.qty };
       });
 
       combinedData = Object.values(map).map(x => ({ ...x, total: x.pl_qty + x.admin_qty }));
@@ -102,11 +103,12 @@
 
       combinedData.filter(item =>
         (cat === 'All' || item.category === cat) &&
-        (!search || item.name.toLowerCase().includes(search))
+        (!search || item.name.toLowerCase().includes(search) || item.sku.toLowerCase().includes(search))
       ).forEach(item => {
         const isLow = item.total <= 50;
         const rowClass = isLow ? 'low-stock' : '';
         const row = `<tr class="${rowClass}">
+          <td>${item.sku}</td>
           <td>${item.name}</td>
           <td>${item.category}</td>
           <td>${item.pl_qty}</td>
