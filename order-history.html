@@ -187,7 +187,7 @@
     // 1. Fetch all orders and audit logs related to fulfillment
     const { data: rows, error } = await supabase
       .from('orders')
-      .select('order_group_id,region,product,category,qty,status,created_at')
+      .select('order_group_id,region,sku,product,category,qty,status,created_at')
       .order('created_at', { ascending: false });
 
     const { data: logs } = await supabase
@@ -248,12 +248,13 @@
         ${fulfilledAt ? `<span class="fulfilled-at">Fulfilled at: ${fulfilledAt}</span>` : ''}
         <table>
           <thead>
-            <tr><th>Product</th><th>Category</th><th>Qty</th><th>Region</th><th>Status</th></tr>
+            <tr><th>SKU</th><th>Product</th><th>Category</th><th>Qty</th><th>Region</th><th>Status</th></tr>
           </thead>
           <tbody class="preview">
       `;
       previewItems.forEach(i => {
         html += `<tr>
+                   <td>${i.sku || ''}</td>
                    <td>${i.product}</td>
                    <td>${i.category}</td>
                    <td>${i.qty}</td>
@@ -267,6 +268,7 @@
         html += `<tbody class="full" style="display:none">`;
         fullItems.forEach(i => {
           html += `<tr>
+                     <td>${i.sku || ''}</td>
                      <td>${i.product}</td>
                      <td>${i.category}</td>
                      <td>${i.qty}</td>
@@ -300,7 +302,7 @@
     }
   }
 
-  // Fulfill and update PL stock, and log (FIXED - aggregates quantities before updating PL stock)
+  // Fulfill and update PL stock, and log (uses SKU for aggregation/update)
   async function fulfillGroup(gid) {
     // 1) Mark orders as fulfilled
     const { error: err1 } = await supabase
@@ -314,10 +316,10 @@
       return;
     }
 
-    // 2) Fetch items INCLUDING region
+    // 2) Fetch items INCLUDING region and SKU
     const { data: items, error: err2 } = await supabase
       .from('orders')
-      .select('product,category,qty,region')
+      .select('sku,product,category,qty,region')
       .eq('order_group_id', gid);
 
     if (err2) {
@@ -326,28 +328,29 @@
       return;
     }
 
-    // 3) Aggregate items for PL region
+    // 3) Aggregate items for PL region BY SKU
     const plItemsMap = {};
-    for (const { product, category, qty, region } of items) {
+    for (const { sku, product, category, qty, region } of items) {
       if (region !== 'PL') continue; // Skip non-PL orders
-      const key = product + '|' + category;
-      plItemsMap[key] = (plItemsMap[key] || 0) + qty;
+      if (!sku) continue; // Only fulfill items with SKU
+      if (!plItemsMap[sku]) {
+        plItemsMap[sku] = { qty: 0, product, category };
+      }
+      plItemsMap[sku].qty += qty;
     }
 
-    // 4) Update PL stock per aggregated item
-    for (const key in plItemsMap) {
-      const [product, category] = key.split('|');
-      const totalQty = plItemsMap[key];
+    // 4) Update PL stock per aggregated item (by SKU)
+    for (const sku in plItemsMap) {
+      const { qty: totalQty, product, category } = plItemsMap[sku];
 
       const { data: existing, error: err3 } = await supabase
         .from('pl_stock')
         .select('id,qty')
-        .eq('name', product)
-        .eq('category', category)
+        .eq('sku', sku)
         .single();
 
       if (err3 && err3.code !== 'PGRST116') {
-        console.error('Error checking pl_stock:', product, err3);
+        console.error('Error checking pl_stock:', sku, err3);
         continue;
       }
 
@@ -356,12 +359,12 @@
           .from('pl_stock')
           .update({ qty: existing.qty + totalQty })
           .eq('id', existing.id);
-        if (err4) console.error('Error updating pl_stock:', product, err4);
+        if (err4) console.error('Error updating pl_stock:', sku, err4);
       } else {
         const { error: err5 } = await supabase
           .from('pl_stock')
-          .insert([{ name: product, category, qty: totalQty }]);
-        if (err5) console.error('Error inserting pl_stock:', product, err5);
+          .insert([{ sku, name: product, category, qty: totalQty }]);
+        if (err5) console.error('Error inserting pl_stock:', sku, err5);
       }
     }
 
