@@ -302,7 +302,8 @@
     }
   }
 
-  // Fulfill and update PL & UK stock, and log (uses SKU for aggregation/update)
+  // Fulfill and update PL or UK stock, and log (uses SKU for aggregation/update).
+  // Each region's items update only their own stock table.
   async function fulfillGroup(gid) {
     // 1) Mark orders as fulfilled
     const { error: err1 } = await supabase
@@ -328,15 +329,23 @@
       return;
     }
 
-    // 3) Aggregate items for PL region BY SKU
+    // 3) Aggregate items for PL and UK region BY SKU
     const plItemsMap = {};
+    const ukItemsMap = {};
     for (const { sku, product, category, qty, region } of items) {
-      if (region !== 'PL') continue; // Skip non-PL orders
       if (!sku) continue; // Only fulfill items with SKU
-      if (!plItemsMap[sku]) {
-        plItemsMap[sku] = { qty: 0, product, category };
+      if (region === 'PL') {
+        if (!plItemsMap[sku]) {
+          plItemsMap[sku] = { qty: 0, product, category };
+        }
+        plItemsMap[sku].qty += qty;
       }
-      plItemsMap[sku].qty += qty;
+      if (region === 'UK') {
+        if (!ukItemsMap[sku]) {
+          ukItemsMap[sku] = { qty: 0, product, category };
+        }
+        ukItemsMap[sku].qty += qty;
+      }
     }
 
     // 4) Update PL stock per aggregated item (by SKU)
@@ -368,19 +377,7 @@
       }
     }
 
-    // --- UK REGION LOGIC STARTS HERE ---
-    // 3b) Aggregate items for UK region BY SKU
-    const ukItemsMap = {};
-    for (const { sku, product, category, qty, region } of items) {
-      if (region !== 'UK') continue; // Only UK orders
-      if (!sku) continue;
-      if (!ukItemsMap[sku]) {
-        ukItemsMap[sku] = { qty: 0, product, category };
-      }
-      ukItemsMap[sku].qty += qty;
-    }
-
-    // 4b) Update UK stock per aggregated item (by SKU)
+    // 5) Update UK stock per aggregated item (by SKU)
     for (const sku in ukItemsMap) {
       const { qty: totalQty, product, category } = ukItemsMap[sku];
       const { data: existing, error: err3 } = await supabase
@@ -407,7 +404,6 @@
         if (err5) console.error('Error inserting uk_stock:', sku, err5);
       }
     }
-    // --- UK REGION LOGIC ENDS HERE ---
 
     // AUDIT LOG
     await logAction('Fulfill Order Group', { gid, items });
