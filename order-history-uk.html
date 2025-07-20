@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UK Order History</title>
+  <!-- Google Font for Handwriting Style -->
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@supabase/supabase-js"></script>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background-color: #0d1b2a; color: #fff; margin: 0; padding: 0; }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 20px; background-color: #112d4e; }
+    header h1 { margin: 0; font-family: 'Dancing Script', cursive; font-size: 2rem; }
+    .logout-btn { background: #f44336; border: none; color: white; padding: 6px 12px; cursor: pointer; border-radius: 5px; }
+    .container { padding: 20px; }
+    .list-btn { background: #00a8e8; border: none; color: white; padding: 6px 12px; cursor: pointer; border-radius: 5px; margin-bottom: 20px; }
+    .order-block { background-color: #1b263b; padding: 16px; border-radius: 8px; margin-bottom: 20px; }
+    .order-block h3 { margin: 0 0 4px; font-size: 1.25rem; }
+    .order-block small { color: #bbb; }
+    .order-block table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    .order-block th, .order-block td { padding: 8px; border: 1px solid #2b3a50; text-align: left; }
+    .order-block th { background-color: #112d4e; }
+    .view-btn { background: #00a8e8; border: none; color: white; padding: 6px 12px; cursor: pointer; border-radius: 5px; margin-top: 10px; }
+    .view-btn:hover { background: #027bb3; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Hello Monika</h1>
+    <button class="logout-btn" onclick="location.href='index.html'">Logout</button>
+  </header>
+
+  <div class="container">
+    <button class="list-btn" onclick="location.href='dashboard-ukuser.html'">← Back to Dashboard</button>
+    <h2>Your UK Order History</h2>
+    <div id="ordersContainer"></div>
+  </div>
+
+  <script>
+    const { createClient } = supabase;
+    const supabaseUrl = 'https://rwmwsaxlqblvnhfyuuqg.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y';
+    const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+    async function fetchOrders() {
+      // Now select SKU as well
+      const { data: orders, error } = await supabaseClient
+        .from('orders')
+        .select('order_group_id,sku,product,category,qty,status,created_at')
+        .eq('region', 'UK')
+        .order('created_at', { ascending: false });
+
+      const container = document.getElementById('ordersContainer');
+      container.innerHTML = '';
+      if (error) {
+        container.innerHTML = '<p style="color:#f66">Error loading orders</p>';
+        console.error(error);
+        return;
+      }
+      if (!orders || !orders.length) {
+        container.innerHTML = '<p>No past orders found</p>';
+        return;
+      }
+
+      // Group orders by order_group_id
+      const groups = {};
+      orders.forEach(o => {
+        (groups[o.order_group_id] ||= []).push(o);
+      });
+
+      Object.entries(groups).forEach(([gid, items]) => {
+        const allFulfilled = items.every(i => i.status === 'Fulfilled');
+        const date = new Date(Math.min(...items.map(i => new Date(i.created_at))));
+        const dateStr = date.toLocaleString();
+
+        const block = document.createElement('div');
+        block.className = 'order-block';
+        block.innerHTML = `
+          <h3>Order #${gid.slice(0,8)}${allFulfilled ? ' - ✅ Fulfilled' : ''}</h3>
+          <small><em>${dateStr}</em></small>
+        `;
+
+        // Build table with preview and hidden full items
+        const table = document.createElement('table');
+        table.innerHTML = `
+          <thead>
+            <tr><th>SKU</th><th>Product</th><th>Category</th><th>Qty</th><th>Status</th></tr>
+          </thead>
+        `;
+        const previewTbody = document.createElement('tbody');
+        items.slice(0, 5).forEach(i => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${i.sku || ''}</td><td>${i.product}</td><td>${i.category}</td><td>${i.qty}</td><td>${i.status}</td>`;
+          previewTbody.appendChild(tr);
+        });
+        table.appendChild(previewTbody);
+
+        const fullTbody = document.createElement('tbody');
+        fullTbody.style.display = 'none';
+        items.slice(5).forEach(i => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${i.sku || ''}</td><td>${i.product}</td><td>${i.category}</td><td>${i.qty}</td><td>${i.status}</td>`;
+          fullTbody.appendChild(tr);
+        });
+        table.appendChild(fullTbody);
+
+        block.appendChild(table);
+
+        // Show toggle button if more than 5 items
+        if (items.length > 5) {
+          const btn = document.createElement('button');
+          btn.className = 'view-btn';
+          btn.textContent = 'View Full Order';
+          btn.addEventListener('click', () => {
+            if (fullTbody.style.display === 'none') {
+              fullTbody.style.display = '';
+              btn.textContent = 'Hide Full Order';
+            } else {
+              fullTbody.style.display = 'none';
+              btn.textContent = 'View Full Order';
+            }
+          });
+          block.appendChild(btn);
+        }
+
+        container.appendChild(block);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', fetchOrders);
+  </script>
+</body>
+</html>
