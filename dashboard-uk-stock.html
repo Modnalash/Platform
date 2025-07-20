@@ -55,7 +55,8 @@
           <th>Product</th>
           <th>Category</th>
           <th>PL Qty</th>
-          <th>Admin Qty</th>
+          <th>SK Qty</th>
+          <th>UK Qty</th>
           <th>Total</th>
         </tr>
       </thead>
@@ -72,24 +73,34 @@
     let combinedData = [];
 
     async function fetchData() {
-      const [{ data: plData, error: plErr }, { data: adminData, error: adminErr }] = await Promise.all([
+      const [
+        { data: plData, error: plErr },
+        { data: skData, error: skErr },
+        { data: ukData, error: ukErr }
+      ] = await Promise.all([
         supabase.from('pl_stock').select('*'),
-        supabase.from('stock').select('*')
+        supabase.from('stock').select('*'),
+        supabase.from('uk_stock').select('*')
       ]);
-      if (plErr || adminErr) { console.error(plErr || adminErr); return; }
+      if (plErr || skErr || ukErr) { console.error(plErr || skErr || ukErr); return; }
 
       const map = {};
       plData.forEach(item => {
         const key = item.sku || item.name + '|' + item.category;
-        map[key] = { sku: item.sku || '', name: item.name, category: item.category, pl_qty: item.qty, admin_qty: 0 };
+        map[key] = { sku: item.sku || '', name: item.name, category: item.category, pl_qty: item.qty, sk_qty: 0, uk_qty: 0 };
       });
-      adminData.forEach(item => {
+      skData.forEach(item => {
         const key = item.sku || item.name + '|' + item.category;
-        if (map[key]) map[key].admin_qty = item.qty;
-        else map[key] = { sku: item.sku || '', name: item.name, category: item.category, pl_qty: 0, admin_qty: item.qty };
+        if (map[key]) map[key].sk_qty = item.qty;
+        else map[key] = { sku: item.sku || '', name: item.name, category: item.category, pl_qty: 0, sk_qty: item.qty, uk_qty: 0 };
+      });
+      ukData.forEach(item => {
+        const key = item.sku || item.name + '|' + item.category;
+        if (map[key]) map[key].uk_qty = item.qty;
+        else map[key] = { sku: item.sku || '', name: item.name, category: item.category, pl_qty: 0, sk_qty: 0, uk_qty: item.qty };
       });
 
-      combinedData = Object.values(map).map(x => ({ ...x, total: x.pl_qty + x.admin_qty }));
+      combinedData = Object.values(map).map(x => ({ ...x, total: x.pl_qty + x.sk_qty + x.uk_qty }));
       // sort alphabetically by product name
       combinedData.sort((a, b) => a.name.localeCompare(b.name));
       renderTable();
@@ -112,7 +123,8 @@
           <td>${item.name}</td>
           <td>${item.category}</td>
           <td>${item.pl_qty}</td>
-          <td>${item.admin_qty}</td>
+          <td>${item.sk_qty}</td>
+          <td>${item.uk_qty}</td>
           <td>${item.total}</td>
         </tr>`;
         tbody.insertAdjacentHTML('beforeend', row);
