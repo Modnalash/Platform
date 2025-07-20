@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Monika Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background-color: #0d1b2a; color: #fff; margin: 0; padding: 0; }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 20px; background-color: #112d4e; }
+    header h1 { margin: 0; font-family: 'Dancing Script', cursive; font-size: 2.5rem; }
+    .logout-btn { background: #f44336; border: none; color: white; padding: 8px 16px; cursor: pointer; border-radius: 5px; }
+    .container { padding: 20px; }
+    .list-btn { background: #00a8e8; border: none; color: white; padding: 8px 16px; cursor: pointer; border-radius: 5px; margin-right: 10px; margin-bottom: 20px; }
+    .filter-row { margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between; }
+    .filter-row label { margin-right: 8px; }
+    .filter-row select, .filter-row input { padding: 6px 12px; border-radius: 4px; border: none; width: 100%; max-width: 200px; }
+    table { width: 100%; border-collapse: collapse; background-color: #1b263b; margin-bottom: 20px; }
+    th, td { padding: 10px; border: 1px solid #2b3a50; text-align: left; }
+    th { background-color: #112d4e; }
+    .order-btn, .submit-btn { background: #3fbc5f; padding: 8px 16px; border: none; color: white; border-radius: 5px; }
+    .order-btn:hover, .submit-btn:hover { background: #2c9e4c; }
+    .low-stock { background-color: #ff8a8a; }
+    @media (max-width: 768px) {
+      .filter-row { flex-direction: column; gap: 0.5rem; }
+      .filter-row select, .filter-row input { width: 100%; }
+      table { font-size: 0.9rem; }
+      th, td { padding: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Hello Monika</h1>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </header>
+
+  <div class="container">
+    <button class="list-btn" onclick="location.href='manage-uk-stock.html'">🔧 Manage Local Stock</button>
+    <button class="list-btn" onclick="location.href='order-history-uk.html'">📜 Order History</button>
+    <h2>Manage Your Stock</h2>
+
+    <div class="filter-row">
+      <label for="productSearch">Search Product:</label>
+      <input type="text" id="productSearch" placeholder="Search by name or SKU..." oninput="applyFilter()" />
+      <label for="categoryFilter">Filter by Category:</label>
+      <select id="categoryFilter" onchange="applyFilter()">
+        <option value="All">All</option>
+        <option value="Starter Kit">Starter Kit</option>
+        <option value="Express Lash">Express Lash</option>
+        <option value="Bio">Bio</option>
+        <option value="Make-up">Make-up</option>
+      </select>
+    </div>
+
+    <table id="stockTable">
+      <thead>
+        <tr>
+          <th>SKU</th>
+          <th>Product</th>
+          <th>Category</th>
+          <th>Quantity</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    const supabase = window.supabase.createClient(
+      'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
+    );
+
+    let stockData = [];
+
+    async function fetchStock() {
+      const { data, error } = await supabase
+        .from('uk_stock')
+        .select('*')
+        .order('name', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching stock:', error);
+        return;
+      }
+
+      stockData = data;
+      renderStock();
+    }
+
+    function renderStock() {
+      const tbody = document.querySelector('#stockTable tbody');
+      tbody.innerHTML = '';
+
+      const search = document.getElementById('productSearch').value.toLowerCase();
+      const category = document.getElementById('categoryFilter').value;
+
+      const filtered = stockData.filter(item => {
+        const matchesSearch = !search || item.name.toLowerCase().includes(search) || item.sku.toLowerCase().includes(search);
+        const matchesCategory = category === 'All' || item.category === category;
+        return matchesSearch && matchesCategory;
+      });
+
+      filtered.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.className = item.qty <= 10 ? 'low-stock' : '';
+        tr.innerHTML = `
+          <td>${item.sku}</td>
+          <td>${item.name}</td>
+          <td>${item.category}</td>
+          <td>${item.qty}</td>
+          <td>
+            <button class="order-btn" onclick="editQty('${item.sku}')">Edit</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function editQty(sku) {
+      const newQty = prompt('Enter new quantity for SKU: ' + sku);
+      if (!newQty || isNaN(newQty) || parseInt(newQty) < 0) {
+        alert('Invalid quantity!');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('uk_stock')
+        .update({ qty: parseInt(newQty) })
+        .eq('sku', sku);
+
+      if (error) {
+        console.error('Error updating quantity:', error);
+        alert('Failed to update quantity!');
+        return;
+      }
+
+      alert('Quantity updated successfully!');
+      fetchStock();
+    }
+
+    function applyFilter() {
+      renderStock();
+    }
+
+    async function logout() {
+      await supabase.auth.signOut();
+      alert('Logged out successfully!');
+      window.location.href = 'index.html';
+    }
+
+    document.addEventListener('DOMContentLoaded', fetchStock);
+  </script>
+</body>
+</html>
