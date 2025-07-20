@@ -109,7 +109,9 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
 
+    const monikaEmail = "plytaaa@tlen.pl"; // Email for Monika
     let isSignup = false;
+
     function toggleForm() {
       isSignup = !isSignup;
       document.getElementById('formTitle').innerText = isSignup ? "Sign Up" : "Sign In";
@@ -132,7 +134,7 @@
         // 1. Fetch the user profile
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('status')
+          .select('status, role')
           .eq('id', data.user.id)
           .single();
 
@@ -143,15 +145,34 @@
           return;
         }
 
-        // 3. Update last_login as before
+        // 3. Redirect based on user email and role
+        if (email === monikaEmail) {
+          showMsg('Login successful! Redirecting to Monika Dashboard...');
+          setTimeout(() => { window.location.href = "dashboard-monika.html"; }, 600);
+          return;
+        }
+
+        if (profile && profile.role === "uk") {
+          showMsg('Login successful! Redirecting to UK Dashboard...');
+          setTimeout(() => { window.location.href = "dashboard-ukuser.html"; }, 600);
+          return;
+        }
+        if (profile && profile.role === "pl") {
+          showMsg('Login successful! Redirecting to PL Dashboard...');
+          setTimeout(() => { window.location.href = "dashboard-pluser.html"; }, 600);
+          return;
+        }
+
+        // Default fallback
+        showMsg('Login successful! Redirecting...');
+        setTimeout(() => { window.location.href = "index.html"; }, 600);
+
+        // Update last_login timestamp
         await supabase
           .from('profiles')
           .update({ last_login: new Date().toISOString() })
           .eq('id', data.user.id);
       }
-
-      showMsg('Login successful! Redirecting...');
-      setTimeout(() => { window.location.href = "wait-for-role.html"; }, 600);
     }
 
     async function signup() {
@@ -179,7 +200,14 @@
     });
 
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if(user) window.location.href = "wait-for-role.html";
+      if(user) {
+        const email = user.email;
+        if (email === monikaEmail) {
+          window.location.href = "dashboard-monika.html";
+          return;
+        }
+        window.location.href = "wait-for-role.html";
+      }
     });
   </script>
 </body>
