@@ -3,30 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Monika Dashboard</title>
-  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
+  <title>Monika Local Stock</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Segoe UI', sans-serif; background-color: #0d1b2a; color: #fff; margin: 0; padding: 0; }
-    header { display: flex; justify-content: space-between; align-items: center; padding: 20px; background-color: #112d4e; }
-    header h1 { margin: 0; font-family: 'Dancing Script', cursive; font-size: 2.5rem; }
-    .logout-btn { background: #f44336; border: none; color: white; padding: 8px 16px; cursor: pointer; border-radius: 5px; }
-    .container { padding: 20px; }
-    .list-btn { background: #00a8e8; border: none; color: white; padding: 8px 16px; cursor: pointer; border-radius: 5px; margin-right: 10px; margin-bottom: 20px; }
-    .filter-row { margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; justify-content: space-between; }
-    .filter-row label { margin-right: 8px; }
-    .filter-row select, .filter-row input { padding: 6px 12px; border-radius: 4px; border: none; width: 100%; max-width: 200px; }
-    table { width: 100%; border-collapse: collapse; background-color: #1b263b; margin-bottom: 20px; }
-    th, td { padding: 10px; border: 1px solid #2b3a50; text-align: left; }
-    th { background-color: #112d4e; }
-    .order-btn, .submit-btn { background: #3fbc5f; padding: 8px 16px; border: none; color: white; border-radius: 5px; }
-    .order-btn:hover, .submit-btn:hover { background: #2c9e4c; }
-    .low-stock { background-color: #ff8a8a; }
-    @media (max-width: 768px) {
-      .filter-row { flex-direction: column; gap: 0.5rem; }
-      .filter-row select, .filter-row input { width: 100%; }
-      table { font-size: 0.9rem; }
-      th, td { padding: 8px; }
+    body { margin:0; font-family:Segoe UI,sans-serif; background:#0d1b2a; color:#fff; }
+    header { display:flex; justify-content:space-between; align-items:center; padding:1rem 2rem; background:#112d4e; }
+    header h1 { margin:0; font-size:1.5rem; font-family: 'Dancing Script', cursive; }
+    .back-btn, .logout-btn { background:#f44336; border:none; color:#fff; padding:0.5rem 1rem; border-radius:5px; cursor:pointer; }
+    .container { padding:2rem; }
+    .controls { display:flex; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem; }
+    .controls input, .controls select, .controls button { padding:0.5rem 1rem; border:none; border-radius:4px; font-size:1rem; }
+    table { width:100%; border-collapse:collapse; background:#1b263b; margin-bottom:1.5rem; }
+    th, td { padding:0.75rem 1rem; border:1px solid #2b3a50; text-align:left; }
+    th { background:#112d4e; }
+    tr.low-stock { background: rgba(255, 0, 0, 0.1); }
+    .actions button { background:#3fbc5f; border:none; color:#0d1b2a; padding:0.5rem 1rem; border-radius:4px; cursor:pointer; }
+    .actions button:hover { background:#2c9e4c; }
+    .export-btn { background:#f9c74f; color:#222; font-weight:bold; }
+    .export-btn:hover { background:#f9844a; }
+    @media (max-width: 700px) {
+      .container { padding: 1rem 0.2rem; }
+      table { font-size: 0.93rem; }
+      th, td { padding: 0.35rem 0.25rem; }
+      .controls { flex-direction: column; gap:0.3rem; }
     }
   </style>
 </head>
@@ -35,124 +35,208 @@
     <h1>Hello Monika</h1>
     <button class="logout-btn" onclick="logout()">Logout</button>
   </header>
-
   <div class="container">
-    <button class="list-btn" onclick="location.href='manage-uk-stock.html'">🔧 Manage Local Stock</button>
-    <button class="list-btn" onclick="location.href='order-history-uk.html'">📜 Order History</button>
-    <h2>Manage Your Stock</h2>
-
-    <div class="filter-row">
-      <label for="productSearch">Search Product:</label>
-      <input type="text" id="productSearch" placeholder="Search by name or SKU..." oninput="applyFilter()" />
-      <label for="categoryFilter">Filter by Category:</label>
-      <select id="categoryFilter" onchange="applyFilter()">
-        <option value="All">All</option>
-        <option value="Starter Kit">Starter Kit</option>
-        <option value="Express Lash">Express Lash</option>
-        <option value="Bio">Bio</option>
-        <option value="Make-up">Make-up</option>
-      </select>
+    <div class="controls">
+      <input type="text" id="searchInput" placeholder="Search by product or SKU…" />
+      <select id="categoryFilter"></select>
+      <button class="export-btn" onclick="exportUKStock()">Export to CSV</button>
     </div>
-
-    <table id="stockTable">
+    <table id="localStockTable">
       <thead>
         <tr>
           <th>SKU</th>
           <th>Product</th>
           <th>Category</th>
-          <th>Quantity</th>
+          <th>Qty</th>
+          <th>Adjust</th>
           <th>Action</th>
         </tr>
       </thead>
       <tbody></tbody>
     </table>
+    <div style="margin-top:2em;">
+      <button class="actions" style="background:#00a8e8;color:#fff;margin-right:1em;" onclick="location.href='order-history-uk.html'">📜 Order History</button>
+      <button class="actions" style="background:#00a8e8;color:#fff;" onclick="location.href='dashboard-monika.html'">🔄 Refresh</button>
+    </div>
   </div>
-
   <script>
     const supabase = window.supabase.createClient(
       'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
 
-    let stockData = [];
+    let adminStock = [], ukStock = [];
+    let currentUser = null;
+    const STORAGE_KEY = 'ukAdjustValues';
+    let adjustValues = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
 
-    async function fetchStock() {
-      const { data, error } = await supabase
-        .from('uk_stock')
-        .select('*')
-        .order('name', { ascending: true });
-
-      if (error) {
-        console.error('Error fetching stock:', error);
-        return;
-      }
-
-      stockData = data;
-      renderStock();
+    // Audit log helper
+    async function logAction(action, details) {
+      if (!currentUser) return;
+      await supabase.from('audit_log').insert([
+        {
+          user_id: currentUser.id,
+          user_email: currentUser.email,
+          action,
+          details
+        }
+      ]);
     }
 
-    function renderStock() {
-      const tbody = document.querySelector('#stockTable tbody');
+    // Role check and log Login
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) { window.location.href = "index.html"; return; }
+      currentUser = user;
+      await logAction("Login", {});
+      fetchData();
+    });
+
+    // Logout and log
+    async function logout() {
+      await logAction("Logout", {});
+      await supabase.auth.signOut();
+      localStorage.clear();
+      sessionStorage.clear();
+      setTimeout(() => window.location.href = "index.html", 300);
+    }
+
+    function setAdjust(id, val) {
+      adjustValues[id] = val;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(adjustValues));
+    }
+
+    document.getElementById('searchInput').addEventListener('input', renderTable);
+    document.getElementById('categoryFilter').addEventListener('change', renderTable);
+
+    async function fetchData() {
+      const [mainRes, ukRes] = await Promise.all([
+        supabase.from('stock').select('*').order('name', { ascending: true }),
+        supabase.from('uk_stock').select('*').order('name', { ascending: true })
+      ]);
+      adminStock = mainRes.data || [];
+      ukStock    = ukRes.data   || [];
+      populateCategoryFilter();
+      renderTable();
+    }
+
+    function populateCategoryFilter() {
+      const cats = [...new Set(adminStock.map(r => r.category))];
+      const sel = document.getElementById('categoryFilter');
+      sel.innerHTML = `<option value="">All</option>` +
+        cats.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
+
+    function getMergedRows() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const cat    = document.getElementById('categoryFilter').value;
+
+      return adminStock.map(item => {
+        const uk = ukStock.find(x => x.sku === item.sku) || {};
+        return {
+          sku:      item.sku,
+          mainId:   item.id,
+          ukId:     uk.id   || null,
+          name:     item.name,
+          category: item.category,
+          qty:      uk.qty  || 0
+        };
+      })
+      .sort((a,b) => a.name.localeCompare(b.name))
+      .filter(row => {
+        const okSearch = !search || row.name.toLowerCase().includes(search) || row.sku.toLowerCase().includes(search);
+        const okCat    = !cat    || row.category === cat;
+        return okSearch && okCat;
+      });
+    }
+
+    function renderTable() {
+      const tbody  = document.querySelector('#localStockTable tbody');
       tbody.innerHTML = '';
 
-      const search = document.getElementById('productSearch').value.toLowerCase();
-      const category = document.getElementById('categoryFilter').value;
-
-      const filtered = stockData.filter(item => {
-        const matchesSearch = !search || item.name.toLowerCase().includes(search) || item.sku.toLowerCase().includes(search);
-        const matchesCategory = category === 'All' || item.category === category;
-        return matchesSearch && matchesCategory;
-      });
-
-      filtered.forEach(item => {
+      const merged = getMergedRows();
+      merged.forEach(row => {
         const tr = document.createElement('tr');
-        tr.className = item.qty <= 10 ? 'low-stock' : '';
+        if (row.qty <= 20) tr.classList.add('low-stock');
+
+        const val = adjustValues[row.mainId] !== undefined
+                    ? adjustValues[row.mainId]
+                    : row.qty;
+
         tr.innerHTML = `
-          <td>${item.sku}</td>
-          <td>${item.name}</td>
-          <td>${item.category}</td>
-          <td>${item.qty}</td>
+          <td>${row.sku || ''}</td>
+          <td>${row.name}</td>
+          <td>${row.category}</td>
+          <td>${row.qty}</td>
           <td>
-            <button class="order-btn" onclick="editQty('${item.sku}')">Edit</button>
+            <input
+              type="number"
+              id="adj-${row.mainId}"
+              min="0"
+              value="${val}"
+              oninput="setAdjust(${row.mainId}, parseInt(this.value,10))"
+            >
+          </td>
+          <td class="actions">
+            <button onclick="updateLocal(${row.mainId}, ${row.ukId})">
+              Update
+            </button>
           </td>
         `;
         tbody.appendChild(tr);
       });
     }
 
-    async function editQty(sku) {
-      const newQty = prompt('Enter new quantity for SKU: ' + sku);
-      if (!newQty || isNaN(newQty) || parseInt(newQty) < 0) {
-        alert('Invalid quantity!');
-        return;
+    async function updateLocal(mainId, ukId) {
+      const newQty = parseInt(adjustValues[mainId], 10);
+      if (isNaN(newQty)) return alert('Enter a valid number.');
+
+      const mainRec = adminStock.find(r => r.id === mainId);
+      if (!mainRec) return alert('Admin item not found.');
+
+      if (ukId) {
+        const { error } = await supabase
+          .from('uk_stock')
+          .update({ qty: newQty })
+          .eq('id', ukId);
+        if (error) return alert(error.message);
+      } else {
+        const { error } = await supabase
+          .from('uk_stock')
+          .insert([{ sku: mainRec.sku, name: mainRec.name, category: mainRec.category, qty: newQty }]);
+        if (error) return alert(error.message);
       }
 
-      const { error } = await supabase
-        .from('uk_stock')
-        .update({ qty: parseInt(newQty) })
-        .eq('sku', sku);
+      // AUDIT LOG for adjust
+      await logAction("UK Adjust Stock", {
+        sku: mainRec.sku,
+        product: mainRec.name,
+        category: mainRec.category,
+        new_qty: newQty
+      });
 
-      if (error) {
-        console.error('Error updating quantity:', error);
-        alert('Failed to update quantity!');
-        return;
-      }
+      setAdjust(mainId, 0);
 
-      alert('Quantity updated successfully!');
-      fetchStock();
+      await fetchData();
     }
 
-    function applyFilter() {
-      renderStock();
-    }
+    // Export function
+    function exportUKStock() {
+      const rows = getMergedRows();
+      let csv = "SKU,Product,Category,Qty\n";
+      rows.forEach(r => {
+        csv += `"${r.sku}","${r.name.replace(/"/g,'""')}","${r.category.replace(/"/g,'""')}",${r.qty}\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
 
-    async function logout() {
-      await supabase.auth.signOut();
-      alert('Logged out successfully!');
-      window.location.href = 'index.html';
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'uk_stock.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
-
-    document.addEventListener('DOMContentLoaded', fetchStock);
   </script>
 </body>
 </html>
