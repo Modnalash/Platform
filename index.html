@@ -109,7 +109,7 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
 
-    const monikaEmail = "plytaaa@tlen.pl"; // Email for Monika
+    const monikaEmail = "plytaaa@tlen.pl"; // The specific email for Monika
     let isSignup = false;
 
     function toggleForm() {
@@ -131,27 +131,26 @@
 
       // --- Block login if user is disabled ---
       if (data?.user) {
-        // 1. Fetch the user profile
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('status, role')
           .eq('id', data.user.id)
           .single();
 
-        // 2. If disabled, show error and log out
         if (profile && profile.status === "disabled") {
           showMsg('Your account is disabled. Please contact support.', true);
           await supabase.auth.signOut();
           return;
         }
 
-        // 3. Redirect based on user email and role
+        // Priority check for Monika's email
         if (email === monikaEmail) {
           showMsg('Login successful! Redirecting to Monika Dashboard...');
           setTimeout(() => { window.location.href = "dashboard-monika.html"; }, 600);
           return;
         }
 
+        // Role-based redirection for other users
         if (profile && profile.role === "uk") {
           showMsg('Login successful! Redirecting to UK Dashboard...');
           setTimeout(() => { window.location.href = "dashboard-ukuser.html"; }, 600);
@@ -167,7 +166,6 @@
         showMsg('Login successful! Redirecting...');
         setTimeout(() => { window.location.href = "index.html"; }, 600);
 
-        // Update last_login timestamp
         await supabase
           .from('profiles')
           .update({ last_login: new Date().toISOString() })
@@ -200,7 +198,7 @@
     });
 
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if(user) {
+      if (user) {
         const email = user.email;
         if (email === monikaEmail) {
           window.location.href = "dashboard-monika.html";
