@@ -302,7 +302,7 @@
     }
   }
 
-  // Fulfill and update PL stock, and log (uses SKU for aggregation/update)
+  // Fulfill and update PL & UK stock, and log (uses SKU for aggregation/update)
   async function fulfillGroup(gid) {
     // 1) Mark orders as fulfilled
     const { error: err1 } = await supabase
@@ -367,6 +367,47 @@
         if (err5) console.error('Error inserting pl_stock:', sku, err5);
       }
     }
+
+    // --- UK REGION LOGIC STARTS HERE ---
+    // 3b) Aggregate items for UK region BY SKU
+    const ukItemsMap = {};
+    for (const { sku, product, category, qty, region } of items) {
+      if (region !== 'UK') continue; // Only UK orders
+      if (!sku) continue;
+      if (!ukItemsMap[sku]) {
+        ukItemsMap[sku] = { qty: 0, product, category };
+      }
+      ukItemsMap[sku].qty += qty;
+    }
+
+    // 4b) Update UK stock per aggregated item (by SKU)
+    for (const sku in ukItemsMap) {
+      const { qty: totalQty, product, category } = ukItemsMap[sku];
+      const { data: existing, error: err3 } = await supabase
+        .from('uk_stock')
+        .select('id,qty')
+        .eq('sku', sku)
+        .single();
+
+      if (err3 && err3.code !== 'PGRST116') {
+        console.error('Error checking uk_stock:', sku, err3);
+        continue;
+      }
+
+      if (existing) {
+        const { error: err4 } = await supabase
+          .from('uk_stock')
+          .update({ qty: existing.qty + totalQty })
+          .eq('id', existing.id);
+        if (err4) console.error('Error updating uk_stock:', sku, err4);
+      } else {
+        const { error: err5 } = await supabase
+          .from('uk_stock')
+          .insert([{ sku, name: product, category, qty: totalQty }]);
+        if (err5) console.error('Error inserting uk_stock:', sku, err5);
+      }
+    }
+    // --- UK REGION LOGIC ENDS HERE ---
 
     // AUDIT LOG
     await logAction('Fulfill Order Group', { gid, items });
