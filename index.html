@@ -1,147 +1,226 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Login - MODNA Platform</title>
-
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
-
-  <style>
-    body{
-      margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
-      font-family:Inter,system-ui,Segoe UI,Arial; background:#0b1c2c;
-      padding:16px;
-    }
-    .card{
-      width:min(420px, 100%);
-      background:#162a44;
-      border-radius:16px;
-      box-shadow:0 16px 40px rgba(0,0,0,.35);
-      padding:22px;
-    }
-    .logo{
-      width:96px; height:96px; border-radius:18px; object-fit:cover;
-      display:block; margin:0 auto 16px;
-      background:#fff;
-    }
-    h1{
-      margin:0 0 18px; text-align:center; color:#d7f2ff; font-size:22px; font-weight:600;
-      letter-spacing:.2px;
-    }
-    .row{ display:flex; flex-direction:column; gap:12px; }
-    input{
-      width:100%; padding:12px 14px; border-radius:10px; border:0;
-      font-size:16px; outline:none; background:#f3f7fb; color:#0b1c2c;
-    }
-    input:focus{ box-shadow:0 0 0 2px #48cae4; }
-    button{
-      margin-top:6px;
-      width:100%;
-      border:0; border-radius:10px;
-      padding:12px 14px;
-      font-size:16px; font-weight:600;
-      cursor:pointer;
-      color:#0b1c2c;
-      background:linear-gradient(90deg,#48cae4,#06d6a0);
-    }
-    button:disabled{ opacity:.7; cursor:not-allowed; }
-    .msg{
-      min-height:20px; margin-top:10px; text-align:center; font-size:14px;
-    }
-    .err{ color:#ff7b7b; }
-    .ok{ color:#7dffb0; }
-  </style>
-
-  <!-- Load Supabase ONCE -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body {
+      background: #0b1c2c;
+      color: #fff;
+      font-family: Inter, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .login-box {
+      background: #1a2b3e;
+      border-radius: 18px;
+      padding: 1.5rem 1.8rem 1.2rem 1.8rem;
+      min-width: 310px;
+      max-width: 340px;
+      width: 95%;
+      box-shadow: 0 8px 32px #0006;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: -40px;
+    }
+    .logo {
+      margin-bottom: 1.2rem;
+      max-width: 180px;
+      width: 100%;
+      display: block;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 1.2rem;
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: .02em;
+    }
+    input, button {
+      width: 100%;
+      padding: .62rem .85rem;
+      border-radius: 7px;
+      border: none;
+      font-size: 1rem;
+      margin: 0.36rem 0 0.9rem 0;
+      box-sizing: border-box;
+    }
+    button {
+      background: #76d0a5;
+      color: #0d1b2a;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background .16s;
+      margin-bottom: .4rem;
+    }
+    button:hover { background: #5cb688; }
+    .switch {
+      color: #bbb;
+      cursor: pointer;
+      text-align: center;
+      font-size: .96rem;
+      margin-top: 0.3rem;
+      margin-bottom: 0.2rem;
+    }
+    .err {
+      color: #ff8080;
+      font-weight: bold;
+      margin-bottom: 10px;
+      font-size: .98rem;
+    }
+    .msg {
+      color: #6be495;
+      font-weight: bold;
+      margin-bottom: 10px;
+      font-size: .99rem;
+    }
+    @media (max-width: 600px) {
+      .login-box {
+        min-width: 92vw;
+        max-width: 99vw;
+        padding: 1rem 0.5rem 0.9rem 0.5rem;
+      }
+      .logo { max-width: 140px; }
+    }
+  </style>
 </head>
-
 <body>
-  <div class="card">
-    <img src="logo1.png" class="logo" alt="MODNA Logo" />
-    <h1>Sign in</h1>
+  <div class="login-box">
+    <img src="logo1.png" alt="MODNA LASH WAREHOUSE" class="logo"/>
+    <h2 id="formTitle">Sign In</h2>
+    <div id="message"></div>
 
-    <!-- ENTER works because it's a real form -->
-    <form id="loginForm" class="row">
-      <input id="email" type="email" placeholder="Email" autocomplete="username" required />
-      <input id="password" type="password" placeholder="Password" autocomplete="current-password" required />
-      <button id="loginBtn" type="submit">Log In</button>
-      <div id="msg" class="msg"></div>
+    <form id="loginForm" autocomplete="on">
+      <input type="email" id="email" placeholder="Email" autocomplete="username" required />
+      <input type="password" id="password" placeholder="Password" autocomplete="current-password" required />
+      <button type="submit" id="loginBtn">Sign In</button>
+      <button type="button" onclick="signup()" id="signupBtn" style="display:none;">Sign Up</button>
     </form>
+
+    <div class="switch" id="toggleForm" onclick="toggleForm()">Don't have an account? Sign up</div>
   </div>
 
   <script>
-    // IMPORTANT: do not declare "const supabase = ..." anywhere.
-    // Use "sb" to avoid collisions.
-    const sb = window.supabase.createClient(
+    // ✅ CRITICAL FIX:
+    // Never declare `const supabase = ...` because it can be declared elsewhere/cached/duplicated.
+    // Use one shared global client safely.
+    window.__sb = window.__sb || window.supabase.createClient(
       'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
+    const sb = window.__sb;
 
-    const form = document.getElementById('loginForm');
-    const msg = document.getElementById('msg');
-    const btn = document.getElementById('loginBtn');
+    const monikaEmail = "plytaaa@tlen.pl"; // The specific email for Monika
+    let isSignup = false;
 
-    function setMsg(text, type){
-      msg.textContent = text || '';
-      msg.className = 'msg ' + (type || '');
+    function toggleForm() {
+      isSignup = !isSignup;
+      document.getElementById('formTitle').innerText = isSignup ? "Sign Up" : "Sign In";
+      document.getElementById('loginBtn').style.display = isSignup ? "none" : "";
+      document.getElementById('signupBtn').style.display = isSignup ? "" : "none";
+      document.getElementById('toggleForm').innerText = isSignup ? "Already have an account? Sign in" : "Don't have an account? Sign up";
+      document.getElementById('message').innerText = '';
     }
 
-    async function redirectByRole(userId){
-      const { data: profile, error } = await sb
+    function showMsg(msg, error=false) {
+      document.getElementById('message').innerHTML = `<div class="${error ? 'err' : 'msg'}">${msg}</div>`;
+    }
+
+    async function redirectByRole(user) {
+      const email = (user?.email || "").toLowerCase();
+
+      // Priority check for Monika
+      if (email === monikaEmail.toLowerCase()) {
+        window.location.href = "dashboard-monika.html";
+        return true;
+      }
+
+      const { data: profile, error: profileError } = await sb
         .from('profiles')
-        .select('role')
-        .eq('id', userId)
+        .select('status, role')
+        .eq('id', user.id)
         .single();
 
-      if (error || !profile?.role) return false;
+      if (profileError) return false;
 
-      if (profile.role === 'admin')      { window.location.href = 'dashboard-admin.html'; return true; }
-      if (profile.role === 'pl')         { window.location.href = 'dashboard-pluser.html'; return true; }
-      if (profile.role === 'uk')         { window.location.href = 'dashboard-ukuser.html'; return true; }
-      if (profile.role === 'superadmin') { window.location.href = 'dashboard-superadmin.html'; return true; }
+      if (profile && profile.status === "disabled") {
+        showMsg('Your account is disabled. Please contact support.', true);
+        await sb.auth.signOut();
+        return true; // handled
+      }
 
-      return false;
+      if (profile?.role === "admin") { window.location.href = "dashboard-admin.html"; return true; }
+      if (profile?.role === "uk")    { window.location.href = "dashboard-ukuser.html"; return true; }
+      if (profile?.role === "pl")    { window.location.href = "dashboard-pluser.html"; return true; }
+      if (profile?.role === "superadmin") { window.location.href = "dashboard-superadmin.html"; return true; }
+
+      // If user exists but role missing -> go wait page (same behaviour as before)
+      window.location.href = "wait-for-role.html";
+      return true;
     }
 
-    // Mobile-safe: only redirect if a valid role exists.
-    // If session exists but role missing (stale/broken), sign out so login works.
+    async function login() {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+      if (!email || !password) return showMsg('Please enter both email and password.', true);
+
+      const { error, data } = await sb.auth.signInWithPassword({ email, password });
+      if (error) return showMsg(error.message, true);
+
+      showMsg('Login successful! Redirecting...', false);
+
+      // Update last_login (same as your original logic)
+      if (data?.user) {
+        await sb
+          .from('profiles')
+          .update({ last_login: new Date().toISOString() })
+          .eq('id', data.user.id);
+      }
+
+      // Redirect
+      const handled = await redirectByRole(data.user);
+      if (!handled) {
+        // Safety fallback
+        window.location.href = "wait-for-role.html";
+      }
+    }
+
+    async function signup() {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+      if (!email || !password) return showMsg('Please enter both email and password.', true);
+
+      const { error } = await sb.auth.signUp({ email, password });
+      if (error) return showMsg(error.message, true);
+
+      showMsg('Sign up successful! Please check your email to confirm your account.', false);
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      if (isSignup) signup();
+      else login();
+    });
+
+    // ✅ Safer session handling:
+    // Only redirect if session exists AND we can resolve role.
+    // If session exists but profile/role is broken -> sign out so employees can log in normally.
     (async () => {
       const { data: { session } } = await sb.auth.getSession();
       if (!session?.user) return;
 
-      const ok = await redirectByRole(session.user.id);
-      if (!ok) await sb.auth.signOut();
-    })();
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      setMsg('', '');
-      btn.disabled = true;
-
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value;
-
-      const { data, error } = await sb.auth.signInWithPassword({ email, password });
-
-      if (error) {
-        setMsg(
-          error.message.includes('Invalid login credentials')
-            ? 'Wrong email or password.'
-            : error.message,
-          'err'
-        );
-        btn.disabled = false;
-        return;
-      }
-
-      const ok = await redirectByRole(data.user.id);
+      const ok = await redirectByRole(session.user);
       if (!ok) {
-        setMsg('No role assigned to this user. Contact admin.', 'err');
-        btn.disabled = false;
+        // Clear broken session so login works on phones/other laptops
+        await sb.auth.signOut();
       }
-    });
+    })();
   </script>
 </body>
 </html>
