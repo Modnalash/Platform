@@ -108,6 +108,10 @@
         supabase.from('stock').select('*').order('name', { ascending: true }),
         supabase.from('pl_stock').select('*').order('name', { ascending: true })
       ]);
+
+      if (mainRes.error) { console.error(mainRes.error); alert('Error loading main stock: ' + mainRes.error.message); }
+      if (plRes.error) { console.error(plRes.error); alert('Error loading PL stock: ' + plRes.error.message); }
+
       adminStock = mainRes.data || [];
       plStock    = plRes.data   || [];
       populateCategoryFilter();
@@ -121,22 +125,17 @@
         cats.map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
-    // ✅ FIX: join PL stock by (name + category) because pl_stock has NO sku column
-    function findPLRowForMainItem(item) {
-      const name = (item.name || '').trim();
-      const category = (item.category || '').trim();
-      return plStock.find(x =>
-        ((x.name || '').trim() === name) &&
-        ((x.category || '').trim() === category)
-      ) || {};
-    }
-
     function getMergedRows() {
       const search = document.getElementById('searchInput').value.toLowerCase();
       const cat    = document.getElementById('categoryFilter').value;
 
       return adminStock.map(item => {
-        const pl = findPLRowForMainItem(item);
+        // ✅ FIX: pl_stock has no sku column, match by name + category
+        const pl = plStock.find(x =>
+          (x.name || '').trim() === (item.name || '').trim() &&
+          (x.category || '').trim() === (item.category || '').trim()
+        ) || {};
+
         return {
           sku:      item.sku || '',
           mainId:   item.id,
@@ -148,10 +147,10 @@
       })
       .sort((a,b) => a.name.localeCompare(b.name))
       .filter(row => {
-        const skuSafe = (row.sku || '').toLowerCase();
-        const nameSafe = (row.name || '').toLowerCase();
-        const okSearch = !search || nameSafe.includes(search) || skuSafe.includes(search);
-        const okCat    = !cat    || row.category === cat;
+        const okSearch = !search
+          || (row.name || '').toLowerCase().includes(search)
+          || (row.sku || '').toLowerCase().includes(search); // ✅ FIX: safe sku search
+        const okCat    = !cat || row.category === cat;
         return okSearch && okCat;
       });
     }
@@ -207,7 +206,7 @@
           .eq('id', plId);
         if (error) return alert(error.message);
       } else {
-        // ✅ FIX: insert WITHOUT sku (because pl_stock table has no sku column)
+        // ✅ FIX: don't insert sku (pl_stock table doesn't have sku)
         const { error } = await supabase
           .from('pl_stock')
           .insert([{ name: mainRec.name, category: mainRec.category, qty: newQty }]);
@@ -232,7 +231,7 @@
       const rows = getMergedRows();
       let csv = "SKU,Product,Category,Qty\n";
       rows.forEach(r => {
-        csv += `"${r.sku}","${r.name.replace(/"/g,'""')}","${r.category.replace(/"/g,'""')}",${r.qty}\n`;
+        csv += `"${r.sku}","${(r.name || '').replace(/"/g,'""')}","${(r.category || '').replace(/"/g,'""')}",${r.qty}\n`;
       });
       const blob = new Blob([csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
