@@ -53,10 +53,13 @@
   </div>
 
   <script>
-    const supabase = window.supabase.createClient(
+    // ✅ FIX #1: avoid redeclaring "supabase" (CDN already uses that name)
+    window.__sb = window.__sb || window.supabase.createClient(
       'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
+
+    const sb = window.__sb;
 
     let adminStock = [], plStock = [];
     let currentUser = null;
@@ -64,7 +67,7 @@
     // Audit log helper
     async function logAction(action, details) {
       if (!currentUser) return;
-      await supabase.from('audit_log').insert([
+      await sb.from('audit_log').insert([
         {
           user_id: currentUser.id,
           user_email: currentUser.email,
@@ -75,7 +78,7 @@
     }
 
     // Role check and log Login
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
+    sb.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) { window.location.href = "index.html"; return; }
       currentUser = user;
       await logAction("Login", {});
@@ -85,7 +88,7 @@
     // Logout and log
     async function logout() {
       await logAction("Logout", {});
-      await supabase.auth.signOut();
+      await sb.auth.signOut();
       localStorage.clear();
       sessionStorage.clear();
       setTimeout(() => window.location.href = "index.html", 300);
@@ -105,8 +108,8 @@
 
     async function fetchData() {
       const [mainRes, plRes] = await Promise.all([
-        supabase.from('stock').select('*').order('name', { ascending: true }),
-        supabase.from('pl_stock').select('*').order('name', { ascending: true })
+        sb.from('stock').select('*').order('name', { ascending: true }),
+        sb.from('pl_stock').select('*').order('name', { ascending: true })
       ]);
 
       if (mainRes.error) { console.error(mainRes.error); alert('Error loading main stock: ' + mainRes.error.message); }
@@ -130,7 +133,7 @@
       const cat    = document.getElementById('categoryFilter').value;
 
       return adminStock.map(item => {
-        // ✅ FIX: pl_stock has no sku column, match by name + category
+        // ✅ FIX #2: pl_stock has no sku column -> match by (name + category)
         const pl = plStock.find(x =>
           (x.name || '').trim() === (item.name || '').trim() &&
           (x.category || '').trim() === (item.category || '').trim()
@@ -147,9 +150,11 @@
       })
       .sort((a,b) => a.name.localeCompare(b.name))
       .filter(row => {
+        // ✅ FIX #3: safe search even when SKU is empty
         const okSearch = !search
           || (row.name || '').toLowerCase().includes(search)
-          || (row.sku || '').toLowerCase().includes(search); // ✅ FIX: safe sku search
+          || (row.sku || '').toLowerCase().includes(search);
+
         const okCat    = !cat || row.category === cat;
         return okSearch && okCat;
       });
@@ -200,14 +205,14 @@
       if (!mainRec) return alert('Admin item not found.');
 
       if (plId) {
-        const { error } = await supabase
+        const { error } = await sb
           .from('pl_stock')
           .update({ qty: newQty })
           .eq('id', plId);
         if (error) return alert(error.message);
       } else {
-        // ✅ FIX: don't insert sku (pl_stock table doesn't have sku)
-        const { error } = await supabase
+        // ✅ FIX #4: don't insert sku (pl_stock table doesn't have sku)
+        const { error } = await sb
           .from('pl_stock')
           .insert([{ name: mainRec.name, category: mainRec.category, qty: newQty }]);
         if (error) return alert(error.message);
