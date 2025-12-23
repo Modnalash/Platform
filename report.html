@@ -114,10 +114,12 @@
     const rowsPerPage = 10;
     let currentPage = 0;
 
-    const supabase = window.supabase.createClient(
+    // ✅ FIX: don't redeclare global "supabase"
+    window.__sb = window.__sb || window.supabase.createClient(
       'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
+    const sb = window.__sb;
 
     let adminStock = [], plStock = [], fx = { PLN:1, GBP:1, EUR:1 };
 
@@ -134,8 +136,8 @@
 
     window.addEventListener('DOMContentLoaded', async () => {
       const [a, p] = await Promise.all([
-        supabase.from('stock').select('*'),
-        supabase.from('pl_stock').select('*')
+        sb.from('stock').select('*'),
+        sb.from('pl_stock').select('*')
       ]);
       adminStock = a.data || [];
       plStock    = p.data || [];
