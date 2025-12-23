@@ -1,186 +1,158 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin Dashboard</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
   <style>
     body {
       margin: 0;
       font-family: 'Inter', sans-serif;
       background-color: #0b1c2c;
       color: white;
-      display: flex;
-      height: 100vh;
     }
-
+    .container { display: flex; }
     .sidebar {
-      width: 260px;
-      background-color: #123455;
-      padding: 25px 20px;
+      width: 250px;
+      background-color: #112b44;
+      padding: 2rem 1rem;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
+      gap: 1.5rem;
+      height: 100vh;
     }
-
-    .sidebar h2 {
-      margin: 0;
-      font-size: 32px;
-      font-weight: 700;
-      letter-spacing: 1px;
-    }
-
-    .sidebar h2 span {
-      display: block;
-      font-size: 24px;
-      font-weight: 700;
-      color: #7fffd4;
-    }
-
-    .sidebar a {
+    .sidebar h2 { margin-bottom: 2rem; font-size: 24px; }
+    .sidebar a, .sidebar button {
       color: white;
       text-decoration: none;
-      padding: 15px;
-      border-radius: 10px;
-      margin-top: 10px;
-      display: block;
-      font-size: 18px;
-      transition: 0.2s;
+      padding: 0.8rem 1rem;
+      border-radius: 8px;
+      background: none;
+      border: none;
+      text-align: left;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: inherit;
     }
-
-    .sidebar a:hover,
-    .sidebar a.active {
-      background-color: #1e4c78;
-    }
-
-    .main {
-      flex: 1;
-      padding: 30px;
-      overflow-y: auto;
-    }
-
-    .welcome {
-      background-color: #1e4c78;
-      padding: 20px;
-      border-radius: 15px;
+    .sidebar a:hover, .sidebar a.active, .sidebar button:hover { background-color: #1e3d5e; }
+    .main { flex: 1; padding: 2rem; }
+    .header {
+      background-color: #1e3d5e;
+      padding: 1rem;
       text-align: center;
-      font-size: 28px;
-      font-weight: 600;
-      margin-bottom: 30px;
-      max-width: 600px;
-      margin-left: auto;
-      margin-right: auto;
+      font-size: 1.25rem;
+      border-radius: 12px;
     }
-
-    .cards {
-      display: flex;
-      gap: 20px;
-      justify-content: center;
-      flex-wrap: wrap;
+    .section {
+      background-color: #1a2b3e;
+      padding: 1.5rem;
+      margin-top: 2rem;
+      border-radius: 12px;
     }
-
-    .card {
-      background-color: #1e4c78;
-      padding: 30px;
-      border-radius: 20px;
-      width: 300px;
-      font-size: 20px;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.4);
-    }
-
-    .card h3 {
-      margin-top: 0;
-      margin-bottom: 15px;
-      font-size: 22px;
-    }
-
-    .info {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin: 10px 0;
-      font-size: 18px;
-    }
-
-    .icon {
-      font-size: 22px;
-    }
-
-    @media (max-width: 800px) {
-      body { flex-direction: column; }
-      .sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; justify-content: center; }
-      .sidebar a { margin: 5px; }
-      .main { padding: 15px; }
-    }
+    .section h3 { margin-bottom: 1rem; color: #7ee2f6; }
+    .stat { font-size: 1.2rem; margin-bottom: 0.5rem; }
   </style>
 </head>
 <body>
-  <div class="sidebar">
-    <div>
-      <h2>MODNA <span>Admin</span></h2>
-      <a href="dashboard-admin.html" class="active">Dashboard</a>
+  <div class="container">
+    <div class="sidebar">
+      <h2>MODNA Admin</h2>
+      <a href="#" class="active">Dashboard</a>
       <a href="manage-stock.html">Manage Stock</a>
       <a href="order-history.html">Order History</a>
       <a href="report.html">Report</a>
+      <button onclick="logout()">Logout</button>
     </div>
-    <a href="#" onclick="logout()">Logout</a>
-  </div>
-
-  <div class="main">
-    <div class="welcome">Welcome, Admin</div>
-
-    <div class="cards">
-      <div class="card">
+    <div class="main">
+      <div class="header">Welcome, Admin</div>
+      <div class="section">
         <h3>Quick Overview</h3>
-        <div class="info"><span class="icon">📦</span> <span id="totalStock">Loading total stock...</span></div>
-        <div class="info"><span class="icon">📄</span> <span id="newOrders">Loading new orders...</span></div>
+        <div class="stat" id="stockCount">💼 Loading total stock…</div>
+        <div class="stat" id="orderCount">📄 Loading new orders…</div>
       </div>
+      <!-- Logins & Logouts section removed -->
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script>
-    // ✅ FIX: do NOT redeclare "supabase" (CDN uses that name already)
+    // ✅ FIX: don't redeclare global "supabase"
     window.__sb = window.__sb || window.supabase.createClient(
       'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAwNjE3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
     const sb = window.__sb;
 
+    let currentUser = null;
+
+    // Role protection: Only "admin" role can access this page, log Login event
+    sb.auth.getUser().then(async ({ data: { user } }) => {
+      if(!user) { window.location.href = "index.html"; return; }
+      currentUser = user;
+      const { data: profile } = await sb
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      if(!profile || profile.role !== 'admin') {
+        window.location.href = "index.html";
+        return;
+      }
+      await logAction('Login', {});
+      loadDashboardData();
+    });
+
+    // Log action helper
+    async function logAction(action, details) {
+      if (!currentUser) return;
+      await sb.from('audit_log').insert([
+        {
+          user_id: currentUser.id,
+          user_email: currentUser.email,
+          action,
+          details
+        }
+      ]);
+    }
+
+    async function loadDashboardData() {
+      const { data: stocks, error: stockErr } = await sb
+        .from('stock')
+        .select('qty');
+      if (!stockErr && Array.isArray(stocks)) {
+        const total = stocks.reduce((sum, r) => sum + (r.qty || 0), 0);
+        document.getElementById('stockCount').textContent =
+          `💼 ${total.toLocaleString()} units in stock`;
+      } else {
+        document.getElementById('stockCount').textContent = '💼 —';
+      }
+
+      const weekAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString();
+      const { data: orders, error: orderErr } = await sb
+        .from('orders')
+        .select('order_group_id, id')
+        .eq('status', 'Pending')
+        .gte('created_at', weekAgo);
+
+      if (!orderErr && Array.isArray(orders)) {
+        const groups = new Set(
+          orders.map(o => o.order_group_id || String(o.id))
+        );
+        document.getElementById('orderCount').textContent =
+          `📄 ${groups.size.toLocaleString()} new orders`;
+      } else {
+        document.getElementById('orderCount').textContent = '📄 —';
+      }
+    }
+
     async function logout() {
+      await logAction('Logout', {});
       await sb.auth.signOut();
       localStorage.clear();
       sessionStorage.clear();
-      window.location.href = "index.html";
+      setTimeout(() => window.location.href = "index.html", 300);
     }
-
-    async function loadDashboard() {
-      // total stock count
-      const { data: stockData, error: stockError } = await sb
-        .from("stock")
-        .select("qty");
-
-      if (stockError) {
-        document.getElementById("totalStock").textContent = "Error loading stock";
-      } else {
-        const total = (stockData || []).reduce((sum, r) => sum + (r.qty || 0), 0);
-        document.getElementById("totalStock").textContent = `Total stock: ${total}`;
-      }
-
-      // new orders count
-      const { data: orderData, error: orderError } = await sb
-        .from("orders")
-        .select("id")
-        .eq("status", "Pending");
-
-      if (orderError) {
-        document.getElementById("newOrders").textContent = "Error loading orders";
-      } else {
-        document.getElementById("newOrders").textContent = `New orders: ${(orderData || []).length}`;
-      }
-    }
-
-    loadDashboard();
   </script>
 </body>
 </html>
