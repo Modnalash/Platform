@@ -2,443 +2,337 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Order History</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Manage Stock</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: #0b1c2c;
-      color: #fff;
-    }
-    .container {
-      display: flex;
-      height: 100vh;
-    }
-    .sidebar {
-      width: 250px;
-      background: #112b44;
-      padding: 2rem 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-    .sidebar h2 {
-      margin: 0 0 1rem;
-      color: #7ee2f6;
-    }
-    .sidebar a {
-      color: #fff;
-      text-decoration: none;
-      padding: .75rem 1rem;
-      border-radius: 6px;
-    }
-    .sidebar a.active,
-    .sidebar a:hover {
-      background: #1e3d5e;
-    }
-    .main {
-      flex: 1;
-      padding: 2rem;
-      overflow-y: auto;
-    }
-    .header {
-      background: #1e3d5e;
-      padding: 1rem;
-      border-radius: 8px;
-      margin-bottom: 1rem;
-      text-align: center;
-      font-size: 1.5rem;
-    }
-    .order-block {
-      background: #1a2b3e;
-      border-radius: 8px;
-      padding: 1rem 1.5rem;
-      margin-bottom: 1rem;
-    }
-    .order-block.fulfilled {
-      opacity: 0.6;
-    }
-    .order-block h3 {
-      margin: 0 0 .25rem;
-      font-size: 1.25rem;
-    }
-    .order-block small {
-      color: #bbb;
-    }
-    .fulfilled-at {
-      color: #8ef8c7;
-      font-size: .98rem;
-      font-weight: 600;
-      margin-left: 1.5rem;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: .5rem;
-    }
-    th, td {
-      padding: .5rem;
-      border: 1px solid #2a3c4f;
-      text-align: left;
-    }
-    th {
-      background: #112b44;
-    }
-    .actions {
-      margin-top: 1rem;
-      text-align: right;
-    }
-    .actions button {
-      padding: .5rem .75rem;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 1rem;
-      margin-left: .5rem;
-    }
-    .btn-fulfill {
-      background: #06d6a0;
-      color: #0b1c2c;
-    }
-    .btn-fulfill[disabled] {
-      opacity: 0.6;
-      cursor: default;
-    }
-    .btn-print {
-      background: #48cae4;
-      color: #0b1c2c;
-    }
-    .btn-view {
-      background: #48cae4;
-      color: #0b1c2c;
-      border: none;
-      border-radius: 4px;
-      padding: .5rem .75rem;
-      cursor: pointer;
-      margin-top: .5rem;
-    }
-    @media print {
-      body { background: #fff; color: #000; }
-      .container, .sidebar, .actions button, .header { display: none !important; }
-      .order-block { border: none; page-break-inside: avoid; }
-      .order-block h3, .order-block small { color: #000; }
-      table, th, td { border: 1px solid #000; color: #000; }
-      .fulfilled-at { color: #19712f; }
-    }
+    /* ...[keep your style exactly as before]... */
+    body { margin:0; font-family:'Inter',sans-serif; background:#0b1c2c; color:#fff; }
+    .container { display:flex; }
+    .sidebar { width:250px; background:#112b44; padding:2rem 1rem; display:flex; flex-direction:column; gap:1.5rem; height:100vh; }
+    .sidebar a { color:#fff; text-decoration:none; padding:.8rem 1rem; border-radius:8px; }
+    .sidebar a:hover, .sidebar a.active { background:#1e3d5e; }
+    .main { flex:1; padding:2rem; }
+    .header { background:#1e3d5e; padding:1rem; text-align:center; font-size:1.25rem; border-radius:12px; }
+    .section { background:#1a2b3e; padding:1.5rem; margin-top:2rem; border-radius:12px; }
+    .controls { margin-bottom:1rem; display:flex; flex-wrap:wrap; align-items:center; gap:1rem; }
+    .controls input, .controls select, .controls button { padding:6px 12px; border-radius:4px; border:none; font-size:1rem; }
+    table { width:100%; border-collapse:collapse; margin-top:1rem; }
+    th, td { padding:10px; text-align:left; border-bottom:1px solid #2a3c4f; }
+    th { background:#112b44; }
+    #stockTable td input[type="number"] { width:60px; padding:4px; }
+    .actions button { margin-right:6px; padding:6px 10px; border-radius:4px; border:none; font-size:.9rem; cursor:pointer; }
+    .btn-add { background:#79e08a; color:#0d1b2a; }
+    .btn-edit { background:#ffdd91; color:#0d1b2a; }
+    .btn-delete { background:#f28b82; color:#0d1b2a; }
+    .btn-add:hover { background:#6cc77e; }
+    .btn-edit:hover { background:#e6c87c; }
+    .btn-delete:hover { background:#e07a73; }
+    /* Modal styles */
+    .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; }
+    .modal.active { display:flex; }
+    .modal-content { background:#fff; color:#000; padding:1.5rem; border-radius:8px; width:320px; }
+    .modal-content h2 { margin-top:0; }
+    .modal-content label { display:block; margin:0.5rem 0 0.2rem; font-weight:bold; }
+    .modal-content input, .modal-content select { width:100%; padding:6px; margin-bottom:1rem; border:1px solid #ccc; border-radius:4px; }
+    .modal-actions { text-align:right; }
+    .modal-actions button { margin-left:0.5rem; }
   </style>
 </head>
 <body>
+  <div class="container">
+    <div class="sidebar">
+      <h2>MODNA Admin</h2>
+      <a href="dashboard-admin.html">Dashboard</a>
+      <a href="manage-stock.html" class="active">Manage Stock</a>
+      <a href="order-history.html">Order History</a>
+      <a href="report.html">Report</a>
+      <a href="index.html">Logout</a>
+    </div>
+    <div class="main">
+      <div class="header">Manage Stock</div>
 
-<div class="container">
-  <nav class="sidebar">
-    <h2>MODNA Admin</h2>
-    <a href="dashboard-admin.html">Dashboard</a>
-    <a href="manage-stock.html">Manage Stock</a>
-    <a href="order-history.html" class="active">Order History</a>
-    <a href="report.html">Report</a>
-    <a href="index.html">Logout</a>
-  </nav>
+      <div class="section">
+        <div class="controls">
+          <input type="text" id="searchInput" placeholder="Search by product…" oninput="renderTable()">
+          <select id="sortCategory" onchange="renderTable()">
+            <option value="">All</option>
+          </select>
+          <button onclick="exportCSV()">📁 Export CSV</button>
+        </div>
+        <table id="stockTable">
+          <thead>
+            <tr>
+              <th>SKU</th>
+              <th>Product</th>
+              <th>Category</th>
+              <th>Quantity</th>
+              <th>Add Qty</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
 
-  <main class="main">
-    <div class="header">Order History</div>
-    <div id="ordersContainer"><!-- orders go here --></div>
-  </main>
-</div>
+      <div class="section">
+        <h3>Add New Product</h3>
+        <div class="controls">
+          <!-- SKU input removed, now auto-generated -->
+          <input type="text" id="productName" placeholder="Product Name" />
+          <select id="productCategory"></select>
+          <input type="number" id="productQty" placeholder="Quantity" min="0" />
+          <input type="number" id="costUsd" placeholder="Purchase Price (USD)" step="0.01" />
+          <input type="number" id="sellPln" placeholder="Selling Price (PLN)" step="0.01" />
+          <button class="btn-add" onclick="addProduct()">Add Product</button>
+        </div>
+        <div id="successMsg" style="color:#7ee2f6;margin-top:10px;"></div>
+      </div>
+    </div>
+  </div>
 
-<script>
-  // Supabase credentials
-  const SUPABASE_URL = 'https://rwmwsaxlqblvnhfyuuqg.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y';
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  <!-- Edit Modal -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <h2>Edit Product</h2>
+      <label for="editSku">SKU</label>
+      <input type="text" id="editSku" maxlength="32" />
+      <label for="editName">Name</label>
+      <input type="text" id="editName" />
+      <label for="editCategory">Category</label>
+      <select id="editCategory"></select>
+      <label for="editQty">Quantity</label>
+      <input type="number" id="editQty" min="0" />
+      <label for="editCostUsd">Purchase Price (USD)</label>
+      <input type="number" id="editCostUsd" step="0.01" />
+      <label for="editSellPln">Selling Price (PLN)</label>
+      <input type="number" id="editSellPln" step="0.01" />
+      <div class="modal-actions">
+        <button onclick="closeModal()">Cancel</button>
+        <button onclick="saveEdit()">Save</button>
+      </div>
+    </div>
+  </div>
 
-  let currentUser = null;
+  <script>
+    // ✅ FIX: don't redeclare global "supabase"
+    window.__sb = window.__sb || window.supabase.createClient(
+      'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
+    );
+    const sb = window.__sb;
 
-  // Get current user for logging
-  supabase.auth.getUser().then(({ data: { user } }) => {
-    currentUser = user;
-    loadOrders();
-  });
+    const initialCategories = ['Starter Kit','Express Lash','Wielokrotnego','Bio','Ribbon','Accessories','Make-up'];
+    let stockData = [];
+    let categories = [...initialCategories];
+    let editId = null;
+    let currentUser = null;
 
-  // Audit log helper
-  async function logAction(action, details) {
-    if (!currentUser) return;
-    await supabase.from('audit_log').insert([
-      {
-        user_id: currentUser.id,
-        user_email: currentUser.email,
-        action,
-        details
-      }
-    ]);
-  }
-
-  function toggleFull(btn) {
-    const table   = btn.previousElementSibling;
-    const fullTbody = table.querySelector('tbody.full');
-    const isHidden  = fullTbody.style.display === 'none';
-    fullTbody.style.display = isHidden ? '' : 'none';
-    btn.textContent = isHidden ? 'Hide Full Order' : 'View Full Order';
-  }
-
-  // Load & render all orders, grouped, and show fulfilled time if present
-  async function loadOrders() {
-    // 1. Fetch all orders and audit logs related to fulfillment
-    const { data: rows, error } = await supabase
-      .from('orders')
-      .select('order_group_id,region,sku,product,category,qty,status,created_at')
-      .order('created_at', { ascending: false });
-
-    const { data: logs } = await supabase
-      .from('audit_log')
-      .select('details,timestamp')
-      .eq('action', 'Fulfill Order Group');
-
-    const fulfilledTimes = {};
-    if (Array.isArray(logs)) {
-      logs.forEach(log => {
-        if (log.details && log.details.gid) {
-          fulfilledTimes[log.details.gid] = log.timestamp;
-        }
-      });
-    }
-
-    const container = document.getElementById('ordersContainer');
-    container.innerHTML = '';
-
-    if (error) {
-      container.innerHTML = `<p style="color:#f66">Error loading orders</p>`;
-      console.error('Fetch error:', error);
-      return;
-    }
-    if (!rows.length) {
-      container.innerHTML = `<p>No orders yet</p>`;
-      return;
-    }
-
-    // group by order_group_id
-    const groups = {};
-    rows.forEach(o => {
-      if (!o.order_group_id) return;
-      (groups[o.order_group_id] ||= []).push(o);
+    // AUTH & USER INFO
+    sb.auth.getUser().then(async ({ data: { user } }) => {
+      if(!user) return window.location.href = "index.html";
+      currentUser = user;
+      fetchStock();
     });
 
-    for (const [gid, items] of Object.entries(groups)) {
-      const allFulfilled = items.every(i => i.status === 'Fulfilled');
-      const date = new Date(Math.min(...items.map(i => new Date(i.created_at))));
-      const dateStr = date.toLocaleString();
+    // AUDIT LOG FUNCTION
+    async function logAction(action, details) {
+      if (!currentUser) return;
+      await sb.from('audit_log').insert([
+        {
+          user_id: currentUser.id,
+          user_email: currentUser.email,
+          action,
+          details
+        }
+      ]);
+    }
 
-      // When fulfilled?
-      let fulfilledAt = '';
-      if (allFulfilled && fulfilledTimes[gid]) {
-        fulfilledAt = new Date(fulfilledTimes[gid]).toLocaleString();
+    document.getElementById('searchInput').addEventListener('input', renderTable);
+    document.getElementById('sortCategory').addEventListener('change', renderTable);
+
+    async function fetchStock() {
+      const { data, error } = await sb.from('stock').select('*').order('name', { ascending:true });
+      if (!error && Array.isArray(data)) {
+        stockData = data;
+        categories = [...new Set([...initialCategories, ...stockData.map(r=>r.category)])];
+        populateCategorySelectors();
+        renderTable();
       }
+    }
 
-      const block = document.createElement('div');
-      block.className = 'order-block' + (allFulfilled ? ' fulfilled' : '');
+    function populateCategorySelectors() {
+      const sortSel = document.getElementById('sortCategory');
+      const prodSel = document.getElementById('productCategory');
+      const editSel = document.getElementById('editCategory');
+      let opts = `<option value="">All</option>`;
+      let prodOpts = `<option value="">Select Category</option>`;
+      categories.forEach(c=> { opts += `<option value="${c}">${c}</option>`; prodOpts += `<option value="${c}">${c}</option>`; });
+      sortSel.innerHTML = opts;
+      prodSel.innerHTML = prodOpts;
+      editSel.innerHTML = prodOpts;
+    }
 
-      // preview/full split
-      const previewItems = items.slice(0, 5);
-      const fullItems    = items.slice(5);
-
-      let html = `
-        <h3>Order #${gid.slice(0,8)}${allFulfilled ? ' - ✅ Fulfilled' : ''}</h3>
-        <small><em>${dateStr}</em></small>
-        ${fulfilledAt ? `<span class="fulfilled-at">Fulfilled at: ${fulfilledAt}</span>` : ''}
-        <table>
-          <thead>
-            <tr><th>SKU</th><th>Product</th><th>Category</th><th>Qty</th><th>Region</th><th>Status</th></tr>
-          </thead>
-          <tbody class="preview">
-      `;
-      previewItems.forEach(i => {
-        html += `<tr>
-                   <td>${i.sku || ''}</td>
-                   <td>${i.product}</td>
-                   <td>${i.category}</td>
-                   <td>${i.qty}</td>
-                   <td>${i.region}</td>
-                   <td>${i.status}</td>
-                 </tr>`;
-      });
-      html += `</tbody>`;
-
-      if (fullItems.length) {
-        html += `<tbody class="full" style="display:none">`;
-        fullItems.forEach(i => {
-          html += `<tr>
-                     <td>${i.sku || ''}</td>
-                     <td>${i.product}</td>
-                     <td>${i.category}</td>
-                     <td>${i.qty}</td>
-                     <td>${i.region}</td>
-                     <td>${i.status}</td>
-                   </tr>`;
+    function renderTable() {
+      const tbody = document.querySelector('#stockTable tbody');
+      const s = document.getElementById('searchInput').value.toLowerCase();
+      const c = document.getElementById('sortCategory').value;
+      tbody.innerHTML = '';
+      stockData
+        .filter(x => (x.name || '').toLowerCase().includes(s))
+        .filter(x => !c || x.category===c)
+        .forEach(item=>{
+          const tr=document.createElement('tr');
+          tr.innerHTML=`
+            <td>${item.sku || ''}</td>
+            <td>${item.name}</td>
+            <td>${item.category}</td>
+            <td>${item.qty}</td>
+            <td><input type="number" id="add-${item.id}" value="0" min="0"></td>
+            <td class="actions">
+              <button class="btn-add" onclick="addQty(${item.id})">Add</button>
+              <button class="btn-edit" onclick="openModal(${item.id})">Edit</button>
+              <button class="btn-delete" onclick="deleteProduct(${item.id})">🗑️ Delete</button>
+            </td>`;
+          tbody.appendChild(tr);
         });
-        html += `</tbody>`;
-      }
-
-      html += `</table>`;
-
-      if (fullItems.length) {
-        html += `<button class="btn-view" onclick="toggleFull(this)">View Full Order</button>`;
-      }
-
-      html += `
-        <div class="actions">
-          <button class="btn-fulfill" ${allFulfilled ? 'disabled' : ''}
-                  onclick="fulfillGroup('${gid}')">
-            ✔ ${allFulfilled ? 'Done' : 'Fulfill'}
-          </button>
-          <button class="btn-print" onclick="printGroup('${gid}')">
-            🖨 Print
-          </button>
-        </div>
-      `;
-
-      block.innerHTML = html;
-      container.appendChild(block);
-    }
-  }
-
-  // Fulfill and update PL or UK stock, and log (uses SKU for aggregation/update).
-  // Each region's items update only their own stock table.
-  async function fulfillGroup(gid) {
-    // 1) Mark orders as fulfilled
-    const { error: err1 } = await supabase
-      .from('orders')
-      .update({ status: 'Fulfilled' })
-      .eq('order_group_id', gid);
-
-    if (err1) {
-      alert('❌ Update failed: ' + err1.message);
-      console.error('Update error:', err1);
-      return;
     }
 
-    // 2) Fetch items INCLUDING region and SKU
-    const { data: items, error: err2 } = await supabase
-      .from('orders')
-      .select('sku,product,category,qty,region')
-      .eq('order_group_id', gid);
+    async function addProduct() {
+      const name = document.getElementById('productName').value.trim();
+      const category = document.getElementById('productCategory').value;
+      const qty = parseInt(document.getElementById('productQty').value,10);
+      const cost_usd = parseFloat(document.getElementById('costUsd').value);
+      const sell_pln = parseFloat(document.getElementById('sellPln').value);
 
-    if (err2) {
-      console.error('Fetch for stock update error:', err2);
-      loadOrders();
-      return;
+      if(!name||!category||isNaN(qty)||isNaN(cost_usd)||isNaN(sell_pln)) return alert('Fill all fields correctly');
+
+      // Fetch highest SKU number in stock
+      let { data: skus } = await sb.from('stock').select('sku');
+      let maxNum = 0;
+      if (skus && skus.length) {
+        skus.forEach(row => {
+          const m = (row.sku||'').match(/^SK0*(\d+)$/i);
+          if (m && Number(m[1]) > maxNum) maxNum = Number(m[1]);
+        });
+      }
+      const nextSku = 'SK' + String(maxNum+1).padStart(4, '0');
+
+      // Insert into stock table
+      const { data, error } = await sb.from('stock').insert([{sku: nextSku, name, category, qty, cost_usd, sell_pln}]).select();
+      if(error) return alert('Error: '+error.message);
+
+      // Insert into pl_stock with qty 0
+      if (data && data.length) {
+        await sb.from('pl_stock').insert([{sku: nextSku, name, category, qty: 0}]);
+      }
+
+      // AUDIT LOG
+      await logAction("Add Product", { sku: nextSku, name, category, qty, cost_usd, sell_pln });
+
+      // reset form
+      document.getElementById('productName').value='';
+      document.getElementById('productCategory').value='';
+      document.getElementById('productQty').value='';
+      document.getElementById('costUsd').value='';
+      document.getElementById('sellPln').value='';
+      document.getElementById('successMsg').textContent='✅ Added!';
+      fetchStock();
     }
 
-    // 3) Aggregate items for PL and UK region BY SKU
-    const plItemsMap = {};
-    const ukItemsMap = {};
-    for (const { sku, product, category, qty, region } of items) {
-      if (!sku) continue; // Only fulfill items with SKU
-      if (region === 'PL') {
-        if (!plItemsMap[sku]) {
-          plItemsMap[sku] = { qty: 0, product, category };
-        }
-        plItemsMap[sku].qty += qty;
-      }
-      if (region === 'UK') {
-        if (!ukItemsMap[sku]) {
-          ukItemsMap[sku] = { qty: 0, product, category };
-        }
-        ukItemsMap[sku].qty += qty;
-      }
+    async function addQty(id) {
+      const toAdd=parseInt(document.getElementById(`add-${id}`).value,10);
+      if(isNaN(toAdd)) return alert('Enter valid number');
+      const item=stockData.find(x=>x.id===id);
+      await sb.from('stock').update({qty:item.qty+toAdd}).eq('id',id);
+
+      // AUDIT LOG
+      await logAction("Add Quantity", { sku: item.sku, name: item.name, qty_added: toAdd, qty_before: item.qty, qty_after: item.qty + toAdd });
+
+      fetchStock();
     }
 
-    // 4) Update PL stock per aggregated item (by SKU)
-    for (const sku in plItemsMap) {
-      const { qty: totalQty, product, category } = plItemsMap[sku];
-
-      const { data: existing, error: err3 } = await supabase
-        .from('pl_stock')
-        .select('id,qty')
-        .eq('sku', sku)
-        .single();
-
-      if (err3 && err3.code !== 'PGRST116') {
-        console.error('Error checking pl_stock:', sku, err3);
-        continue;
-      }
-
-      if (existing) {
-        const { error: err4 } = await supabase
-          .from('pl_stock')
-          .update({ qty: existing.qty + totalQty })
-          .eq('id', existing.id);
-        if (err4) console.error('Error updating pl_stock:', sku, err4);
-      } else {
-        const { error: err5 } = await supabase
-          .from('pl_stock')
-          .insert([{ sku, name: product, category, qty: totalQty }]);
-        if (err5) console.error('Error inserting pl_stock:', sku, err5);
-      }
+    function openModal(id) {
+      editId=id;
+      const item=stockData.find(x=>x.id===id);
+      document.getElementById('editSku').value=item.sku || '';
+      document.getElementById('editName').value=item.name;
+      document.getElementById('editCategory').value=item.category;
+      document.getElementById('editQty').value=item.qty;
+      document.getElementById('editCostUsd').value=item.cost_usd;
+      document.getElementById('editSellPln').value=item.sell_pln;
+      document.getElementById('editModal').classList.add('active');
     }
 
-    // 5) Update UK stock per aggregated item (by SKU)
-    for (const sku in ukItemsMap) {
-      const { qty: totalQty, product, category } = ukItemsMap[sku];
-      const { data: existing, error: err3 } = await supabase
-        .from('uk_stock')
-        .select('id,qty')
-        .eq('sku', sku)
-        .single();
+    function closeModal(){document.getElementById('editModal').classList.remove('active');}
 
-      if (err3 && err3.code !== 'PGRST116') {
-        console.error('Error checking uk_stock:', sku, err3);
-        continue;
+    async function saveEdit() {
+      const newSku=document.getElementById('editSku').value.trim();
+      const newName=document.getElementById('editName').value.trim();
+      const newCat=document.getElementById('editCategory').value;
+      const newQty=parseInt(document.getElementById('editQty').value,10);
+      const newCost=parseFloat(document.getElementById('editCostUsd').value);
+      const newSell=parseFloat(document.getElementById('editSellPln').value);
+
+      if(!newSku) return alert('SKU is required');
+      if(!newName||!newCat||isNaN(newQty)||isNaN(newCost)||isNaN(newSell)) return alert('Fill all fields');
+
+      // Prevent duplicate SKU on edit
+      if (stockData.some(p => p.id !== editId && p.sku && p.sku.toLowerCase() === newSku.toLowerCase())) {
+        alert('SKU already exists!');
+        return;
       }
 
-      if (existing) {
-        const { error: err4 } = await supabase
-          .from('uk_stock')
-          .update({ qty: existing.qty + totalQty })
-          .eq('id', existing.id);
-        if (err4) console.error('Error updating uk_stock:', sku, err4);
-      } else {
-        const { error: err5 } = await supabase
-          .from('uk_stock')
-          .insert([{ sku, name: product, category, qty: totalQty }]);
-        if (err5) console.error('Error inserting uk_stock:', sku, err5);
-      }
+      const oldData = stockData.find(p=>p.id===editId);
+
+      // Update main stock table
+      await sb.from('stock').update({
+        sku: newSku, name: newName, category: newCat, qty: newQty, cost_usd: newCost, sell_pln: newSell
+      }).eq('id', editId);
+
+      // Also update pl_stock table by SKU!
+      await sb.from('pl_stock').update({
+        name: newName, category: newCat, sku: newSku
+      }).eq('sku', newSku);
+
+      // AUDIT LOG
+      await logAction("Edit Product", { id: editId, sku: newSku, name: newName, category: newCat, qty: newQty, cost_usd: newCost, sell_pln: newSell, oldData });
+
+      closeModal();
+      fetchStock();
     }
 
-    // AUDIT LOG
-    await logAction('Fulfill Order Group', { gid, items });
+    async function deleteProduct(id) {
+      if(!confirm('Delete this product?')) return;
+      // Remove from stock
+      const item = stockData.find(x => x.id === id);
+      if(item && item.sku){
+        await sb.from('pl_stock').delete().eq('sku', item.sku);
+      }
 
-    // reload UI
-    loadOrders();
-  }
+      // Save old data for audit
+      const oldData = { ...item };
+      await sb.from('stock').delete().eq('id',id);
 
-  // Print and audit log
-  async function printGroup(gid) {
-    const block = Array.from(document.querySelectorAll('.order-block'))
-      .find(b => b.querySelector('h3').innerText.includes(gid.slice(0,8)));
-    if (!block) return;
-    // AUDIT LOG
-    await logAction('Print Order Group', { gid });
+      // AUDIT LOG
+      await logAction("Delete Product", oldData);
 
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-      <html><head><title>Print Order</title>
-        <style>
-          body { font-family: Arial, sans-serif; padding: 2rem; }
-          h3 { margin-top: 0; }
-          table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-          th, td { border: 1px solid #000; padding: .5rem; text-align: left; }
-          th { background: #eee; }
-        </style>
-      </head><body>${block.innerHTML}</body></html>`);
-    printWindow.document.close();
-    printWindow.print();
-  }
+      fetchStock();
+    }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    // loadOrders now runs only after getting user (for audit log)
-  });
-</script>
+    function exportCSV() {
+      const header=['SKU','Product','Category','Quantity'];
+      const rows=stockData.map(i=>[
+        i.sku ? `"${i.sku.replace(/"/g,'""')}"` : '',
+        `"${i.name.replace(/"/g,'""')}"`,
+        `"${i.category.replace(/"/g,'""')}"`,
+        i.qty
+      ].join(','));
+      const blob=new Blob([[header.join(',')+'\n'+rows.join('\n')]],{type:'text/csv'});
+      const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='stock.csv';a.click();
+    }
 
+    document.addEventListener('DOMContentLoaded',fetchStock);
+  </script>
 </body>
 </html>
