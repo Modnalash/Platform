@@ -1,85 +1,106 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MODNA Login</title>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login - MODNA Platform</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #1c1c1c, #333);
-      color: white;
+      background: #0b1c2c;
+      color: #fff;
+      font-family: Inter, sans-serif;
       display: flex;
-      justify-content: center;
       align-items: center;
+      justify-content: center;
       min-height: 100vh;
       margin: 0;
     }
-    .login-container {
-      background: rgba(0, 0, 0, 0.7);
-      padding: 40px;
-      border-radius: 10px;
-      width: 400px;
-      text-align: center;
-      box-shadow: 0 0 15px rgba(255,255,255,0.1);
+    .login-box {
+      background: #1a2b3e;
+      border-radius: 18px;
+      padding: 1.5rem 1.8rem 1.2rem 1.8rem;
+      min-width: 310px;
+      max-width: 340px;
+      width: 95%;
+      box-shadow: 0 8px 32px #0006;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: -40px;
     }
     .logo {
-      width: 200px;
-      margin-bottom: 20px;
+      margin-bottom: 1.2rem;
+      max-width: 180px;
+      width: 100%;
+      display: block;
     }
     h2 {
-      margin-bottom: 20px;
+      text-align: center;
+      margin-bottom: 1.2rem;
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: .02em;
     }
-    input {
+    input, button {
       width: 100%;
-      padding: 12px;
-      margin: 10px 0;
+      padding: .62rem .85rem;
+      border-radius: 7px;
       border: none;
-      border-radius: 5px;
-      font-size: 16px;
+      font-size: 1rem;
+      margin: 0.36rem 0 0.9rem 0;
+      box-sizing: border-box;
     }
     button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 15px;
-      border: none;
-      border-radius: 5px;
-      font-size: 16px;
-      cursor: pointer;
-      background: #ff6600;
-      color: white;
-      transition: 0.3s;
-    }
-    button:hover {
-      background: #ff4500;
-    }
-    .switch {
-      margin-top: 15px;
-      cursor: pointer;
-      color: #ff6600;
-      text-decoration: underline;
-    }
-    #message {
-      margin-top: 15px;
+      background: #76d0a5;
+      color: #0d1b2a;
       font-weight: bold;
+      cursor: pointer;
+      transition: background .16s;
+      margin-bottom: .4rem;
+    }
+    button:hover { background: #5cb688; }
+    .switch {
+      color: #bbb;
+      cursor: pointer;
+      text-align: center;
+      font-size: .96rem;
+      margin-top: 0.3rem;
+      margin-bottom: 0.2rem;
+    }
+    .err {
+      color: #ff8080;
+      font-weight: bold;
+      margin-bottom: 10px;
+      font-size: .98rem;
+    }
+    .msg {
+      color: #6be495;
+      font-weight: bold;
+      margin-bottom: 10px;
+      font-size: .99rem;
+    }
+    @media (max-width: 600px) {
+      .login-box {
+        min-width: 92vw;
+        max-width: 99vw;
+        padding: 1rem 0.5rem 0.9rem 0.5rem;
+      }
+      .logo { max-width: 140px; }
     }
   </style>
 </head>
-
 <body>
-  <div class="login-container">
-    <img src="logo.png" alt="MODNA Logo" class="logo">
+  <div class="login-box">
+    <img src="logo1.png" alt="MODNA LASH WAREHOUSE" class="logo"/>
     <h2 id="formTitle">Sign In</h2>
+    <div id="message"></div>
 
-    <form id="loginForm">
-      <input type="email" id="email" placeholder="Email" required>
-      <input type="password" id="password" placeholder="Password" required>
-
-      <button type="submit" id="loginBtn">Login</button>
-      <button type="button" id="signupBtn" style="display:none;">Sign Up</button>
+    <form id="loginForm" autocomplete="on">
+      <input type="email" id="email" placeholder="Email" autocomplete="username" required />
+      <input type="password" id="password" placeholder="Password" autocomplete="current-password" required />
+      <button type="submit" id="loginBtn">Sign In</button>
+      <button type="button" onclick="signup()" id="signupBtn" style="display:none;">Sign Up</button>
     </form>
 
     <div class="switch" id="toggleForm" onclick="toggleForm()">Don't have an account? Sign up</div>
@@ -91,7 +112,7 @@
     // Use one shared global client safely.
     window.__sb = window.__sb || window.supabase.createClient(
       'https://rwmwsaxlqblvnhfyuuqg.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAwNjE3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3bXdzYXhscWJsdm5oZnl1dXFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NDU3OTYsImV4cCI6MjA2NTQyMTc5Nn0.gwcRLpJzsHkSVLQs0iFULIk6eAc7FlHHF9LaERlQJ6Y'
     );
     const sb = window.__sb;
 
@@ -103,127 +124,103 @@
       document.getElementById('formTitle').innerText = isSignup ? "Sign Up" : "Sign In";
       document.getElementById('loginBtn').style.display = isSignup ? "none" : "";
       document.getElementById('signupBtn').style.display = isSignup ? "" : "none";
-      document.getElementById('toggleForm').innerText = isSignup
-        ? "Already have an account? Sign in"
-        : "Don't have an account? Sign up";
+      document.getElementById('toggleForm').innerText = isSignup ? "Already have an account? Sign in" : "Don't have an account? Sign up";
+      document.getElementById('message').innerText = '';
+    }
+
+    function showMsg(msg, error=false) {
+      document.getElementById('message').innerHTML = `<div class="${error ? 'err' : 'msg'}">${msg}</div>`;
+    }
+
+    async function redirectByRole(user) {
+      const email = (user?.email || "").toLowerCase();
+
+      // Priority check for Monika
+      if (email === monikaEmail.toLowerCase()) {
+        window.location.href = "dashboard-monika.html";
+        return true;
+      }
+
+      const { data: profile, error: profileError } = await sb
+        .from('profiles')
+        .select('status, role')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) return false;
+
+      if (profile && profile.status === "disabled") {
+        showMsg('Your account is disabled. Please contact support.', true);
+        await sb.auth.signOut();
+        return true; // handled
+      }
+
+      if (profile?.role === "admin") { window.location.href = "dashboard-admin.html"; return true; }
+      if (profile?.role === "uk")    { window.location.href = "dashboard-ukuser.html"; return true; }
+      if (profile?.role === "pl")    { window.location.href = "dashboard-pluser.html"; return true; }
+
+      <!-- ✅ ONLY CHANGE: redirect to the correct existing file -->
+      if (profile?.role === "superadmin") { window.location.href = "superadmin-dashboard.html"; return true; }
+
+      // If user exists but role missing -> go wait page (same behaviour as before)
+      window.location.href = "wait-for-role.html";
+      return true;
     }
 
     async function login() {
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value.trim();
+      if (!email || !password) return showMsg('Please enter both email and password.', true);
 
-      try {
-        const { data, error } = await sb.auth.signInWithPassword({
-          email: email,
-          password: password
-        });
+      const { error, data } = await sb.auth.signInWithPassword({ email, password });
+      if (error) return showMsg(error.message, true);
 
-        if (error) throw error;
+      showMsg('Login successful! Redirecting...', false);
 
-        const user = data.user;
-
-        // Fetch profile info
-        const { data: profile, error: profileError } = await sb
+      // Update last_login (same as your original logic)
+      if (data?.user) {
+        await sb
           .from('profiles')
-          .select('role, status')
-          .eq('id', user.id)
-          .single();
+          .update({ last_login: new Date().toISOString() })
+          .eq('id', data.user.id);
+      }
 
-        if (profileError) throw profileError;
-
-        // Check if user is disabled
-        if (profile.status === "disabled") {
-          alert("Your account has been disabled. Contact admin.");
-          await sb.auth.signOut();
-          return;
-        }
-
-        // Special email redirect for Monika
-        if (email === monikaEmail) {
-          window.location.href = "dashboard-monika.html";
-          return;
-        }
-
-        // Redirect based on role
-        if (profile?.role === "admin") { window.location.href = "dashboard-admin.html"; return true; }
-        if (profile?.role === "uk")    { window.location.href = "dashboard-ukuser.html"; return true; }
-        if (profile?.role === "pl")    { window.location.href = "dashboard-pluser.html"; return true; }
-
-        // ✅ ONLY CHANGE IS HERE:
-        if (profile?.role === "superadmin") { window.location.href = "superadmin-dashboard.html"; return true; }
-
-        // If user exists but role missing -> go wait page (same behaviour as before)
+      // Redirect
+      const handled = await redirectByRole(data.user);
+      if (!handled) {
+        // Safety fallback
         window.location.href = "wait-for-role.html";
-        return true;
-
-      } catch (err) {
-        console.error(err);
-        alert(err.message || "Login failed");
       }
     }
 
     async function signup() {
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value.trim();
+      if (!email || !password) return showMsg('Please enter both email and password.', true);
 
-      try {
-        const { data, error } = await sb.auth.signUp({
-          email: email,
-          password: password
-        });
+      const { error } = await sb.auth.signUp({ email, password });
+      if (error) return showMsg(error.message, true);
 
-        if (error) throw error;
-
-        alert("Signup successful! Please verify your email.");
-        window.location.href = "wait-for-role.html";
-      } catch (err) {
-        console.error(err);
-        alert(err.message || "Signup failed");
-      }
+      showMsg('Sign up successful! Please check your email to confirm your account.', false);
     }
 
-    document.getElementById('loginForm').addEventListener('submit', function (e) {
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
       e.preventDefault();
-      if (isSignup) {
-        signup();
-      } else {
-        login();
-      }
+      if (isSignup) signup();
+      else login();
     });
 
-    document.getElementById('signupBtn').addEventListener('click', function () {
-      signup();
-    });
-
-    // Auto redirect if already logged in
+    // ✅ Safer session handling:
+    // Only redirect if session exists AND we can resolve role.
+    // If session exists but profile/role is broken -> sign out so employees can log in normally.
     (async () => {
       const { data: { session } } = await sb.auth.getSession();
-      if (session?.user) {
-        const user = session.user;
+      if (!session?.user) return;
 
-        const { data: profile, error: profileError } = await sb
-          .from('profiles')
-          .select('role, status')
-          .eq('id', user.id)
-          .single();
-
-        if (!profileError && profile) {
-          if (profile.status === "disabled") {
-            await sb.auth.signOut();
-            return;
-          }
-
-          if (user.email === monikaEmail) {
-            window.location.href = "dashboard-monika.html";
-            return;
-          }
-
-          if (profile?.role === "admin") window.location.href = "dashboard-admin.html";
-          if (profile?.role === "uk") window.location.href = "dashboard-ukuser.html";
-          if (profile?.role === "pl") window.location.href = "dashboard-pluser.html";
-
-          // NOTE: original file did not auto-redirect superadmin here, leaving as-is.
-        }
+      const ok = await redirectByRole(session.user);
+      if (!ok) {
+        // Clear broken session so login works on phones/other laptops
+        await sb.auth.signOut();
       }
     })();
   </script>
