@@ -121,14 +121,24 @@
         cats.map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
+    // ✅ FIX: join PL stock by (name + category) because pl_stock has NO sku column
+    function findPLRowForMainItem(item) {
+      const name = (item.name || '').trim();
+      const category = (item.category || '').trim();
+      return plStock.find(x =>
+        ((x.name || '').trim() === name) &&
+        ((x.category || '').trim() === category)
+      ) || {};
+    }
+
     function getMergedRows() {
       const search = document.getElementById('searchInput').value.toLowerCase();
       const cat    = document.getElementById('categoryFilter').value;
 
       return adminStock.map(item => {
-        const pl = plStock.find(x => x.sku === item.sku) || {};
+        const pl = findPLRowForMainItem(item);
         return {
-          sku:      item.sku,
+          sku:      item.sku || '',
           mainId:   item.id,
           plId:     pl.id   || null,
           name:     item.name,
@@ -138,7 +148,9 @@
       })
       .sort((a,b) => a.name.localeCompare(b.name))
       .filter(row => {
-        const okSearch = !search || row.name.toLowerCase().includes(search) || row.sku.toLowerCase().includes(search);
+        const skuSafe = (row.sku || '').toLowerCase();
+        const nameSafe = (row.name || '').toLowerCase();
+        const okSearch = !search || nameSafe.includes(search) || skuSafe.includes(search);
         const okCat    = !cat    || row.category === cat;
         return okSearch && okCat;
       });
@@ -195,9 +207,10 @@
           .eq('id', plId);
         if (error) return alert(error.message);
       } else {
+        // ✅ FIX: insert WITHOUT sku (because pl_stock table has no sku column)
         const { error } = await supabase
           .from('pl_stock')
-          .insert([{ sku: mainRec.sku, name: mainRec.name, category: mainRec.category, qty: newQty }]);
+          .insert([{ name: mainRec.name, category: mainRec.category, qty: newQty }]);
         if (error) return alert(error.message);
       }
 
