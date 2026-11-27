@@ -2,15 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Welcome - MODNA Platform</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <style>
-    body { background:#0b1c2c; color:#fff; font-family:Inter,sans-serif; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; }
-    .info { background:#1a2b3e; padding:2rem 2.5rem; border-radius:14px; box-shadow:0 8px 32px #0005; min-width:320px; text-align:center; }
-    button { background:#ff6666;color:#fff;padding:.7rem 1.4rem; border:none; border-radius:7px; font-size:1rem; margin-top:1.5rem; cursor:pointer;}
-  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css?v=1">
 </head>
-<body>
+<body class="app shell-auth">
   <div class="info">
     <h2>Welcome!</h2>
     <div id="roleInfo"></div>

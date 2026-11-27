@@ -2,76 +2,90 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Admin Dashboard</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Inter', sans-serif;
-      background-color: #0b1c2c;
-      color: white;
-    }
-    .container { display: flex; }
-    .sidebar {
-      width: 250px;
-      background-color: #112b44;
-      padding: 2rem 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-      height: 100vh;
-    }
-    .sidebar h2 { margin-bottom: 2rem; font-size: 24px; }
-    .sidebar a, .sidebar button {
-      color: white;
-      text-decoration: none;
-      padding: 0.8rem 1rem;
-      border-radius: 8px;
-      background: none;
-      border: none;
-      text-align: left;
-      cursor: pointer;
-      font-family: inherit;
-      font-size: inherit;
-    }
-    .sidebar a:hover, .sidebar a.active, .sidebar button:hover { background-color: #1e3d5e; }
-    .main { flex: 1; padding: 2rem; }
-    .header {
-      background-color: #1e3d5e;
-      padding: 1rem;
-      text-align: center;
-      font-size: 1.25rem;
-      border-radius: 12px;
-    }
-    .section {
-      background-color: #1a2b3e;
-      padding: 1.5rem;
-      margin-top: 2rem;
-      border-radius: 12px;
-    }
-    .section h3 { margin-bottom: 1rem; color: #7ee2f6; }
-    .stat { font-size: 1.2rem; margin-bottom: 0.5rem; }
-  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css?v=1">
 </head>
-<body>
+<body class="app shell-side">
   <div class="container">
     <div class="sidebar">
-      <h2>MODNA Admin</h2>
+      <div class="brand"><span class="brand-name">MODNA LASH</span><span class="brand-sub">WAREHOUSE</span></div>
       <a href="#" class="active">Dashboard</a>
       <a href="manage-stock.html">Manage Stock</a>
       <a href="order-history.html">Order History</a>
       <a href="report.html">Report</a>
-      <button onclick="logout()">Logout</button>
+      <button onclick="logout()">Log out</button>
     </div>
     <div class="main">
-      <div class="header">Welcome, Admin</div>
-      <div class="section">
-        <h3>Quick Overview</h3>
-        <div class="stat" id="stockCount">💼 Loading total stock…</div>
-        <div class="stat" id="orderCount">📄 Loading new orders…</div>
+      <div class="page-head">
+        <div>
+          <div class="header">Dashboard</div>
+          <div class="subtext" id="todayLabel"></div>
+        </div>
+        <a class="btn btn-primary" href="manage-stock.html">Add stock</a>
       </div>
-      <!-- Logins & Logouts section removed -->
+
+      <div class="kpis">
+        <div class="kpi">
+          <div class="kpi-label">Units in stock</div>
+          <div class="kpi-value" id="stockCount">…</div>
+          <div class="kpi-sub" id="stockSplit">Loading…</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Pending orders</div>
+          <div class="kpi-value" id="orderCount">…</div>
+          <div class="kpi-sub" id="orderSplit">Loading…</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Stock value (selling prices)</div>
+          <div class="kpi-value" id="stockValue">…</div>
+          <div class="kpi-sub" id="stockProfit">Loading…</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Low stock</div>
+          <div class="kpi-value" id="lowCount">…</div>
+          <div class="kpi-sub">Below <span id="lowLimit">50</span> units in total</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="section">
+          <div class="section-head">
+            <h3>Units ordered per week</h3>
+            <div class="legend"><span><i class="bar-pl"></i>PL</span><span><i class="bar-uk"></i>UK</span></div>
+          </div>
+          <p class="chart-note" id="weeklyNote">Loading…</p>
+          <div class="bars" id="weeklyBars" role="img" aria-label="Units ordered per week, PL and UK"></div>
+          <div class="bar-labels" id="weeklyLabels"></div>
+        </div>
+        <div class="section">
+          <div class="section-head"><h3>Stock value by category</h3></div>
+          <div id="categoryBars"><div class="empty-note">Loading…</div></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="section">
+          <div class="section-head"><h3>Running low</h3><a href="manage-stock.html">Manage stock</a></div>
+          <div class="table-wrap">
+            <table id="lowTable">
+              <thead><tr><th>Product</th><th>Category</th><th class="num">Main</th><th class="num">PL</th><th class="num">UK</th></tr></thead>
+              <tbody><tr><td colspan="5" class="muted">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-head"><h3>Latest orders</h3><a href="order-history.html">All orders</a></div>
+          <div class="table-wrap">
+            <table id="latestTable">
+              <thead><tr><th>Order</th><th>Region</th><th class="num">Units</th><th>Placed</th><th>Status</th></tr></thead>
+              <tbody><tr><td colspan="5" class="muted">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -116,34 +130,207 @@
       ]);
     }
 
-    async function loadDashboardData() {
-      const { data: stocks, error: stockErr } = await sb
-        .from('stock')
-        .select('qty');
-      if (!stockErr && Array.isArray(stocks)) {
-        const total = stocks.reduce((sum, r) => sum + (r.qty || 0), 0);
-        document.getElementById('stockCount').textContent =
-          `💼 ${total.toLocaleString()} units in stock`;
-      } else {
-        document.getElementById('stockCount').textContent = '💼 —';
-      }
+    /* ---------- dashboard (read-only: this page never changes stock or orders) ---------- */
+    const LOW_LIMIT = 50;      // a product is "low" when Main + PL + UK is below this
+    const WEEKS = 12;          // weeks shown in the chart
+    const PAGE = 1000;         // Supabase returns at most 1000 rows per request
 
-      const weekAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString();
-      const { data: orders, error: orderErr } = await sb
+    const $ = id => document.getElementById(id);
+    const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const num = v => Number(v || 0).toLocaleString('en-GB');
+    const pln = v => new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN', maximumFractionDigits: 0 }).format(v || 0);
+    const shortDate = d => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+    // Reads a whole table (or a filtered part of it) page by page.
+    async function fetchAll(table, columns, filter) {
+      let rows = [];
+      for (let from = 0; from < 100000; from += PAGE) {
+        let q = sb.from(table).select(columns);
+        if (filter) q = filter(q);
+        const { data, error } = await q.order('id', { ascending: true }).range(from, from + PAGE - 1);
+        if (error) throw error;
+        rows = rows.concat(data || []);
+        if (!data || data.length < PAGE) break;
+      }
+      return rows;
+    }
+
+    function loadDashboardData() {
+      $('todayLabel').textContent = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      $('lowLimit').textContent = LOW_LIMIT;
+      loadStock().catch(e => { console.error('Stock load error:', e); showStockError(); });
+      loadPending().catch(e => { console.error('Pending load error:', e); $('orderCount').textContent = '—'; $('orderSplit').textContent = 'Could not load orders'; });
+      loadWeekly().catch(e => { console.error('Weekly load error:', e); $('weeklyNote').textContent = 'Could not load orders'; });
+      loadLatest().catch(e => { console.error('Latest load error:', e); setRows('latestTable', 5, 'Could not load orders'); });
+    }
+
+    function setRows(tableId, cols, message) {
+      document.querySelector('#' + tableId + ' tbody').innerHTML = `<tr><td colspan="${cols}" class="muted">${esc(message)}</td></tr>`;
+    }
+
+    function showStockError() {
+      ['stockCount', 'stockValue', 'lowCount'].forEach(id => { $(id).textContent = '—'; });
+      $('stockSplit').textContent = 'Could not load stock';
+      $('stockProfit').textContent = '';
+      $('categoryBars').innerHTML = '<div class="empty-note">Could not load stock</div>';
+      setRows('lowTable', 5, 'Could not load stock');
+    }
+
+    async function loadStock() {
+      const [main, pl, uk] = await Promise.all([
+        fetchAll('stock', 'id,sku,name,category,qty,cost_usd,sell_pln'),
+        fetchAll('pl_stock', 'id,sku,qty'),
+        fetchAll('uk_stock', 'id,sku,qty')
+      ]);
+      const bySku = rows => {
+        const map = {};
+        rows.forEach(r => { if (r.sku) map[r.sku] = (map[r.sku] || 0) + (+r.qty || 0); });
+        return map;
+      };
+      const sum = rows => rows.reduce((t, r) => t + (+r.qty || 0), 0);
+      const plQty = bySku(pl), ukQty = bySku(uk);
+      const mainUnits = sum(main), plUnits = sum(pl), ukUnits = sum(uk);
+
+      $('stockCount').textContent = num(mainUnits + plUnits + ukUnits);
+      $('stockSplit').textContent = `Main ${num(mainUnits)} · PL ${num(plUnits)} · UK ${num(ukUnits)}`;
+
+      const products = main.map(r => {
+        const m = +r.qty || 0, p = plQty[r.sku] || 0, u = ukQty[r.sku] || 0;
+        return { name: r.name || '', category: r.category || 'Uncategorised', main: m, pl: p, uk: u, total: m + p + u,
+                 sell: +r.sell_pln || 0, cost: +r.cost_usd || 0 };
+      });
+
+      // Stock value at selling prices, all three warehouses
+      const value = products.reduce((t, p) => t + p.total * p.sell, 0);
+      $('stockValue').textContent = pln(value);
+      $('stockProfit').textContent = 'Main + PL + UK';
+      loadProfit(products, value);
+
+      // Value by category
+      const cats = {};
+      products.forEach(p => { cats[p.category] = (cats[p.category] || 0) + p.total * p.sell; });
+      const catList = Object.entries(cats).sort((a, b) => b[1] - a[1]);
+      const top = catList.length ? catList[0][1] : 0;
+      $('categoryBars').innerHTML = catList.length
+        ? catList.map(([name, v]) => `
+            <div class="hbar-row">
+              <div>${esc(name)}</div>
+              <div class="hbar-track"><div class="hbar-fill" style="width:${top > 0 ? Math.max(1, Math.round(v / top * 100)) : 0}%"></div></div>
+              <div class="hbar-value">${esc(pln(v))}</div>
+            </div>`).join('')
+        : '<div class="empty-note">No products yet</div>';
+
+      // Running low
+      const low = products.filter(p => p.total < LOW_LIMIT).sort((a, b) => a.total - b.total);
+      $('lowCount').textContent = low.length === 1 ? '1 product' : num(low.length) + ' products';
+      $('lowCount').classList.toggle('is-alert', low.length > 0);
+      const shown = low.slice(0, 8);
+      document.querySelector('#lowTable tbody').innerHTML = shown.length
+        ? shown.map(p => `<tr><td>${esc(p.name)}</td><td class="muted">${esc(p.category)}</td><td class="num">${num(p.main)}</td><td class="num">${num(p.pl)}</td><td class="num">${num(p.uk)}</td></tr>`).join('')
+          + (low.length > shown.length ? `<tr><td colspan="5" class="muted">and ${num(low.length - shown.length)} more</td></tr>` : '')
+        : '<tr><td colspan="5" class="muted">Nothing is running low</td></tr>';
+    }
+
+    // Expected profit needs today's USD → PLN rate (same source the Report page uses).
+    async function loadProfit(products, value) {
+      try {
+        const res = await fetch('https://open.er-api.com/v6/latest/USD');
+        const json = await res.json();
+        const rate = json && json.result === 'success' && json.rates ? +json.rates.PLN : 0;
+        if (!rate) return;
+        const cost = products.reduce((t, p) => t + p.total * p.cost * rate, 0);
+        $('stockProfit').textContent = `Main + PL + UK · expected profit ${pln(value - cost)}`;
+      } catch (e) { /* no rate available: the value line stays as it is */ }
+    }
+
+    async function loadPending() {
+      const rows = await fetchAll('orders', 'id,order_group_id,region,created_at', q => q.eq('status', 'Pending'));
+      const groups = {};
+      rows.forEach(o => {
+        const key = o.order_group_id || String(o.id);
+        if (!groups[key]) groups[key] = { region: o.region, first: new Date(o.created_at) };
+        const d = new Date(o.created_at);
+        if (d < groups[key].first) groups[key].first = d;
+      });
+      const list = Object.values(groups);
+      $('orderCount').textContent = num(list.length);
+      if (!list.length) { $('orderSplit').textContent = 'Nothing waiting'; return; }
+      const count = r => list.filter(g => g.region === r).length;
+      const oldest = Math.min(...list.map(g => g.first.getTime()));
+      const days = Math.max(0, Math.floor((Date.now() - oldest) / 86400000));
+      const age = days === 0 ? 'oldest from today' : days === 1 ? 'oldest 1 day' : `oldest ${days} days`;
+      $('orderSplit').textContent = `PL ${count('PL')} · UK ${count('UK')} · ${age}`;
+    }
+
+    function weekStart(d) {
+      const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      x.setDate(x.getDate() - ((x.getDay() + 6) % 7));   // back to Monday
+      return x;
+    }
+
+    async function loadWeekly() {
+      const first = weekStart(new Date());
+      first.setDate(first.getDate() - 7 * (WEEKS - 1));
+      const rows = await fetchAll('orders', 'id,qty,region,created_at', q => q.gte('created_at', first.toISOString()));
+
+      const weeks = [];
+      for (let i = 0; i < WEEKS; i++) {
+        const start = new Date(first.getFullYear(), first.getMonth(), first.getDate() + 7 * i);
+        weeks.push({ start, PL: 0, UK: 0 });
+      }
+      rows.forEach(o => {
+        const idx = Math.round((weekStart(new Date(o.created_at)) - first) / (7 * 86400000));
+        if (idx >= 0 && idx < WEEKS && (o.region === 'PL' || o.region === 'UK')) weeks[idx][o.region] += (+o.qty || 0);
+      });
+
+      const max = Math.max(1, ...weeks.map(w => Math.max(w.PL, w.UK)));
+      const pct = v => v > 0 ? Math.max(1, Math.round(v / max * 100)) : 0;
+      $('weeklyBars').innerHTML = weeks.map(w => {
+        const label = 'Week of ' + shortDate(w.start);
+        return `<div class="week">
+            <div class="bar bar-pl" style="height:${pct(w.PL)}%" title="${esc(label)} · PL ${num(w.PL)} units"></div>
+            <div class="bar bar-uk" style="height:${pct(w.UK)}%" title="${esc(label)} · UK ${num(w.UK)} units"></div>
+          </div>`;
+      }).join('');
+      // day number under each week; the month name only where a new month starts
+      $('weeklyLabels').innerHTML = weeks.map((w, i) => {
+        const newMonth = i === 0 || w.start.getMonth() !== weeks[i - 1].start.getMonth();
+        const month = newMonth ? w.start.toLocaleDateString('en-GB', { month: 'short' }) : '';
+        return `<span>${w.start.getDate()}<small>${esc(month)}</small></span>`;
+      }).join('');
+      const total = weeks.reduce((t, w) => t + w.PL + w.UK, 0);
+      $('weeklyNote').textContent = total
+        ? `Last ${WEEKS} weeks · ${num(total)} units in total. Hover a bar for exact numbers.`
+        : `No orders in the last ${WEEKS} weeks`;
+    }
+
+    async function loadLatest() {
+      const LIMIT = 300;
+      const { data, error } = await sb
         .from('orders')
-        .select('order_group_id, id')
-        .eq('status', 'Pending')
-        .gte('created_at', weekAgo);
-
-      if (!orderErr && Array.isArray(orders)) {
-        const groups = new Set(
-          orders.map(o => o.order_group_id || String(o.id))
-        );
-        document.getElementById('orderCount').textContent =
-          `📄 ${groups.size.toLocaleString()} new orders`;
-      } else {
-        document.getElementById('orderCount').textContent = '📄 —';
-      }
+        .select('order_group_id,id,region,qty,status,created_at')
+        .order('created_at', { ascending: false })
+        .limit(LIMIT);
+      if (error) throw error;
+      const groups = [], index = {};
+      (data || []).forEach(o => {
+        const key = o.order_group_id || String(o.id);
+        if (!(key in index)) { index[key] = groups.length; groups.push({ key, region: o.region, units: 0, first: o.created_at, fulfilled: true }); }
+        const g = groups[index[key]];
+        g.units += (+o.qty || 0);
+        if (o.status !== 'Fulfilled') g.fulfilled = false;
+        if (new Date(o.created_at) < new Date(g.first)) g.first = o.created_at;
+      });
+      // the oldest group in the batch may be cut off, so leave it out when the batch is full
+      if ((data || []).length === LIMIT && groups.length > 1) groups.pop();
+      const shown = groups.slice(0, 6);
+      if (!shown.length) { setRows('latestTable', 5, 'No orders yet'); return; }
+      document.querySelector('#latestTable tbody').innerHTML = shown.map(g => {
+        const d = new Date(g.first);
+        const when = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ', ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        const status = g.fulfilled ? 'Fulfilled' : 'Pending';
+        return `<tr><td>#${esc(String(g.key).slice(0, 8))}</td><td>${esc(g.region || '')}</td><td class="num">${num(g.units)}</td><td class="muted">${esc(when)}</td><td><span class="pill pill-${status.toLowerCase()}">${status}</span></td></tr>`;
+      }).join('');
     }
 
     async function logout() {

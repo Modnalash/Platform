@@ -5,25 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PL Local Stock</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <style>
-    body { margin:0; font-family:Segoe UI,sans-serif; background:#0d1b2a; color:#fff; }
-    header { display:flex; justify-content:space-between; align-items:center; padding:1rem 2rem; background:#112d4e; }
-    header h1 { margin:0; font-size:1.5rem; }
-    .back-btn, .logout-btn { background:#f44336; border:none; color:#fff; padding:0.5rem 1rem; border-radius:5px; cursor:pointer; }
-    .container { padding:2rem; }
-    .controls { display:flex; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem; }
-    .controls input, .controls select, .controls button { padding:0.5rem 1rem; border:none; border-radius:4px; font-size:1rem; }
-    table { width:100%; border-collapse:collapse; background:#1b263b; margin-bottom:1.5rem; }
-    th, td { padding:0.75rem 1rem; border:1px solid #2b3a50; text-align:left; }
-    th { background:#112d4e; }
-    tr.low-stock { background: rgba(255, 0, 0, 0.1); }
-    .actions button { background:#3fbc5f; border:none; color:#0d1b2a; padding:0.5rem 1rem; border-radius:4px; cursor:pointer; }
-    .actions button:hover { background:#2c9e4c; }
-    .export-btn { background:#f9c74f; color:#222; font-weight:bold; }
-    .export-btn:hover { background:#f9844a; }
-  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css?v=1">
 </head>
-<body>
+<body class="app shell-top">
   <header>
     <button class="back-btn" onclick="location.href='dashboard-pluser.html'">← Back</button>
     <h1>PL Local Stock</h1>
@@ -37,6 +23,7 @@
       <button class="export-btn" onclick="exportPLStock()">Export to CSV</button>
     </div>
 
+    <div class="table-wrap">
     <table id="localStockTable">
       <thead>
         <tr>
@@ -50,6 +37,7 @@
       </thead>
       <tbody></tbody>
     </table>
+    </div>
   </div>
 
   <script>

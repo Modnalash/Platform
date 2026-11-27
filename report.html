@@ -6,43 +6,22 @@
   <title>Inventory Report</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <style>
-    body { margin:0; font-family:Inter,sans-serif; background:#0b1c2c; color:#fff; position:relative; }
-    .container { max-width:1200px; margin:0 auto; padding:2rem; }
-    .back-btn { background:#1e3d5e; color:#fff; padding:8px 12px; border-radius:6px; text-decoration:none; display:inline-block; margin-bottom:1rem; }
-    .back-btn:hover { background:#285a87; }
-    h1 { margin-top:0; }
-    .controls { display:flex; gap:1rem; flex-wrap:wrap; align-items:center; margin-bottom:1rem; }
-    .controls select, .controls input { font-size:1rem; padding:8px; border:0; border-radius:6px; background:#fff; color:#000; }
-
-    /* Top-right summary boxes */
-    #summaryContainer { position:absolute; top:1.5rem; right:1.5rem; display:flex; gap:1rem; }
-    .summaryBox { background:#112b44; border:1px solid #1e3d5e; padding:1rem; border-radius:8px; width:160px; }
-    .summary-title { font-weight:bold; margin-bottom:.5rem; font-size:1rem; text-align:left; }
-    .summaryBox table { width:100%; border-collapse:collapse; }
-    .summaryBox td, .summaryBox th { padding:4px 8px; }
-
-    /* Table styling */
-    table { width:100%; border-collapse:collapse; background:#15273a; border-radius:8px; overflow:hidden; }
-    th, td { padding:8px 12px; border-bottom:1px solid #1e3d5e; font-size:.9rem; }
-    th { background:#112b44; text-align:left; }
-    .numeric { text-align:right; }
-    tr.low-stock td:first-child::after { content:" ⚠️"; color:#f9c74f; margin-left:4px; }
-
-    /* Pagination */
-    #paginationControls { text-align:center; margin:1rem 0; }
-    #paginationControls button { margin:0 0.5rem; padding:6px 12px; font-size:1rem; border:none; border-radius:6px; background:#1e3d5e; color:#fff; cursor:pointer; }
-    #paginationControls button:disabled { background:#4a637a; cursor:default; }
-    #paginationControls span { font-size:1rem; }
-
-    /* Chart styling */
-    canvas { margin-top:2rem; background:#fff; border-radius:8px; padding:1rem; }
-  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css?v=1">
 </head>
-<body>
+<body class="app shell-side">
   <div class="container">
-    <a href="dashboard-admin.html" class="back-btn">⬅ Back to Dashboard</a>
-    <h1>Inventory Report</h1>
+    <nav class="sidebar">
+      <div class="brand"><span class="brand-name">MODNA LASH</span><span class="brand-sub">WAREHOUSE</span></div>
+      <a href="dashboard-admin.html">Dashboard</a>
+      <a href="manage-stock.html">Manage Stock</a>
+      <a href="order-history.html">Order History</a>
+      <a href="report.html" class="active">Report</a>
+      <a href="index.html" onclick="window.__sb.auth.signOut().finally(function(){location.href='index.html'});return false;">Log out</a>
+    </nav>
+    <main class="main">
+    <div class="header">Inventory Report</div>
 
     <!-- Top-right summaries -->
     <div id="summaryContainer">
@@ -84,6 +63,7 @@
     </div>
 
     <!-- Data table -->
+    <div class="table-wrap">
     <table id="reportTable">
       <thead>
         <tr>
@@ -98,6 +78,7 @@
       </thead>
       <tbody></tbody>
     </table>
+    </div>
 
     <!-- Pagination -->
     <div id="paginationControls">
@@ -107,7 +88,11 @@
     </div>
 
     <!-- Chart -->
-    <canvas id="categoryChart" height="80"></canvas>
+    <div class="section">
+      <h3>By category</h3>
+      <canvas id="categoryChart" height="80"></canvas>
+    </div>
+    </main>
   </div>
 
   <script>

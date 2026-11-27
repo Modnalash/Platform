@@ -5,140 +5,20 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Order History</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: #0b1c2c;
-      color: #fff;
-    }
-    .container {
-      display: flex;
-      height: 100vh;
-    }
-    .sidebar {
-      width: 250px;
-      background: #112b44;
-      padding: 2rem 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-    .sidebar h2 {
-      margin: 0 0 1rem;
-      color: #7ee2f6;
-    }
-    .sidebar a {
-      color: #fff;
-      text-decoration: none;
-      padding: .75rem 1rem;
-      border-radius: 6px;
-    }
-    .sidebar a.active,
-    .sidebar a:hover {
-      background: #1e3d5e;
-    }
-    .main {
-      flex: 1;
-      padding: 2rem;
-      overflow-y: auto;
-    }
-    .header {
-      background: #1e3d5e;
-      padding: 1rem;
-      border-radius: 8px;
-      margin-bottom: 1rem;
-      text-align: center;
-      font-size: 1.5rem;
-    }
-    .order-block {
-      background: #1a2b3e;
-      border-radius: 8px;
-      padding: 1rem 1.5rem;
-      margin-bottom: 1rem;
-    }
-    .order-block.fulfilled {
-      opacity: 0.6;
-    }
-    .order-block h3 {
-      margin: 0 0 .25rem;
-      font-size: 1.25rem;
-    }
-    .order-block small {
-      color: #bbb;
-    }
-    .fulfilled-at {
-      color: #8ef8c7;
-      font-size: .98rem;
-      font-weight: 600;
-      margin-left: 1.5rem;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: .5rem;
-    }
-    th, td {
-      padding: .5rem;
-      border: 1px solid #2a3c4f;
-      text-align: left;
-    }
-    th {
-      background: #112b44;
-    }
-    .actions {
-      margin-top: 1rem;
-      text-align: right;
-    }
-    .actions button {
-      padding: .5rem .75rem;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 1rem;
-      margin-left: .5rem;
-    }
-    .btn-fulfill {
-      background: #06d6a0;
-      color: #0b1c2c;
-    }
-    .btn-fulfill[disabled] {
-      opacity: 0.6;
-      cursor: default;
-    }
-    .btn-print {
-      background: #48cae4;
-      color: #0b1c2c;
-    }
-    .btn-view {
-      background: #48cae4;
-      color: #0b1c2c;
-      border: none;
-      border-radius: 4px;
-      padding: .5rem .75rem;
-      cursor: pointer;
-      margin-top: .5rem;
-    }
-    @media print {
-      body { background: #fff; color: #000; }
-      .container, .sidebar, .actions button, .header { display: none !important; }
-      .order-block { border: none; page-break-inside: avoid; }
-      .order-block h3, .order-block small { color: #000; }
-      table, th, td { border: 1px solid #000; color: #000; }
-      .fulfilled-at { color: #19712f; }
-    }
-  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css?v=1">
 </head>
-<body>
+<body class="app shell-side">
 
 <div class="container">
   <nav class="sidebar">
-    <h2>MODNA Admin</h2>
+    <div class="brand"><span class="brand-name">MODNA LASH</span><span class="brand-sub">WAREHOUSE</span></div>
     <a href="dashboard-admin.html">Dashboard</a>
     <a href="manage-stock.html">Manage Stock</a>
     <a href="order-history.html" class="active">Order History</a>
     <a href="report.html">Report</a>
-    <a href="index.html">Logout</a>
+    <a href="index.html" onclick="window.__sb.auth.signOut().finally(function(){location.href='index.html'});return false;">Log out</a>
   </nav>
 
   <main class="main">
@@ -211,7 +91,7 @@
     container.innerHTML = '';
 
     if (error) {
-      container.innerHTML = `<p style="color:#f66">Error loading orders</p>`;
+      container.innerHTML = `<p class="error-text">Error loading orders</p>`;
       console.error('Fetch error:', error);
       return;
     }
@@ -246,7 +126,7 @@
       const fullItems    = items.slice(5);
 
       let html = `
-        <h3>Order #${gid.slice(0,8)}${allFulfilled ? ' - ✅ Fulfilled' : ''}</h3>
+        <h3>Order #${gid.slice(0,8)}${allFulfilled ? ' <span class="pill pill-fulfilled">Fulfilled</span>' : ''}</h3>
         <small><em>${dateStr}</em></small>
         ${fulfilledAt ? `<span class="fulfilled-at">Fulfilled at: ${fulfilledAt}</span>` : ''}
         <table>
@@ -262,7 +142,7 @@
                    <td>${i.category}</td>
                    <td>${i.qty}</td>
                    <td>${i.region}</td>
-                   <td>${i.status}</td>
+                   <td><span class="pill pill-${String(i.status).toLowerCase()}">${i.status}</span></td>
                  </tr>`;
       });
       html += `</tbody>`;
@@ -276,7 +156,7 @@
                      <td>${i.category}</td>
                      <td>${i.qty}</td>
                      <td>${i.region}</td>
-                     <td>${i.status}</td>
+                     <td><span class="pill pill-${String(i.status).toLowerCase()}">${i.status}</span></td>
                    </tr>`;
         });
         html += `</tbody>`;
@@ -292,10 +172,10 @@
         <div class="actions">
           <button class="btn-fulfill" ${allFulfilled ? 'disabled' : ''}
                   onclick="fulfillGroup('${gid}')">
-            ✔ ${allFulfilled ? 'Done' : 'Fulfill'}
+            ${allFulfilled ? 'Done' : 'Fulfill'}
           </button>
           <button class="btn-print" onclick="printGroup('${gid}')">
-            🖨 Print
+            Print
           </button>
         </div>
       `;
