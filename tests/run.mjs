@@ -137,10 +137,10 @@ for (const [file, role] of PAGES) {
   const { ctx, page, errors } = await open('dashboard-admin.html', 'admin');
   const db = makeDb();
   const sum = t => t.reduce((a, r) => a + r.qty, 0);
-  const units = sum(db.stock) + sum(db.pl_stock) + sum(db.uk_stock);
+  const units = sum(db.stock) + sum(db.pl_stock);          // UK stock is left out on purpose
   const by = t => Object.fromEntries(t.map(r => [r.sku, r.qty]));
   const pl = by(db.pl_stock), uk = by(db.uk_stock);
-  const tot = r => r.qty + (pl[r.sku] || 0) + (uk[r.sku] || 0);
+  const tot = r => r.qty + (pl[r.sku] || 0);
   const value = db.stock.reduce((a, r) => a + tot(r) * r.sell_pln, 0);
   const cost = db.stock.reduce((a, r) => a + tot(r) * r.cost_usd * 4, 0);
   const low = db.stock.filter(r => tot(r) < 50).length;
@@ -163,6 +163,12 @@ for (const [file, role] of PAGES) {
   check('dashboard: category bars incl. Christmas Collection', (await page.textContent('#categoryBars')).includes('Christmas Collection'));
   check('dashboard: latest orders rows', (await page.$$('#latestTable tbody tr')).length === 6);
   check('dashboard: product names are escaped', (await page.$$('#lowTable tbody b')).length === 0);
+  check('dashboard: UK stock is not shown or counted', !(await txt('stockSplit')).includes('UK') && (await page.$$('#lowTable thead th')).length === 4 && (await page.$$('#lowTable tbody tr:first-child td')).length === 4);
+  // the dashboard and the Report page must agree on stock value
+  const rep = await open('report.html', 'admin');
+  const repValue = digits((await rep.page.textContent('#sumPln')).split(',')[0]);
+  check('dashboard: stock value equals the Report page', repValue === String(Math.round(value)), `report ${repValue} vs dashboard ${Math.round(value)}`);
+  await rep.ctx.close();
   const writes = await page.evaluate(() => window.__WRITES);
   check('dashboard: only write is the Login audit entry', writes.length === 1 && writes[0].table === 'audit_log', JSON.stringify(writes).slice(0, 200));
   check('dashboard: no errors', errors.length === 0, errors.join('|'));

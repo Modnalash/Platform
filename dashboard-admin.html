@@ -46,7 +46,7 @@
         <div class="kpi">
           <div class="kpi-label">Low stock</div>
           <div class="kpi-value" id="lowCount">…</div>
-          <div class="kpi-sub">Below <span id="lowLimit">50</span> units in total</div>
+          <div class="kpi-sub">Below <span id="lowLimit">50</span> units (<span id="lowScope">Main + PL</span>)</div>
         </div>
       </div>
 
@@ -71,7 +71,7 @@
           <div class="section-head"><h3>Running low</h3><a href="manage-stock.html">Manage stock</a></div>
           <div class="table-wrap">
             <table id="lowTable">
-              <thead><tr><th>Product</th><th>Category</th><th class="num">Main</th><th class="num">PL</th><th class="num">UK</th></tr></thead>
+              <thead><tr><th>Product</th><th>Category</th><th class="num">Main</th><th class="num">PL</th><th class="num" id="ukHead">UK</th></tr></thead>
               <tbody><tr><td colspan="5" class="muted">Loading…</td></tr></tbody>
             </table>
           </div>
@@ -131,7 +131,11 @@
     }
 
     /* ---------- dashboard (read-only: this page never changes stock or orders) ---------- */
-    const LOW_LIMIT = 50;      // a product is "low" when Main + PL + UK is below this
+    // The UK stock table is not kept up to date yet, so it is left out of every stock number here
+    // (the Report page leaves it out too). Set to true once UK stock is maintained.
+    const INCLUDE_UK = false;
+    const SCOPE = INCLUDE_UK ? 'Main + PL + UK' : 'Main + PL';
+    const LOW_LIMIT = 50;      // a product is "low" when its total across the counted warehouses is below this
     const WEEKS = 12;          // weeks shown in the chart
     const PAGE = 1000;         // Supabase returns at most 1000 rows per request
 
@@ -158,6 +162,8 @@
     function loadDashboardData() {
       $('todayLabel').textContent = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
       $('lowLimit').textContent = LOW_LIMIT;
+      $('lowScope').textContent = SCOPE;
+      if (!INCLUDE_UK && $('ukHead')) $('ukHead').remove();
       loadStock().catch(e => { console.error('Stock load error:', e); showStockError(); });
       loadPending().catch(e => { console.error('Pending load error:', e); $('orderCount').textContent = '—'; $('orderSplit').textContent = 'Could not load orders'; });
       loadWeekly().catch(e => { console.error('Weekly load error:', e); $('weeklyNote').textContent = 'Could not load orders'; });
@@ -180,7 +186,7 @@
       const [main, pl, uk] = await Promise.all([
         fetchAll('stock', 'id,sku,name,category,qty,cost_usd,sell_pln'),
         fetchAll('pl_stock', 'id,sku,qty'),
-        fetchAll('uk_stock', 'id,sku,qty')
+        INCLUDE_UK ? fetchAll('uk_stock', 'id,sku,qty') : Promise.resolve([])
       ]);
       const bySku = rows => {
         const map = {};
@@ -192,7 +198,7 @@
       const mainUnits = sum(main), plUnits = sum(pl), ukUnits = sum(uk);
 
       $('stockCount').textContent = num(mainUnits + plUnits + ukUnits);
-      $('stockSplit').textContent = `Main ${num(mainUnits)} · PL ${num(plUnits)} · UK ${num(ukUnits)}`;
+      $('stockSplit').textContent = `Main ${num(mainUnits)} · PL ${num(plUnits)}` + (INCLUDE_UK ? ` · UK ${num(ukUnits)}` : '');
 
       const products = main.map(r => {
         const m = +r.qty || 0, p = plQty[r.sku] || 0, u = ukQty[r.sku] || 0;
@@ -200,10 +206,10 @@
                  sell: +r.sell_pln || 0, cost: +r.cost_usd || 0 };
       });
 
-      // Stock value at selling prices, all three warehouses
+      // Stock value at selling prices, for the counted warehouses
       const value = products.reduce((t, p) => t + p.total * p.sell, 0);
       $('stockValue').textContent = pln(value);
-      $('stockProfit').textContent = 'Main + PL + UK';
+      $('stockProfit').textContent = SCOPE;
       loadProfit(products, value);
 
       // Value by category
@@ -226,7 +232,7 @@
       $('lowCount').classList.toggle('is-alert', low.length > 0);
       const shown = low.slice(0, 8);
       document.querySelector('#lowTable tbody').innerHTML = shown.length
-        ? shown.map(p => `<tr><td>${esc(p.name)}</td><td class="muted">${esc(p.category)}</td><td class="num">${num(p.main)}</td><td class="num">${num(p.pl)}</td><td class="num">${num(p.uk)}</td></tr>`).join('')
+        ? shown.map(p => `<tr><td>${esc(p.name)}</td><td class="muted">${esc(p.category)}</td><td class="num">${num(p.main)}</td><td class="num">${num(p.pl)}</td>${INCLUDE_UK ? `<td class="num">${num(p.uk)}</td>` : ''}</tr>`).join('')
           + (low.length > shown.length ? `<tr><td colspan="5" class="muted">and ${num(low.length - shown.length)} more</td></tr>` : '')
         : '<tr><td colspan="5" class="muted">Nothing is running low</td></tr>';
     }
@@ -239,7 +245,7 @@
         const rate = json && json.result === 'success' && json.rates ? +json.rates.PLN : 0;
         if (!rate) return;
         const cost = products.reduce((t, p) => t + p.total * p.cost * rate, 0);
-        $('stockProfit').textContent = `Main + PL + UK · expected profit ${pln(value - cost)}`;
+        $('stockProfit').textContent = `${SCOPE} · expected profit ${pln(value - cost)}`;
       } catch (e) { /* no rate available: the value line stays as it is */ }
     }
 
